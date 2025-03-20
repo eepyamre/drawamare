@@ -3,8 +3,9 @@ import { useEffect, useCallback, useRef, useContext } from 'preact/hooks';
 import { LayerMenu } from '@/components';
 import { Layer } from '@/state';
 import { LayersState } from '@/index';
-import { effect } from '@preact/signals';
 import css from './styles.module.scss';
+
+const MAX_HISTORY = 100;
 
 export const Home = () => {
   const { layers, activeLayerId } = useContext(LayersState);
@@ -50,16 +51,16 @@ export const Home = () => {
     layers.value.forEach((l) => {
       if (l.id === layer.id) {
         const newStack = [
-          ...l.historyStack.slice(0, l.historyIndex + 1),
+          ...l.historyStack.slice(-MAX_HISTORY, l.historyIndex + 1),
           imageData,
         ];
-        l.historyIndex += 1;
+        l.historyIndex = newStack.length - 1;
         l.historyStack = newStack;
       }
     });
   };
 
-  const redrawFromHistory = (_layer: Layer, index?: number) => {
+  const redrawFromHistory = (_layer: Layer) => {
     const layer = _layer ?? getCurrentLayer();
     const canvas = layer.canvasEl;
     const ctx = layer.context;
@@ -81,7 +82,7 @@ export const Home = () => {
       layers.value.forEach((l) => {
         if (l.id === currentLayer.id) {
           l.historyIndex -= 1;
-          redrawFromHistory(l, l.historyIndex);
+          redrawFromHistory(l);
         }
       });
     } else {
@@ -96,7 +97,7 @@ export const Home = () => {
       layers.value.forEach((l) => {
         if (l.id === currentLayer.id) {
           l.historyIndex += 1;
-          redrawFromHistory(l, l.historyIndex);
+          redrawFromHistory(l);
         }
       });
     } else {
@@ -138,37 +139,82 @@ export const Home = () => {
     if (layer.historyStack.length === 0) {
       saveToHistory();
     }
+  };
+
+  useEffect(() => {
+    const layer = createLayer('Layer 1');
+    layers.value.push(layer);
+    setActiveLayerIdWrapper(layer.id);
+    initCanvas(layer);
+    console.log('Initial layer created');
+  }, []);
+
+  useEffect(() => {
+    if (!canvasAreaRef.current) return;
 
     let isDrawing = false;
     let lastX = 0;
     let lastY = 0;
+    let ctx: CanvasRenderingContext2D | null = null;
+    let animationFrameId: number | null = null;
+    const pendingPoints: Array<[number, number]> = [];
 
     const startDrawing = (e: MouseEvent) => {
-      if (activeLayerId.value !== layer.id) return;
+      const currentLayer = getCurrentLayer();
+      if (!currentLayer || activeLayerId.value !== currentLayer.id) return;
+
       isDrawing = true;
+      ctx = currentLayer.context;
       [lastX, lastY] = [e.offsetX, e.offsetY];
+      pendingPoints.push([lastX, lastY]);
     };
 
-    const draw = (e: MouseEvent) => {
-      if (activeLayerId.value !== layer.id) return;
-      if (!isDrawing) return;
+    const queueDraw = (e: MouseEvent) => {
+      if (!isDrawing || !ctx) return;
+      pendingPoints.push([e.offsetX, e.offsetY]);
+
+      if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(drawFrame);
+      }
+    };
+
+    const drawFrame = () => {
+      if (!ctx || pendingPoints.length < 2) {
+        animationFrameId = null;
+        return;
+      }
+
       ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.moveTo(pendingPoints[0][0], pendingPoints[0][1]);
+
+      // Draw all pending points
+      for (let i = 1; i < pendingPoints.length; i++) {
+        ctx.lineTo(pendingPoints[i][0], pendingPoints[i][1]);
+        [lastX, lastY] = pendingPoints[i];
+      }
+
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 2;
       ctx.stroke();
-      [lastX, lastY] = [e.offsetX, e.offsetY];
+
+      // Keep only the last point for the next frame
+      pendingPoints.splice(0, pendingPoints.length - 1);
+      animationFrameId = null;
     };
 
     const endDrawing = () => {
-      if (activeLayerId.value !== layer.id) return;
+      if (!isDrawing) return;
       isDrawing = false;
+      pendingPoints.length = 0;
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
       saveToHistory();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (activeLayerId.value !== layer.id) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
@@ -179,20 +225,29 @@ export const Home = () => {
       }
     };
 
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', endDrawing);
-    canvas.addEventListener('mouseout', endDrawing);
+    // Event listeners
+    canvasAreaRef.current.addEventListener('mousedown', startDrawing);
+    canvasAreaRef.current.addEventListener('mousemove', queueDraw);
+    canvasAreaRef.current.addEventListener('mouseup', endDrawing);
+    canvasAreaRef.current.addEventListener('mouseout', endDrawing);
     window.addEventListener('keydown', handleKeyDown);
-  };
 
-  useEffect(() => {
-    const layer = createLayer('Layer 1');
-    layers.value.push(layer);
-    setActiveLayerIdWrapper(layer.id);
-    initCanvas(layer);
-    console.log('Initial layer created');
-  }, []);
+    return () => {
+      // Cleanup event listeners
+      if (canvasAreaRef.current) {
+        canvasAreaRef.current.removeEventListener('mousedown', startDrawing);
+        canvasAreaRef.current.removeEventListener('mousemove', queueDraw);
+        canvasAreaRef.current.removeEventListener('mouseup', endDrawing);
+        canvasAreaRef.current.removeEventListener('mouseout', endDrawing);
+      }
+      window.removeEventListener('keydown', handleKeyDown);
+
+      // Cancel any pending animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [canvasAreaRef, activeLayerId.value, layers.value]);
 
   return (
     <div class={css.homeContainer}>
