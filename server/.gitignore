@@ -1,0 +1,13 @@
+node_modules/
+dist/
+package-lock.json
+.npmrc
+.env
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+.idea/
+.vscode/
+.env
