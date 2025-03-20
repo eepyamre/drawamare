@@ -1,0 +1,27 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.0.1",
+    "preact": "^10.22.1",
+    "preact-iso": "^2.9.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.9.0",
+    "@types/node": "^22.13.10",
+    "eslint": "^8.57.1",
+    "eslint-config-preact": "^1.5.0",
+    "sass-embedded": "^1.86.0",
+    "typescript": "^5.8.2",
+    "vite": "^5.3.3"
+  },
+  "eslintConfig": {
+    "extends": "preact"
+  }
+}

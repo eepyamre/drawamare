@@ -1,0 +1,41 @@
+:root {
+  // variables
+  --primary-color: #673ab8;
+  --secondary-color: #9c27b0;
+  --accent-color: #ff5722;
+  --text-color: #222;
+  --bg-color: #eee;
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--text-color);
+  background-color: var(--bg-color);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: auto;
+  display: flex;
+  margin: 0 auto;
+  text-align: center;
+  height: 100%;
+}

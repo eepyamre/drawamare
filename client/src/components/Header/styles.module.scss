@@ -1,0 +1,23 @@
+.wrapper {
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--primary-color);
+}
+
+.wrapper nav {
+  display: flex;
+}
+
+.wrapper a {
+  color: #fff;
+  padding: 0.75rem;
+  text-decoration: none;
+}
+
+.wrapper a.active {
+  background-color: #0005;
+}
+
+.wrapper a:hover {
+  background-color: #0008;
+}
