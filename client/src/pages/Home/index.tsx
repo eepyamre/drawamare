@@ -1,263 +1,194 @@
-import { v4 as uuidv4 } from 'uuid';
-import { useEffect, useCallback, useRef, useContext } from 'preact/hooks';
-import { LayerMenu } from '@/components';
-import { Layer } from '@/state';
-import { LayersState } from '@/index';
+import { useState, useEffect, useRef } from 'preact/compat';
+import io from 'socket.io-client';
+import Konva from 'konva';
+import { Stroke, StrokeEvent } from '@/types';
 import css from './styles.module.scss';
 
-const MAX_HISTORY = 100;
+const socket = io('http://localhost:3000');
 
 export const Home = () => {
-  const { layers, activeLayerId } = useContext(LayersState);
-  const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState<Konva.Stage | null>();
+  const [userId, setUserId] = useState<string | null>();
 
-  const createLayer = (name: string): Layer => {
-    const canvas = document.createElement('canvas');
-    canvas.classList.add(css.drawingCanvas);
-    canvasAreaRef.current?.append(canvas);
+  const [userLayers, setUserLayers] = useState<{
+    [userId: string]: Konva.Layer;
+  }>({});
 
-    return {
-      id: uuidv4(),
-      name: name,
-      canvasEl: canvas,
-      context: null,
-      historyStack: [],
-      historyIndex: 0,
+  const undoHistory = useRef<Konva.Line[]>([]);
+
+  useEffect(() => {
+    const stage = new Konva.Stage({
+      container: 'canvas-container', // Matches the div ID
+      width: 800,
+      height: 600,
+    });
+
+    setStage(stage);
+
+    socket.on('connect', () => {
+      setUserId(socket.id);
+
+      // Initialize user's own layer
+      const myLayer = new Konva.Layer();
+      stage.add(myLayer);
+      setUserLayers((prev) => ({ ...prev, [socket.id]: myLayer }));
+
+      undoHistory.current[socket.id] = [];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!stage) return;
+
+    // Handle new strokes from others
+    const handleNewStroke = (data: StrokeEvent) => {
+      const { userId, stroke } = data;
+      const layer = userLayers[userId] || addNewUserLayer(userId);
+      const line = new Konva.Line({
+        points: stroke.points,
+        stroke: stroke.stroke,
+        strokeWidth: stroke.thickness,
+      });
+
+      layer.add(line);
     };
-  };
 
-  const setActiveLayerIdWrapper = (layerId: string) => {
-    activeLayerId.value = layerId;
-    layers.value.forEach((layer) => {
-      if (layer.id === layerId) {
-        layer.canvasEl.classList.add(css.active);
-      } else {
-        layer.canvasEl.classList.remove(css.active);
+    const handleStrokeRemoved = (data: { userId: string }) => {
+      const { userId } = data;
+      const layer = userLayers[userId];
+
+      if (!layer) return;
+
+      const lines = layer.find('Line') as Konva.Line[];
+      if (lines.length > 0) {
+        const lastLine = lines[lines.length - 1];
+        lastLine.remove();
       }
-    });
+    };
+
+    socket.on('newStroke', handleNewStroke);
+
+    socket.on('strokeRemoved', handleStrokeRemoved);
+
+    // Cleanup
+    return () => {
+      socket.off('newStroke', handleNewStroke);
+    };
+  }, [stage, userLayers]);
+
+  const addNewUserLayer = (userId: string) => {
+    const newLayer = new Konva.Layer();
+    stage.add(newLayer);
+    setUserLayers((prev) => ({ ...prev, [userId]: newLayer }));
+    return newLayer;
   };
 
-  const getCurrentLayer = () => {
-    return layers.value.find((l) => l.id === activeLayerId.value);
-  };
-
-  const saveToHistory = () => {
-    const layer = getCurrentLayer();
-    const canvas = layer.canvasEl;
-    const ctx = layer.context;
-
-    if (!canvas || !ctx) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    layers.value.forEach((l) => {
-      if (l.id === layer.id) {
-        const newStack = [
-          ...l.historyStack.slice(-MAX_HISTORY, l.historyIndex + 1),
-          imageData,
-        ];
-        l.historyIndex = newStack.length - 1;
-        l.historyStack = newStack;
-      }
-    });
-  };
-
-  const redrawFromHistory = (_layer: Layer) => {
-    const layer = _layer ?? getCurrentLayer();
-    const canvas = layer.canvasEl;
-    const ctx = layer.context;
-    if (!canvas || !ctx) return;
-
-    if (layer.historyStack.length > 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const imageData = layer.historyStack[layer.historyIndex];
-      if (imageData) {
-        ctx.putImageData(imageData, 0, 0);
-      }
-    }
-  };
-
-  const undo = () => {
-    const currentLayer = getCurrentLayer();
-    if (!currentLayer) return;
-    if (currentLayer.historyIndex > 0) {
-      layers.value.forEach((l) => {
-        if (l.id === currentLayer.id) {
-          l.historyIndex -= 1;
-          redrawFromHistory(l);
-        }
-      });
-    } else {
-      console.log('No more undo steps available for layer', currentLayer.name);
-    }
-  };
-
-  const redo = () => {
-    const currentLayer = getCurrentLayer();
-    if (!currentLayer) return;
-    if (currentLayer.historyIndex < currentLayer.historyStack.length - 1) {
-      layers.value.forEach((l) => {
-        if (l.id === currentLayer.id) {
-          l.historyIndex += 1;
-          redrawFromHistory(l);
-        }
-      });
-    } else {
-      console.log('No more redo steps available for layer', currentLayer.name);
-    }
-  };
-
-  const handleLayerSelect = useCallback((layerId: string) => {
-    setActiveLayerIdWrapper(layerId);
-    console.log(`Layer selected: ${layerId}`);
-  }, []);
-
-  const handleAddLayer = useCallback(() => {
-    const newLayer = createLayer(`Layer ${layers.value.length + 1}`);
-    initCanvas(newLayer);
-    layers.value.push(newLayer);
-    setActiveLayerIdWrapper(newLayer.id);
-    console.log('Layer added');
-  }, [layers]);
-
-  const initCanvas = (layer: Layer) => {
-    const canvas = layer.canvasEl;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    layer.context = ctx;
-
-    const rect = canvas.getBoundingClientRect();
-    const cssWidth = rect.width;
-    const cssHeight = rect.height;
-    const pixelRatio = window.devicePixelRatio || 1;
-    canvas.width = cssWidth * pixelRatio;
-    canvas.height = cssHeight * pixelRatio;
-    canvas.style.width = `${cssWidth}px`;
-    canvas.style.height = `${cssHeight}px`;
-    ctx.scale(pixelRatio, pixelRatio);
-
-    if (layer.historyStack.length === 0) {
-      saveToHistory();
-    }
-  };
-
+  // Drawing logic
   useEffect(() => {
-    const layer = createLayer('Layer 1');
-    layers.value.push(layer);
-    setActiveLayerIdWrapper(layer.id);
-    initCanvas(layer);
-    console.log('Initial layer created');
-  }, []);
-
-  useEffect(() => {
-    if (!canvasAreaRef.current) return;
+    if (!stage || !userId || !userLayers[userId]) return;
+    const layer = userLayers[userId];
 
     let isDrawing = false;
-    let lastX = 0;
-    let lastY = 0;
-    let ctx: CanvasRenderingContext2D | null = null;
-    let animationFrameId: number | null = null;
-    const pendingPoints: Array<[number, number]> = [];
+    let lastLine: Konva.Line | null = null;
 
-    const startDrawing = (e: MouseEvent) => {
-      const currentLayer = getCurrentLayer();
-      if (!currentLayer || activeLayerId.value !== currentLayer.id) return;
-
+    const handleMouseDown = () => {
       isDrawing = true;
-      ctx = currentLayer.context;
-      [lastX, lastY] = [e.offsetX, e.offsetY];
-      pendingPoints.push([lastX, lastY]);
+      const pos = stage.getPointerPosition();
+      lastLine = new Konva.Line({
+        stroke: '#000',
+        thickness: 2,
+        points: [pos.x, pos.y, pos.x, pos.y],
+      });
+
+      layer.add(lastLine);
     };
 
-    const queueDraw = (e: MouseEvent) => {
-      if (!isDrawing || !ctx) return;
-      pendingPoints.push([e.offsetX, e.offsetY]);
-
-      if (!animationFrameId) {
-        animationFrameId = requestAnimationFrame(drawFrame);
-      }
-    };
-
-    const drawFrame = () => {
-      if (!ctx || pendingPoints.length < 2) {
-        animationFrameId = null;
-        return;
-      }
-
-      ctx.beginPath();
-      ctx.moveTo(pendingPoints[0][0], pendingPoints[0][1]);
-
-      // Draw all pending points
-      for (let i = 1; i < pendingPoints.length; i++) {
-        ctx.lineTo(pendingPoints[i][0], pendingPoints[i][1]);
-        [lastX, lastY] = pendingPoints[i];
-      }
-
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Keep only the last point for the next frame
-      pendingPoints.splice(0, pendingPoints.length - 1);
-      animationFrameId = null;
-    };
-
-    const endDrawing = () => {
+    const handleMouseMove = () => {
       if (!isDrawing) return;
-      isDrawing = false;
-      pendingPoints.length = 0;
-
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      saveToHistory();
+      const pos = stage.getPointerPosition();
+      const newPoints = lastLine.points().concat([pos.x, pos.y]);
+      lastLine.points(newPoints);
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
+    const handleMouseUp = () => {
+      if (!isDrawing) return;
+      const stroke: Stroke = {
+        id: crypto.randomUUID(),
+        ...lastLine.attrs,
+      };
+
+      socket.emit('drawStroke', stroke);
+      isDrawing = false;
+      lastLine = null;
+      undoHistory.current = [];
+    };
+
+    const handleKeydown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (key === 'z' && (e.ctrlKey || e.metaKey)) {
         if (e.shiftKey) {
-          redo();
+          handleRedo();
         } else {
-          undo();
+          handleUndo();
         }
       }
     };
 
-    // Event listeners
-    canvasAreaRef.current.addEventListener('mousedown', startDrawing);
-    canvasAreaRef.current.addEventListener('mousemove', queueDraw);
-    canvasAreaRef.current.addEventListener('mouseup', endDrawing);
-    canvasAreaRef.current.addEventListener('mouseout', endDrawing);
-    window.addEventListener('keydown', handleKeyDown);
+    stage.on('mousedown', handleMouseDown);
+    stage.on('mousemove', handleMouseMove);
+    stage.on('mouseup', handleMouseUp);
+    window.addEventListener('keydown', handleKeydown);
 
     return () => {
-      // Cleanup event listeners
-      if (canvasAreaRef.current) {
-        canvasAreaRef.current.removeEventListener('mousedown', startDrawing);
-        canvasAreaRef.current.removeEventListener('mousemove', queueDraw);
-        canvasAreaRef.current.removeEventListener('mouseup', endDrawing);
-        canvasAreaRef.current.removeEventListener('mouseout', endDrawing);
-      }
-      window.removeEventListener('keydown', handleKeyDown);
-
-      // Cancel any pending animation frame
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      stage.off('mousedown', handleMouseDown);
+      stage.off('mousemove', handleMouseMove);
+      stage.off('mouseup', handleMouseUp);
+      window.removeEventListener('keydown', handleKeydown);
     };
-  }, [canvasAreaRef, activeLayerId.value, layers.value]);
+  }, [stage, userLayers, userId]);
+
+  // Undo functionality
+  const handleUndo = () => {
+    if (!userId) return;
+    const myLayer = userLayers[userId];
+    if (!myLayer) return;
+    const lines = myLayer.find('Line') as Konva.Line[];
+
+    if (lines.length > 0) {
+      const lastLine = lines[lines.length - 1];
+      undoHistory.current.push(lastLine);
+      lastLine.remove();
+      socket.emit('undo');
+    }
+  };
+
+  const handleRedo = () => {
+    if (!userId) return;
+    const myLayer = userLayers[userId];
+    if (!myLayer) return;
+
+    if (undoHistory.current.length > 0) {
+      const lineToRedo = undoHistory.current.pop();
+
+      if (lineToRedo) {
+        myLayer.add(lineToRedo);
+
+        const stroke: Stroke = {
+          id: crypto.randomUUID(),
+          ...lineToRedo.attrs,
+        };
+        console.log(stroke);
+
+        socket.emit('drawStroke', stroke);
+      }
+    }
+  };
 
   return (
-    <div class={css.homeContainer}>
-      <div class={css.canvasArea} ref={canvasAreaRef}></div>
-      <LayerMenu
-        layers={layers.value.map((l) => ({ id: l.id, name: l.name }))}
-        activeLayerId={activeLayerId.value}
-        onLayerSelect={handleLayerSelect}
-        onAddLayer={handleAddLayer}
-      />
+    <div class={css.wrapper}>
+      <div id='canvas-container' class={css.canvasContainer}></div>
+      <button onClick={handleUndo}>Undo</button>
+      <button onClick={handleRedo}>Redo</button>
     </div>
   );
 };

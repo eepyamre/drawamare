@@ -10,12 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "uuid": "^11.1.0",
-    "ws": "^8.16.0"
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/socket.io": "^3.0.2",
     "@types/node": "^22.13.10",
-    "@types/ws": "^8.5.12",
+    "tsx": "^4.19.3",
     "typescript": "^5.4.3"
   }
 }

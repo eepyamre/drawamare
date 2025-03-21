@@ -4,15 +4,15 @@ import { LocationProvider, Router, Route } from 'preact-iso';
 import { Header } from '@/components';
 import { Home } from '@/pages/Home';
 import { NotFound } from './pages/_404';
+import { createAppState } from './state';
 import './style.scss';
-import { createLayersState } from './state';
 
-export const LayersState = createContext(createLayersState());
+export const AppState = createContext(createAppState());
 
 export function App() {
   return (
     <LocationProvider>
-      <LayersState.Provider value={createLayersState()}>
+      <AppState.Provider value={createAppState()}>
         <Header />
         <main>
           <Router>
@@ -20,7 +20,7 @@ export function App() {
             <Route default component={NotFound} />
           </Router>
         </main>
-      </LayersState.Provider>
+      </AppState.Provider>
     </LocationProvider>
   );
 }

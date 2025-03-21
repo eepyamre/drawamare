@@ -2,19 +2,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3000",
+    "dev": "vite --port 3001",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@preact/signals": "^2.0.1",
+    "konva": "^9.3.20",
     "preact": "^10.22.1",
     "preact-iso": "^2.9.1",
+    "socket.io-client": "^4.8.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.9.0",
     "@types/node": "^22.13.10",
+    "@types/socket.io-client": "^3.0.0",
     "eslint": "^8.57.1",
     "eslint-config-preact": "^1.5.0",
     "sass-embedded": "^1.86.0",
