@@ -66,6 +66,20 @@ export const Home = () => {
       }
     };
 
+    socket.on('initialStrokes', (initialStrokes: StrokeEvent[]) => {
+      const tmp = userLayers;
+      initialStrokes.forEach(({ userId, stroke }) => {
+        if (!tmp[userId]) tmp[userId] = addNewUserLayer(userId);
+        const layer = tmp[userId];
+        const line = new Konva.Line({
+          points: stroke.points,
+          stroke: stroke.stroke,
+          strokeWidth: stroke.thickness,
+        });
+        layer.add(line);
+      });
+    });
+
     socket.on('newStroke', handleNewStroke);
 
     socket.on('strokeRemoved', handleStrokeRemoved);
