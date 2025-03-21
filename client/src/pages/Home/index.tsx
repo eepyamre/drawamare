@@ -1,10 +1,30 @@
 import { useState, useEffect, useRef } from 'preact/compat';
 import io from 'socket.io-client';
 import Konva from 'konva';
+import simplify from 'simplify-js';
 import { Stroke, StrokeEvent } from '@/types';
 import css from './styles.module.scss';
 
 const socket = io('http://localhost:3000');
+
+const simplifyPoints = (points: number[]) => {
+  const pointsForSimplify = [];
+  for (let i = 0; i < points.length; i += 2) {
+    pointsForSimplify.push({
+      x: points[i],
+      y: points[i + 1],
+    });
+  }
+
+  const tolerance = 1; // Experiment with tolerance value. Higher = more simplification.
+  const simplifiedPoints = simplify(pointsForSimplify, tolerance, true);
+
+  const newPoints = [];
+  simplifiedPoints.forEach((point) => {
+    newPoints.push(point.x, point.y);
+  });
+  return newPoints;
+};
 
 export const Home = () => {
   const [stage, setStage] = useState<Konva.Stage | null>();
@@ -44,11 +64,7 @@ export const Home = () => {
     const handleNewStroke = (data: StrokeEvent) => {
       const { userId, stroke } = data;
       const layer = userLayers[userId] || addNewUserLayer(userId);
-      const line = new Konva.Line({
-        points: stroke.points,
-        stroke: stroke.stroke,
-        strokeWidth: stroke.thickness,
-      });
+      const line = new Konva.Line(stroke);
 
       layer.add(line);
     };
@@ -71,11 +87,7 @@ export const Home = () => {
       initialStrokes.forEach(({ userId, stroke }) => {
         if (!tmp[userId]) tmp[userId] = addNewUserLayer(userId);
         const layer = tmp[userId];
-        const line = new Konva.Line({
-          points: stroke.points,
-          stroke: stroke.stroke,
-          strokeWidth: stroke.thickness,
-        });
+        const line = new Konva.Line(stroke);
         layer.add(line);
       });
     });
@@ -110,18 +122,32 @@ export const Home = () => {
       const pos = stage.getPointerPosition();
       lastLine = new Konva.Line({
         stroke: '#000',
-        thickness: 2,
+        strokeWidth: 5,
         points: [pos.x, pos.y, pos.x, pos.y],
+        lineCap: 'round',
+        lineJoin: 'round',
+        tension: 0.5,
       });
 
       layer.add(lastLine);
     };
 
+    const throttleInterval = 50; // ms throttle interval
+    let lastSimplifyTime = 0;
     const handleMouseMove = () => {
-      if (!isDrawing) return;
+      if (!isDrawing || !lastLine || !stage) return;
       const pos = stage.getPointerPosition();
       const newPoints = lastLine.points().concat([pos.x, pos.y]);
       lastLine.points(newPoints);
+
+      const now = Date.now();
+      if (now - lastSimplifyTime > throttleInterval) {
+        console.log('hit');
+
+        lastSimplifyTime = now;
+        const simplifiedPreviewPoints = simplifyPoints(newPoints);
+        lastLine.points(simplifiedPreviewPoints);
+      }
     };
 
     const handleMouseUp = () => {
@@ -130,6 +156,10 @@ export const Home = () => {
         id: crypto.randomUUID(),
         ...lastLine.attrs,
       };
+
+      const newPoints = simplifyPoints(lastLine.points());
+      lastLine.points(newPoints);
+      stroke.points = newPoints;
 
       socket.emit('drawStroke', stroke);
       isDrawing = false;

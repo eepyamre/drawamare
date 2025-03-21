@@ -66,7 +66,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('disconnect', () => {
-    // delete userStrokes[userId];
+    delete userStrokes[userId];
     delete userConnections[userId];
   });
 });
