@@ -2,10 +2,10 @@
 
 #### **Core Components**
 
-1. **Frontend** (TypeScript + Preact + Konva.js):
+1. **Frontend** (TypeScript + Pixi.js):
 
    - Handles user input (drawing, undo/redo buttons).
-   - Renders the composite canvas using Konva.js layers for each user.
+   - Renders the composite canvas using Pixi.js for each user.
    - Real-time synchronization via WebSocket (Socket.IO).
 
 2. **Backend** (Node.js + TypeScript):
@@ -23,12 +23,12 @@
 
 1. **User Layers**:
 
-   - Each user implicitly has their own layer managed by Konva.js on the frontend. The backend tracks strokes associated with each user ID.
-   - Layers are merged into a single Konva Stage for display in each client.
+   - Each user implicitly has their own layer managed by Pixi.js on the frontend. The backend tracks strokes associated with each user ID.
+   - Layers are merged into a single Pixi.js Stage for display in each client.
 
 2. **Basic Undo/Redo**:
 
-   - **Undo**: Implemented on both client and server. Client-side undo removes the last drawn line from the user's Konva layer and sends an 'undo' event to the server. The server then broadcasts a 'strokeRemoved' event, causing other clients to also remove the last stroke of the user who initiated the undo.
+   - **Undo**: Implemented on both client and server. Client-side undo removes the last drawn line from the user's Pixi.js layer and sends an 'undo' event to the server. The server then broadcasts a 'strokeRemoved' event, causing other clients to also remove the last stroke of the user who initiated the undo.
    - **Redo**: Implemented on the client-side only, and it's not a true "redo" from a history stack in the traditional sense. When "redo" is clicked, the client re-emits the last undone stroke as a _new_ 'drawStroke' event to the server. This will redraw the stroke, but it's essentially sending a new draw command, not restoring from a proper undo history. **The server does not have a 'redo' functionality or history.**
 
 3. **Real-Time Sync**:
@@ -38,14 +38,14 @@
 
 ### **Tech Stack**
 
-| **Component**        | **Frontend**                | **Backend**                      |
-| -------------------- | --------------------------- | -------------------------------- |
-| **Framework**        | Preact                      | Node.js                          |
-| **Canvas Library**   | Konva.js                    | N/A (backend handles logic only) |
-| **Real-Time Sync**   | Socket.IO Client            | Socket.IO Server                 |
-| **Networking**       | WebSocket (Socket.IO)       | WebSocket (Socket.IO)            |
-| **State Management** | Preact `useState`, `useRef` | In-memory state                  |
-| **Styling**          | SCSS Modules                | N/A                              |
+| **Component**        | **Frontend**          | **Backend**                      |
+| -------------------- | --------------------- | -------------------------------- |
+| **Framework**        | Vanilla JavaScript    | Node.js                          |
+| **Canvas Library**   | Pixi.js               | N/A (backend handles logic only) |
+| **Real-Time Sync**   | Socket.IO Client      | Socket.IO Server                 |
+| **Networking**       | WebSocket (Socket.IO) | WebSocket (Socket.IO)            |
+| **State Management** | Vanilla JavaScript    | In-memory state                  |
+| **Styling**          | CSS Modules           | N/A                              |
 
 ---
 
@@ -55,22 +55,22 @@
 
 - **Canvas Setup**:
 
-  - Uses Konva.Stage and Konva.Layer to manage the drawing canvas and user layers.
-  - Each user gets a Konva.Layer.
+  - Uses Pixi.Stage and Pixi.Graphics to manage the drawing canvas and user layers.
+  - Each user gets a Pixi.Graphics layer.
 
 - **Drawing Input**:
 
-  - Listens to `mousedown`, `mousemove`, and `mouseup` events on the Konva.Stage to capture drawing actions.
-  - Creates Konva.Line objects for strokes and adds them to the user's layer.
+  - Listens to `mousedown`, `mousemove`, and `mouseup` events on the Pixi.Stage to capture drawing actions.
+  - Creates Pixi.Graphics objects for strokes and adds them to the user's layer.
   - On `mouseup`, emits a 'drawStroke' event via Socket.IO with stroke data.
 
 - **Real-Time Updates**:
 
-  - Listens for 'newStroke' events from the server. When received, creates a new Konva.Line on the appropriate user's layer.
-  - Listens for 'strokeRemoved' events from the server. When received, removes the last Konva.Line from the specified user's layer.
+  - Listens for 'newStroke' events from the server. When received, creates a new Pixi.Graphics on the appropriate user's layer.
+  - Listens for 'strokeRemoved' events from the server. When received, removes the last Pixi.Graphics from the specified user's layer.
 
 - **Undo/Redo**:
-  - **Undo**: Removes the last drawn Konva.Line from the user's layer and emits an 'undo' event to the server.
+  - **Undo**: Removes the last drawn Pixi.Graphics from the user's layer and emits an 'undo' event to the server.
   - **Redo**: Re-emits the last undone stroke as a new 'drawStroke' event. **Note**: This is not a true redo from history, but rather re-drawing the last undone stroke. The `undoHistory` ref is reset after each draw, and it's only used to temporarily store the last undone line for immediate re-draw upon "redo" button click.
 
 #### **2. Backend (Server-Side)**
@@ -90,7 +90,7 @@
 
 1. **User Draws**: User draws on the canvas → Frontend captures stroke → Emits 'drawStroke' to backend.
 2. **Backend Broadcasts Draw**: Backend receives 'drawStroke' → Broadcasts 'newStroke' to all clients (except sender).
-3. **Clients Update Canvas**: Clients receive 'newStroke' → Update their Konva.Stage by drawing the new stroke on the correct user's layer.
+3. **Clients Update Canvas**: Clients receive 'newStroke' → Update their Pixi.Stage by drawing the new stroke on the correct user's layer.
 4. **User Undoes**: User clicks "Undo" → Frontend removes last stroke locally, emits 'undo' to backend.
 5. **Backend Broadcasts Undo**: Backend receives 'undo' → Broadcasts 'strokeRemoved' to all clients (except sender).
 6. **Clients Update Canvas (Undo)**: Clients receive 'strokeRemoved' → Remove the last stroke from the specified user's layer.
@@ -122,7 +122,7 @@
   - **TODO**: For increased scalability, especially with more users:
     - Implement Socket.IO rooms more effectively if needed (currently using user ID as room, which might not be optimal for broadcasting to all).
     - Explore using Redis for distributed state management if scaling across multiple server instances.
-    - Consider optimizing Konva.js rendering for complex canvases.
+    - Consider optimizing Pixi.js rendering for complex canvases.
 
 - **Security**:
 
