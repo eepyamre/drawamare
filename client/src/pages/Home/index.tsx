@@ -177,7 +177,6 @@ export const Home = () => {
           id: crypto.randomUUID(),
           ...lineToRedo.attrs,
         };
-        console.log(stroke);
 
         socket.emit('drawStroke', stroke);
       }
