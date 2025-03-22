@@ -5,3 +5,5 @@ export const boardSize = {
 
 export const maxScale = 3;
 export const minScale = 0.5;
+
+export const maxHistoryLength = 20;

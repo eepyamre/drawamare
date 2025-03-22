@@ -10,7 +10,7 @@ import {
   Sprite,
   StrokeStyle,
 } from 'pixi.js';
-import { boardSize, maxScale, minScale, vSub } from './utils';
+import { boardSize, maxHistoryLength, maxScale, minScale, vSub } from './utils';
 
 const init = async () => {
   const app = new Application();
@@ -20,7 +20,7 @@ const init = async () => {
     background: '#2b2b2b',
     resizeTo: window,
     antialias: true,
-    useBackBuffer: true,
+    multiView: true,
   });
 
   app.stage.eventMode = 'static';
@@ -45,6 +45,7 @@ const init = async () => {
     .fill(0xffffff);
   container.addChild(canvasMask);
   container.addChild(canvasBg);
+
   const rt = RenderTexture.create({
     width: boardSize.width,
     height: boardSize.height,
@@ -63,7 +64,7 @@ const init = async () => {
     if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
   });
 
-  return { app, container, rt };
+  return { app, container, rt, sprite };
 };
 
 type DrawCommand =
@@ -82,13 +83,30 @@ type DrawCommand =
     };
 
 type CommandBlock = DrawCommand[];
-type History = CommandBlock[];
+type History = RenderTexture[];
 
 (async () => {
   const { app, container, rt } = await init();
 
-  const historyStack: History = [];
+  let historyStack: History = [];
   let redoStack: History = [];
+
+  const saveState = () => {
+    const newTexture = RenderTexture.create({
+      width: boardSize.width,
+      height: boardSize.height,
+    });
+
+    const s = new Sprite(rt);
+    app.renderer.render({
+      container: s,
+      target: newTexture,
+    });
+    s.destroy();
+    historyStack.push(newTexture);
+  };
+
+  saveState();
 
   const strokeStyle: StrokeStyle = {
     width: 10,
@@ -121,14 +139,16 @@ type History = CommandBlock[];
       command: 'initLine',
       pos,
       blendMode: 'normal',
-      strokeStyle,
+      strokeStyle: { ...strokeStyle },
     };
 
     drawing = true;
     stroke = new Graphics();
-    stroke.strokeStyle = strokeStyle;
+    stroke.strokeStyle = { ...strokeStyle };
     if (isErasing) {
       command.blendMode = stroke.blendMode = 'erase';
+      stroke.strokeStyle.width = 25;
+      command.strokeStyle.width = 25;
     }
 
     lastCommands.push(command);
@@ -166,60 +186,54 @@ type History = CommandBlock[];
         target: rt,
         clear: false,
       });
+
+      saveState();
+
       stroke?.destroy();
       stroke = null;
+
       const command: DrawCommand = {
         command: 'endLine',
       };
+
       lastCommands.push(command);
-      historyStack.push(lastCommands);
       lastCommands = [];
+
+      if (historyStack.length > maxHistoryLength) {
+        historyStack = historyStack.slice(-maxHistoryLength);
+      }
     }
   };
 
-  const undo = () => {
-    if (historyStack.length <= 0) {
-      console.log('No commands to undo');
-      return;
-    }
-    stroke = new Graphics();
+  const redrawCanvas = (texture: RenderTexture) => {
+    let stroke = new Graphics();
     app.renderer.render({
       container: stroke,
       target: rt,
       clear: true,
     });
     stroke.destroy();
-    const lastCommand = historyStack.pop();
-    if (lastCommand) {
-      redoStack.push(lastCommand);
+
+    const s = new Sprite(texture);
+
+    app.renderer.render({
+      container: s,
+      target: rt,
+    });
+
+    s.destroy();
+  };
+  const undo = () => {
+    if (historyStack.length <= 1) {
+      console.log('No commands to undo');
+      return;
     }
-    for (let i = 0; i < historyStack.length; i++) {
-      const commands = historyStack[i];
-      for (const command of commands) {
-        switch (command.command) {
-          case 'initLine':
-            stroke = new Graphics();
-            stroke.strokeStyle = command.strokeStyle;
-            stroke.blendMode = command.blendMode || 'normal';
-            stroke.moveTo(command.pos.x, command.pos.y);
-            stroke.lineTo(command.pos.x, command.pos.y - 0.001);
-            stroke.stroke();
-            break;
-          case 'line':
-            stroke.lineTo(command.pos.x, command.pos.y);
-            stroke.stroke();
-            break;
-          case 'endLine':
-            stroke.stroke();
-            app.renderer.render({
-              container: stroke,
-              target: rt,
-              clear: false,
-            });
-            stroke.destroy();
-            break;
-        }
-      }
+
+    const lastItem = historyStack.pop();
+    if (lastItem) {
+      redoStack.push(lastItem);
+      const previousState = historyStack[historyStack.length - 1];
+      redrawCanvas(previousState);
     }
   };
 
@@ -228,45 +242,11 @@ type History = CommandBlock[];
       console.log('No commands to redo');
       return;
     }
-    stroke = new Graphics();
-    app.renderer.render({
-      container: stroke,
-      target: rt,
-      clear: true,
-    });
-    stroke.destroy();
-    const lastCommand = redoStack.pop();
-    if (lastCommand) {
-      historyStack.push(lastCommand);
-    }
 
-    for (let i = 0; i < historyStack.length; i++) {
-      const commands = historyStack[i];
-      for (const command of commands) {
-        switch (command.command) {
-          case 'initLine':
-            stroke = new Graphics();
-            stroke.strokeStyle = command.strokeStyle;
-            stroke.blendMode = command.blendMode || 'normal';
-            stroke.moveTo(command.pos.x, command.pos.y);
-            stroke.lineTo(command.pos.x, command.pos.y - 0.001);
-            stroke.stroke();
-            break;
-          case 'line':
-            stroke.lineTo(command.pos.x, command.pos.y);
-            stroke.stroke();
-            break;
-          case 'endLine':
-            stroke.stroke();
-            app.renderer.render({
-              container: stroke,
-              target: rt,
-              clear: false,
-            });
-            stroke.destroy();
-            break;
-        }
-      }
+    const lastItem = redoStack.pop();
+    if (lastItem) {
+      historyStack.push(lastItem);
+      redrawCanvas(lastItem);
     }
   };
 
