@@ -9,63 +9,10 @@ import {
   RenderTexture,
   Sprite,
   StrokeStyle,
+  RenderLayer,
 } from 'pixi.js';
+import io, { Socket } from 'socket.io-client';
 import { boardSize, maxHistoryLength, maxScale, minScale, vSub } from './utils';
-
-const init = async () => {
-  const app = new Application();
-  extensions.add(CullerPlugin);
-
-  await app.init({
-    background: '#2b2b2b',
-    resizeTo: window,
-    antialias: true,
-    multiView: true,
-  });
-
-  app.stage.eventMode = 'static';
-  app.stage.hitArea = app.screen;
-
-  document.getElementById('pixi-container')!.appendChild(app.canvas);
-
-  const container = new Container({
-    x: app.canvas.width / 2 - boardSize.width / 2,
-    y: app.canvas.height / 2 - boardSize.height / 2,
-  });
-
-  app.stage.addChild(container);
-
-  const canvasMask = new Graphics()
-    .rect(0, 0, boardSize.width, boardSize.height)
-    .fill(0xffffff);
-  container.mask = canvasMask;
-
-  const canvasBg = new Graphics()
-    .rect(0, 0, boardSize.width, boardSize.height)
-    .fill(0xffffff);
-  container.addChild(canvasMask);
-  container.addChild(canvasBg);
-
-  const rt = RenderTexture.create({
-    width: boardSize.width,
-    height: boardSize.height,
-  });
-  const sprite = new Sprite(rt);
-  container.addChild(sprite);
-
-  window.addEventListener('resize', () => {
-    app.resize();
-  });
-
-  window.addEventListener('wheel', (e) => {
-    const y = e.deltaY > 0 ? -0.1 : 0.1;
-    app.stage.scale = app.stage.scale.x + y;
-    if (app.stage.scale.x < minScale) app.stage.scale = minScale; // Prevent inverting or too small scale
-    if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
-  });
-
-  return { app, container, rt, sprite };
-};
 
 type DrawCommand =
   | {
@@ -85,8 +32,174 @@ type DrawCommand =
 type CommandBlock = DrawCommand[];
 type History = RenderTexture[];
 
+const connect = async () => {
+  return new Promise<Socket>((resolve) => {
+    const socket = io('http://localhost:3000');
+
+    socket.on('connect', () => {
+      console.log('Connected to server');
+      resolve(socket);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+      // TODO: Handle disconnection gracefully
+    });
+  });
+};
+
+const init = async () => {
+  const app = new Application();
+  extensions.add(CullerPlugin);
+
+  await app.init({
+    background: '#2b2b2b',
+    resizeTo: window,
+    antialias: true,
+    multiView: true,
+  });
+
+  app.stage.eventMode = 'static';
+  app.stage.hitArea = app.screen;
+
+  document.getElementById('pixi-container')!.appendChild(app.canvas);
+
+  const board = new Container({
+    x: app.canvas.width / 2 - boardSize.width / 2,
+    y: app.canvas.height / 2 - boardSize.height / 2,
+  });
+
+  app.stage.addChild(board);
+
+  const canvasMask = new Graphics()
+    .rect(0, 0, boardSize.width, boardSize.height)
+    .fill(0xffffff);
+  board.mask = canvasMask;
+
+  const canvasBg = new Graphics()
+    .rect(0, 0, boardSize.width, boardSize.height)
+    .fill(0xffffff);
+  board.addChild(canvasMask);
+  board.addChild(canvasBg);
+
+  const rt = RenderTexture.create({
+    width: boardSize.width,
+    height: boardSize.height,
+  });
+  const sprite = new Sprite(rt);
+  const container = new Container({
+    x: 0,
+    y: 0,
+    width: board.width,
+    height: board.height,
+  });
+  container.addChild(sprite);
+  board.addChild(container);
+  window.addEventListener('resize', () => {
+    app.resize();
+  });
+
+  window.addEventListener('wheel', (e) => {
+    const y = e.deltaY > 0 ? -0.1 : 0.1;
+    app.stage.scale = app.stage.scale.x + y;
+    if (app.stage.scale.x < minScale) app.stage.scale = minScale; // Prevent inverting or too small scale
+    if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
+  });
+
+  return { app, board, container, rt };
+};
+
+type DrawCommandPayload = {
+  userId: string;
+  commands: DrawCommand[];
+};
+
+const userLayers = new Map<
+  string,
+  {
+    container: Container;
+    rt: RenderTexture;
+  }
+>();
+
+const socketEventHandler = (
+  socket: Socket,
+  app: Application,
+  board: Container
+) => {
+  socket.on('drawCommand', (payload: DrawCommandPayload) => {
+    console.log(`Received draw command from ${payload.userId}`);
+
+    let layer = userLayers.get(payload.userId);
+    if (!layer) {
+      layer = {
+        container: new Container({
+          label: `Layer ${payload.userId}`,
+        }),
+        rt: RenderTexture.create({
+          width: board.width,
+          height: board.height,
+        }),
+      };
+      const sprite = new Sprite(layer.rt);
+      layer.container.addChild(sprite);
+      board.addChild(layer.container);
+
+      userLayers.set(payload.userId, layer);
+    }
+
+    const commands = payload.commands;
+
+    let stroke = new Graphics();
+    commands.forEach((commandBlock) => {
+      switch (commandBlock.command) {
+        case 'initLine': {
+          stroke.destroy();
+          stroke = new Graphics();
+          const pos = commandBlock.pos;
+          stroke.strokeStyle = commandBlock.strokeStyle;
+          stroke.blendMode = commandBlock.blendMode || 'normal';
+          stroke.moveTo(pos.x, pos.y);
+          stroke.lineTo(pos.x, pos.y - 0.01);
+          stroke.stroke();
+          layer.container.addChild(stroke);
+          break;
+        }
+        case 'line': {
+          const pos = commandBlock.pos;
+          stroke.lineTo(pos.x, pos.y);
+          stroke.stroke();
+          break;
+        }
+        case 'endLine':
+          {
+            app.renderer.render({
+              container: stroke,
+              target: layer.rt,
+              clear: false,
+            });
+            stroke.destroy();
+          }
+          break;
+        default:
+          break;
+      }
+    });
+    stroke.destroy();
+  });
+};
+
 (async () => {
-  const { app, container, rt } = await init();
+  const socket = await connect();
+  if (!socket.id) throw new Error('Socket ID not found');
+
+  const { app, board, container, rt } = await init();
+  socketEventHandler(socket, app, board);
+
+  userLayers.set(socket.id, {
+    container,
+    rt,
+  });
 
   let historyStack: History = [];
   let redoStack: History = [];
@@ -123,7 +236,7 @@ type History = RenderTexture[];
   const offsetPosition = (x: number, y: number): Point => {
     const stageScale = app.stage.scale.x;
     const pos = new Point(x / stageScale, y / stageScale);
-    return vSub(pos, container.position);
+    return vSub(pos, board.position);
   };
 
   const onPointerDown = (e: FederatedPointerEvent) => {
@@ -147,8 +260,6 @@ type History = RenderTexture[];
     stroke.strokeStyle = { ...strokeStyle };
     if (isErasing) {
       command.blendMode = stroke.blendMode = 'erase';
-      stroke.strokeStyle.width = 25;
-      command.strokeStyle.width = 25;
     }
 
     lastCommands.push(command);
@@ -161,8 +272,8 @@ type History = RenderTexture[];
   const onPointerMove = (e: FederatedPointerEvent) => {
     const stageScale = app.stage.scale.x;
     if (pan) {
-      container.x += e.movementX / stageScale;
-      container.y += e.movementY / stageScale;
+      board.x += e.movementX / stageScale;
+      board.y += e.movementY / stageScale;
       return;
     }
     if (!drawing || !stroke) return;
@@ -197,6 +308,9 @@ type History = RenderTexture[];
       };
 
       lastCommands.push(command);
+
+      socket.emit('drawCommand', lastCommands);
+
       lastCommands = [];
 
       if (historyStack.length > maxHistoryLength) {
