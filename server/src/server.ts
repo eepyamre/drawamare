@@ -54,6 +54,12 @@ io.on('connection', (socket: Socket) => {
     socket.broadcast.emit('drawCommand', { userId: socket.id, commands });
   });
 
+  socket.on('redraw', (base64: string) => {
+    console.log(`Received redraw command from ${userId}`);
+
+    socket.broadcast.emit('redraw', { userId: socket.id, base64 });
+  });
+
   socket.on('disconnect', () => {
     console.log(`User ${userId} disconnected`);
     delete userStrokes[userId];

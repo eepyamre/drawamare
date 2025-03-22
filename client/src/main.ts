@@ -9,7 +9,7 @@ import {
   RenderTexture,
   Sprite,
   StrokeStyle,
-  RenderLayer,
+  Texture,
 } from 'pixi.js';
 import io, { Socket } from 'socket.io-client';
 import { boardSize, maxHistoryLength, maxScale, minScale, vSub } from './utils';
@@ -114,6 +114,11 @@ type DrawCommandPayload = {
   commands: DrawCommand[];
 };
 
+type RedrawPayload = {
+  userId: string;
+  base64: string;
+};
+
 const userLayers = new Map<
   string,
   {
@@ -121,6 +126,27 @@ const userLayers = new Map<
     rt: RenderTexture;
   }
 >();
+
+const getOrCreateLayer = (userId: string, board: Container) => {
+  let layer = userLayers.get(userId);
+  if (!layer) {
+    layer = {
+      container: new Container({
+        label: `Layer ${userId}`,
+      }),
+      rt: RenderTexture.create({
+        width: board.width,
+        height: board.height,
+      }),
+    };
+    const sprite = new Sprite(layer.rt);
+    layer.container.addChild(sprite);
+    board.addChild(layer.container);
+
+    userLayers.set(userId, layer);
+  }
+  return layer;
+};
 
 const socketEventHandler = (
   socket: Socket,
@@ -130,23 +156,7 @@ const socketEventHandler = (
   socket.on('drawCommand', (payload: DrawCommandPayload) => {
     console.log(`Received draw command from ${payload.userId}`);
 
-    let layer = userLayers.get(payload.userId);
-    if (!layer) {
-      layer = {
-        container: new Container({
-          label: `Layer ${payload.userId}`,
-        }),
-        rt: RenderTexture.create({
-          width: board.width,
-          height: board.height,
-        }),
-      };
-      const sprite = new Sprite(layer.rt);
-      layer.container.addChild(sprite);
-      board.addChild(layer.container);
-
-      userLayers.set(payload.userId, layer);
-    }
+    const layer = getOrCreateLayer(payload.userId, board);
 
     const commands = payload.commands;
 
@@ -186,6 +196,34 @@ const socketEventHandler = (
       }
     });
     stroke.destroy();
+  });
+
+  socket.on('redraw', (payload: RedrawPayload) => {
+    console.log(`Received redraw command from ${payload.userId}`);
+    const layer = getOrCreateLayer(payload.userId, board);
+    let stroke = new Graphics();
+    app.renderer.render({
+      container: stroke,
+      target: layer.rt,
+      clear: true,
+    });
+    stroke.destroy();
+
+    const img = new Image();
+    img.src = payload.base64;
+    img.onload = () => {
+      const texture = Texture.from(img);
+      const s = new Sprite(texture);
+
+      app.renderer.render({
+        container: s,
+        target: layer.rt,
+      });
+
+      s.destroy();
+      texture.destroy();
+      img.remove();
+    };
   });
 };
 
@@ -334,6 +372,14 @@ const socketEventHandler = (
       container: s,
       target: rt,
     });
+    app.renderer.extract
+      .base64({
+        format: 'png',
+        target: rt,
+      })
+      .then((data) => {
+        socket.emit('redraw', data);
+      });
 
     s.destroy();
   };
