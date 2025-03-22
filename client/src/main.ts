@@ -6,25 +6,13 @@ import {
   CullerPlugin,
   Container,
   Point,
-  PointData,
   RenderTexture,
   Sprite,
+  StrokeStyle,
 } from 'pixi.js';
+import { boardSize, maxScale, minScale, vSub } from './utils';
 
-const vAdd = (v: PointData, w: PointData): Point => {
-  return new Point(v.x + w.x, v.y + w.y);
-};
-
-const vSub = (v: PointData, w: PointData): Point => {
-  return new Point(v.x - w.x, v.y - w.y);
-};
-
-const boardSize = {
-  width: 768,
-  height: 768,
-};
-
-(async () => {
+const init = async () => {
   const app = new Application();
   extensions.add(CullerPlugin);
 
@@ -63,15 +51,44 @@ const boardSize = {
   });
   const sprite = new Sprite(rt);
   container.addChild(sprite);
+
+  window.addEventListener('resize', () => {
+    app.resize();
+  });
+
+  window.addEventListener('wheel', (e) => {
+    const y = e.deltaY > 0 ? -0.1 : 0.1;
+    app.stage.scale = app.stage.scale.x + y;
+    if (app.stage.scale.x < minScale) app.stage.scale = minScale; // Prevent inverting or too small scale
+    if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
+  });
+
+  return { app, container, rt };
+};
+
+(async () => {
+  const { app, container, rt } = await init();
+
+  const brushSettings: StrokeStyle = {
+    width: 10,
+    cap: 'round',
+    color: 0x000000,
+  };
+
   let stroke: Graphics | null = null;
   let drawing = false;
   let pan = false;
   let isErasing = false;
 
-  const onPointerDown = (e: FederatedPointerEvent) => {
+  const offsetPosition = (x: number, y: number): Point => {
     const stageScale = app.stage.scale.x;
-    let pos = new Point(e.clientX / stageScale, e.clientY / stageScale);
-    pos = vSub(pos, container.position);
+    const pos = new Point(x / stageScale, y / stageScale);
+    return vSub(pos, container.position);
+  };
+
+  const onPointerDown = (e: FederatedPointerEvent) => {
+    const pos = offsetPosition(e.clientX, e.clientY);
+
     if (e.button === 1) {
       pan = true;
       return;
@@ -79,11 +96,8 @@ const boardSize = {
     if (e.button !== 0) return;
     drawing = true;
     stroke = new Graphics();
-    stroke.strokeStyle.width = 10;
-    stroke.strokeStyle.cap = 'round';
-    stroke.strokeStyle.color = 0x000000;
+    stroke.strokeStyle = brushSettings;
     if (isErasing) {
-      stroke.strokeStyle.color = 0xff0000;
       stroke.blendMode = 'erase';
     }
 
@@ -101,8 +115,8 @@ const boardSize = {
       return;
     }
     if (!drawing || !stroke) return;
-    let pos = new Point(e.clientX / stageScale, e.clientY / stageScale);
-    pos = vSub(pos, container.position);
+    const pos = offsetPosition(e.clientX, e.clientY);
+
     stroke.lineTo(pos.x, pos.y);
     stroke.stroke();
   };
@@ -121,10 +135,6 @@ const boardSize = {
     }
   };
 
-  window.addEventListener('resize', () => {
-    app.resize();
-  });
-
   window.addEventListener('keydown', (e) => {
     if (e.key === 'e') {
       isErasing = !isErasing;
@@ -137,11 +147,4 @@ const boardSize = {
     .on('pointermove', onPointerMove)
     .on('pointerup', onPointerUp)
     .on('pointerupoutside', onPointerUp);
-
-  app.stage.on('wheel', (e) => {
-    const y = e.deltaY > 0 ? -0.1 : 0.1;
-    app.stage.scale = app.stage.scale.x + y;
-    if (app.stage.scale.x < 0.5) app.stage.scale = 0.5; // Prevent inverting or too small scale
-    if (app.stage.scale.x > 3) app.stage.scale = 3; // Prevent too big scale
-  });
 })();
