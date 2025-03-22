@@ -66,10 +66,31 @@ const init = async () => {
   return { app, container, rt };
 };
 
+type DrawCommand =
+  | {
+      command: 'initLine';
+      blendMode?: 'erase' | 'normal';
+      pos: Point;
+      strokeStyle: StrokeStyle;
+    }
+  | {
+      command: 'line';
+      pos: Point;
+    }
+  | {
+      command: 'endLine';
+    };
+
+type CommandBlock = DrawCommand[];
+type History = CommandBlock[];
+
 (async () => {
   const { app, container, rt } = await init();
 
-  const brushSettings: StrokeStyle = {
+  const historyStack: History = [];
+  let redoStack: History = [];
+
+  const strokeStyle: StrokeStyle = {
     width: 10,
     cap: 'round',
     color: 0x000000,
@@ -79,6 +100,7 @@ const init = async () => {
   let drawing = false;
   let pan = false;
   let isErasing = false;
+  let lastCommands: CommandBlock = [];
 
   const offsetPosition = (x: number, y: number): Point => {
     const stageScale = app.stage.scale.x;
@@ -94,13 +116,22 @@ const init = async () => {
       return;
     }
     if (e.button !== 0) return;
+    redoStack = [];
+    const command: DrawCommand = {
+      command: 'initLine',
+      pos,
+      blendMode: 'normal',
+      strokeStyle,
+    };
+
     drawing = true;
     stroke = new Graphics();
-    stroke.strokeStyle = brushSettings;
+    stroke.strokeStyle = strokeStyle;
     if (isErasing) {
-      stroke.blendMode = 'erase';
+      command.blendMode = stroke.blendMode = 'erase';
     }
 
+    lastCommands.push(command);
     stroke.moveTo(pos.x, pos.y);
     stroke.lineTo(pos.x, pos.y - 0.01);
     stroke.stroke();
@@ -116,7 +147,12 @@ const init = async () => {
     }
     if (!drawing || !stroke) return;
     const pos = offsetPosition(e.clientX, e.clientY);
+    const command: DrawCommand = {
+      command: 'line',
+      pos,
+    };
 
+    lastCommands.push(command);
     stroke.lineTo(pos.x, pos.y);
     stroke.stroke();
   };
@@ -132,13 +168,120 @@ const init = async () => {
       });
       stroke?.destroy();
       stroke = null;
+      const command: DrawCommand = {
+        command: 'endLine',
+      };
+      lastCommands.push(command);
+      historyStack.push(lastCommands);
+      lastCommands = [];
+    }
+  };
+
+  const undo = () => {
+    if (historyStack.length <= 0) {
+      console.log('No commands to undo');
+      return;
+    }
+    stroke = new Graphics();
+    app.renderer.render({
+      container: stroke,
+      target: rt,
+      clear: true,
+    });
+    stroke.destroy();
+    const lastCommand = historyStack.pop();
+    if (lastCommand) {
+      redoStack.push(lastCommand);
+    }
+    for (let i = 0; i < historyStack.length; i++) {
+      const commands = historyStack[i];
+      for (const command of commands) {
+        switch (command.command) {
+          case 'initLine':
+            stroke = new Graphics();
+            stroke.strokeStyle = command.strokeStyle;
+            stroke.blendMode = command.blendMode || 'normal';
+            stroke.moveTo(command.pos.x, command.pos.y);
+            stroke.lineTo(command.pos.x, command.pos.y - 0.001);
+            stroke.stroke();
+            break;
+          case 'line':
+            stroke.lineTo(command.pos.x, command.pos.y);
+            stroke.stroke();
+            break;
+          case 'endLine':
+            stroke.stroke();
+            app.renderer.render({
+              container: stroke,
+              target: rt,
+              clear: false,
+            });
+            stroke.destroy();
+            break;
+        }
+      }
+    }
+  };
+
+  const redo = () => {
+    if (redoStack.length <= 0) {
+      console.log('No commands to redo');
+      return;
+    }
+    stroke = new Graphics();
+    app.renderer.render({
+      container: stroke,
+      target: rt,
+      clear: true,
+    });
+    stroke.destroy();
+    const lastCommand = redoStack.pop();
+    if (lastCommand) {
+      historyStack.push(lastCommand);
+    }
+
+    for (let i = 0; i < historyStack.length; i++) {
+      const commands = historyStack[i];
+      for (const command of commands) {
+        switch (command.command) {
+          case 'initLine':
+            stroke = new Graphics();
+            stroke.strokeStyle = command.strokeStyle;
+            stroke.blendMode = command.blendMode || 'normal';
+            stroke.moveTo(command.pos.x, command.pos.y);
+            stroke.lineTo(command.pos.x, command.pos.y - 0.001);
+            stroke.stroke();
+            break;
+          case 'line':
+            stroke.lineTo(command.pos.x, command.pos.y);
+            stroke.stroke();
+            break;
+          case 'endLine':
+            stroke.stroke();
+            app.renderer.render({
+              container: stroke,
+              target: rt,
+              clear: false,
+            });
+            stroke.destroy();
+            break;
+        }
+      }
     }
   };
 
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'e') {
+    const key = e.key.toLowerCase();
+    if (key === 'e') {
       isErasing = !isErasing;
       console.log('Eraser mode:', isErasing);
+    }
+    if (key === 'z' && (e.ctrlKey || e.metaKey)) {
+      if (e.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
     }
   });
 
