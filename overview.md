@@ -5,15 +5,14 @@
 1. **Frontend** (TypeScript + Pixi.js):
 
    - Handles user interface and canvas rendering using Pixi.js.
-   - Currently focuses on setting up the development environment and basic drawing functionalities.
-   - Real-time synchronization via WebSocket (Socket.IO) is planned but **not yet implemented**.
+   - Implements drawing functionalities, user interaction, and real-time synchronization via WebSocket (Socket.IO).
+   - Manages local canvas state, history for undo/redo (**currently needs to be separated per user/layer**), and user layers.
 
 2. **Backend** (Node.js + TypeScript):
 
-   - Manages WebSocket connections and coordinates real-time drawing updates.
-   - Tracks each user’s layer data in memory (strokes drawn by each user).
-   - Broadcasts drawing actions to all connected clients.
-   - **Not yet implemented**.
+   - Manages WebSocket connections using Socket.IO and coordinates real-time drawing updates.
+   - Tracks user connections and broadcasts drawing actions and canvas redraw events to all connected clients.
+   - Currently uses in-memory state for user connections and **needs to implement saving and sending initial canvas state to new users**.
 
 3. **Database** (Optional for persistence):
    - Not currently implemented. Could be used to store session data (e.g., user layers, history) for persistence across sessions.
@@ -24,18 +23,25 @@
 
 1. **User Layers**:
 
-   - Each user implicitly has their own drawing space within the Pixi.js Stage on the frontend, managed by a `Container` in `src/main.ts`.
-   - Currently, there's a single canvas layer setup using PixiJS, but explicit user layer management is not yet implemented beyond this basic setup.
+   - Each user has their own drawing layer, dynamically created and managed on the frontend using Pixi.js `Container` and `RenderTexture`.
+   - Layers are differentiated by user ID, allowing for individual drawing spaces within the shared canvas.
+   - Users are assigned layers upon receiving drawing commands from the server.
 
-2. **Basic Undo/Redo**:
+2. **Undo/Redo**:
 
-   - **Undo**: Implemented on the client-side in `src/main.ts`. It utilizes a `historyStack` to store previous states of the canvas as `RenderTexture`s. When undo is triggered, it reverts to the previous state from the history.
-   - **Redo**: Implemented on the client-side in `src/main.ts` using a `redoStack`. It allows re-applying states that were previously undone.
-   - **Both undo and redo are client-side only and operate on the local canvas state.** The server does not have undo/redo functionality.
+   - **Undo**: Implemented on the client-side in `src/main.ts`. It utilizes a `historyStack` to store previous states of the canvas as `RenderTexture`s. When undo is triggered, it reverts to the previous state from the history and broadcasts the updated canvas state to other clients. **Needs to be modified to manage history per user/layer.**
+   - **Redo**: Implemented on the client-side in `src/main.ts` using a `redoStack`. It allows re-applying states that were previously undone and broadcasts the updated canvas state to other clients. **Needs to be modified to manage redo per user/layer.**
+   - Undo and redo actions are now synchronized across clients. When a user performs undo/redo, all other clients' canvases are updated to reflect the same state. **Synchronization needs to be reviewed when history is separated per user/layer.**
 
 3. **Real-Time Sync**:
-   - All users will eventually see drawing updates in near real-time when others draw. Achieved using Socket.IO for broadcasting drawing and undo actions.
-   - **Real-time synchronization is planned but not yet implemented.**
+
+   - Real-time drawing updates are implemented.
+   - When a user draws, their strokes are immediately visible to all other connected users in near real-time.
+   - Uses Socket.IO for broadcasting drawing commands and canvas redraws.
+
+4. **Initial Canvas State for New Users**:
+   - **Currently Missing**: When a new user connects, they start with a blank canvas.
+   - **To Implement**: New users should receive the current state of the drawing canvas upon connection so they can see what has already been drawn.
 
 ---
 
@@ -62,32 +68,39 @@ _Note: Frontend styling is currently using plain CSS as seen in `client/public/s
 
   - Uses Pixi.Stage and Pixi.Graphics to manage the drawing canvas.
   - The `index.html` file sets up the basic HTML structure with a `div` for the PixiJS canvas (`pixi-container`).
-  - **Initial setup for PixiJS canvas is implemented in `src/main.ts`. This includes:**
+  - Initial setup for PixiJS canvas is implemented in `src/main.ts`. This includes:
     - Initializing a PixiJS `Application`.
     - Setting up a `Container` to hold drawing elements, positioned in the center of the canvas.
     - Creating a `Graphics` object as a mask and background for the canvas area.
-    - Utilizing a `RenderTexture` and `Sprite` to efficiently render and store the drawing.
+    - Utilizing a `RenderTexture` and `Sprite` to efficiently render and store the drawing on a main layer.
     - Handling window resize events to adjust the canvas.
     - Implementing zoom functionality using the mouse wheel to scale the stage.
 
 - **Drawing Input**:
 
   - **Drawing input is implemented in `src/main.ts`:**
+  - Drawing input is implemented in `src/main.ts`:
     - Listens to `pointerdown`, `pointermove`, and `pointerup` events on the Pixi.Stage to capture drawing actions.
-    - On `pointerdown`, initiates drawing a new stroke using `Graphics`. Supports different stroke styles (color, width, cap).
+    - On `pointerdown`, initiates drawing a new stroke using `Graphics`. Supports different stroke styles (color, width, cap), and eraser mode.
     - On `pointermove`, draws lines based on pointer movement, creating free-hand drawing effect.
-    - On `pointerup`, finalizes the stroke by rendering it onto the `RenderTexture` and saving the canvas state to the history stack for undo/redo.
+    - On `pointerup`, finalizes the stroke by rendering it onto the user's `RenderTexture`, saves the canvas state to the history stack for undo/redo, and emits drawing commands to the server via Socket.IO to broadcast to other clients.
     - Implements a basic eraser functionality toggled by the 'e' key, which changes the blend mode and stroke width.
     - Implements panning functionality using the middle mouse button to move the canvas.
 
 - **Real-Time Updates**:
 
-  - **Real-time update handling is not yet implemented.**
+  - Real-time update handling is now implemented in `src/main.ts`:
+    - Connects to the Socket.IO server upon initialization.
+    - Listens for `drawCommand` events from the server.
+    - Upon receiving a `drawCommand`, it identifies the user and their layer. If a layer doesn't exist for the user, it dynamically creates one.
+    - Renders the received drawing commands (initLine, line, endLine) on the corresponding user's layer, ensuring all clients display the same strokes.
+    - Listens for `redraw` events from the server.
+    - Upon receiving a `redraw` event, it updates the local canvas by reconstructing the `RenderTexture` from the received base64 encoded PNG data, ensuring canvas state synchronization after undo/redo actions from any client.
 
 - **Undo/Redo**:
-  - **Undo/Redo functionality is implemented in `src/main.ts`:**
-    - **Undo**: Triggered by 'Ctrl+Z' or 'Cmd+Z'. Reverts the canvas to the previous state by loading a `RenderTexture` from the `historyStack`.
-    - **Redo**: Triggered by 'Ctrl+Shift+Z' or 'Cmd+Shift+Z'. Re-applies a previously undone state from the `redoStack`.
+  - Undo/Redo functionality is implemented in `src/main.ts` and now synchronized across clients:
+    - **Undo**: Triggered by 'Ctrl+Z' or 'Cmd+Z'. Reverts the local canvas to the previous state by loading a `RenderTexture` from the `historyStack`. Then, it serializes the current `RenderTexture` to a base64 encoded PNG and emits a `redraw` event to the server via Socket.IO to broadcast the updated full canvas state to other clients.
+    - **Redo**: Triggered by 'Ctrl+Shift+Z' or 'Cmd+Shift+Z'. Re-applies a previously undone state from the `redoStack`. Then, it serializes the current `RenderTexture` to a base64 encoded PNG and emits a `redraw` event to the server via Socket.IO to broadcast the updated full canvas state to other clients.
     - Saves canvas states to `historyStack` before each stroke completion and manages `redoStack` appropriately.
     - Limits the `historyStack` to `maxHistoryLength` defined in `src/utils/consts.ts`.
 
@@ -95,16 +108,15 @@ _Note: Frontend styling is currently using plain CSS as seen in `client/public/s
 
 - **WebSocket Server**:
 
-  - Uses Socket.IO to handle WebSocket connections.
-  - Manages user connections and in-memory storage of user layers (currently just tracking the last action for undo, not full layer history persistence).
-  - **Backend server is not yet implemented.**
+  - Uses Socket.IO to handle WebSocket connections in `server/src/server.ts`.
+  - Manages user connections and in-memory storage of user connections.
+  - **Broadcasts `drawCommand` events**: When the server receives a `drawCommand` from a user, it broadcasts this command to all other connected clients, ensuring real-time drawing synchronization.
+  - **Broadcasts `redraw` events**: When the server receives a `redraw` event (containing base64 encoded PNG of the canvas) from a user (typically after undo/redo), it broadcasts this event to all other connected clients, ensuring canvas state synchronization after undo/redo actions.
 
 #### **3. Data Flow**
 
-1. **User Draws**: User draws on the canvas → Frontend captures stroke → Renders stroke locally onto the `RenderTexture`.
-2. **Undo/Redo**: User triggers undo/redo → Frontend manipulates `historyStack` and `redoStack` and re-renders the canvas with a state from the history.
-
-_Currently, the data flow is limited to local client-side drawing and undo/redo functionalities._
+1. **User Draws**: User draws on the canvas → Frontend captures stroke → Renders stroke locally onto the user's `RenderTexture` → Frontend emits `drawCommand` events to the server via Socket.IO. → Server broadcasts `drawCommand` events to all other clients. → Clients receive `drawCommand` events and render the stroke on the respective user's layer.
+2. **Undo/Redo**: User triggers undo/redo → Frontend manipulates `historyStack` and `redoStack` and re-renders the local canvas with a state from history. → Frontend serializes the current `RenderTexture` to base64 PNG. → Frontend emits `redraw` event with base64 data to the server via Socket.IO. → Clients receive `redraw` event, reconstruct `RenderTexture` from base64 data, and update their local canvas.
 
 ---
 
@@ -117,48 +129,91 @@ _Currently, the data flow is limited to local client-side drawing and undo/redo 
 
 ---
 
-### **Key Considerations and TODOs**
+### **Key Considerations and TODOs - Prioritized**
 
-- **Real-time Synchronization**:
+**Top Priority:**
 
-  - **TODO**: Implement WebSocket (Socket.IO) for real-time drawing synchronization. This is a major next step.
+- **Saving Canvas State for New Users:**
+  - **Priority:** **High - P1**
+  - **Goal:** Ensure new users see the current canvas state upon joining.
+  - **Backend TODO:** Implement server-side storage of the combined canvas texture (as base64 PNG in memory initially). Periodically update this stored state or update it whenever the canvas changes significantly (e.g., after `endLine` or `redraw` events).
+  - **Backend TODO:** On new user connection, immediately send the stored base64 PNG data to the new client via a new socket event (e.g., `'initialCanvasState'`).
+  - **Frontend TODO:** In `socketEventHandler`, listen for the `'initialCanvasState'` event. When received, reconstruct the `RenderTexture` from the base64 PNG data and update the local canvas.
 
-- **Undo/Redo Improvement**:
+**High Priority:**
 
-  - **Current Status**: Basic client-side undo/redo is implemented.
-  - **TODO**: Implement server-side undo/redo to synchronize undo actions across clients when real-time features are added.
+- **Separate History Stack per User/Layer:**
+  - **Priority:** **High - P2**
+  - **Goal:** Each user should have independent undo/redo history for their layer.
+  - **Frontend TODO:** Modify `userLayers` map to store `historyStack` and `redoStack` for each user (keyed by `userId`).
+  - **Frontend TODO:** Update `saveState`, `undo`, and `redo` functions to operate on the correct user's `historyStack` and `redoStack`. Ensure `redrawCanvas` updates only the relevant user's layer when triggered by local undo/redo.
+  - **Frontend TODO:** Review and adjust canvas `redraw` synchronization after undo/redo to ensure it still functions correctly with per-user history.
 
-- **Persistence**:
+**Medium Priority:**
 
-  - **TODO**: Implement database persistence to save drawing sessions. Consider using Redis for fast in-memory data store or a more persistent database like Redis depending on requirements.
+- **Usernames and User Identification:**
 
-- **Scalability**:
+  - **Priority:** **Medium - P3**
+  - **Goal:** Display meaningful usernames instead of generic user IDs.
+  - **Backend TODO:** Allow users to set usernames upon connection. Store username associated with `socket.id`.
+  - **Backend TODO:** Broadcast updated user list (including usernames) to all clients on connection and username changes.
+  - **Frontend TODO:** Prompt user for username on connection and send to server.
+  - **Frontend TODO:** Display user list UI showing usernames.
+  - **Frontend TODO:** Include username in `drawCommand` and `redraw` payloads for better user context.
 
-  - **TODO**: For increased scalability, especially with more users, implement the backend server and Socket.IO communication.
-    - Implement Socket.IO rooms more effectively if needed (currently using user ID as room, which might not be optimal for broadcasting to all).
-    - Explore using Redis for distributed state management if scaling across multiple server instances.
-    - Consider optimizing Pixi.js rendering for complex canvases (culling is already added via `CullerPlugin` but further optimization may be needed).
+- **Basic User List UI:**
 
-- **Security**:
+  - **Priority:** **Medium - P4**
+  - **Goal:** Create a simple UI element to display connected users and their usernames.
+  - **Frontend TODO:** Add a `div` in `index.html` for the user list.
+  - **Frontend TODO:** In `socketEventHandler`, listen for user list updates from the server and update the UI element.
 
-  - **TODO**: Implement user authentication to ensure only authorized users can participate in drawing sessions when backend is implemented. JWT or OAuth could be considered.
-  - **TODO**: Consider security implications of broadcasting drawing data and implement necessary measures if sensitive information is involved (though likely not for a basic drawing app).
+- **Visual Layer Separation:**
+  - **Priority:** **Medium - P5**
+  - **Goal:** Provide visual distinction between user layers on the canvas.
+  - **Frontend TODO:** Implement color-coding for strokes based on user ID or username.
+  - **Frontend TODO (Optional):** Add layer name labels (e.g., username) to each user's layer container.
 
-- **Error Handling**:
+**Low Priority / Clarification Needed:**
 
-  - **TODO**: Implement more robust error handling on the client, especially for edge cases in drawing and state management. Once backend and real-time features are added, extend error handling to the server and socket communication.
+- **Layer Locking (Clarification and Implementation - If Needed):**
+  - **Priority:** **Low - P6**
+  - **Goal:** Clarify if strict layer locking is required. If so, implement mechanisms to ensure only the "owner" can draw on a layer.
+  - **Discussion:** Decide if strict layer locking is necessary or if visual separation and personal drawing space are sufficient for the collaborative drawing experience.
+  - **Frontend/Backend TODO (If Strict Locking is Needed):** Implement UI elements and server-side logic to manage layer ownership and enforce locking.
 
-- **Usernames and User Interface**:
+**Ongoing / Future Considerations:**
 
-  - **TODO**: Display usernames of users connected to the canvas (requires backend and user management).
-  - **TODO**: Display layers and ability to create new layer for each user. This will allow users to see their own drawings separately from others.
-  - **TODO**: Improve the UI/UX with more drawing tools (colors, brush sizes, different brush types, clear canvas button, etc.).
+- **Real-time Synchronization Improvements:**
 
-- **Drawing Functionality**:
+  - **Priority:** Ongoing
+  - **TODO:** Explore more efficient synchronization methods (command history, diffs) than full texture redraws.
 
-  - **Current Status**: Basic free-hand drawing on the PixiJS canvas using mouse events is implemented.
-  - **TODO**: Expand drawing functionality with more advanced features like shapes, text, image import, etc.
-  - **TODO**: Add support for different brush types (e.g., eraser, pencil, etc.) with customizable settings.
+- **Persistence:**
 
-- **Testing**:
-  - **TODO**: Implement unit and integration tests for the frontend to ensure drawing, state management, and UI functionalities are stable. Once backend is implemented, add tests for backend and real-time communication.
+  - **Priority:** Future
+  - **TODO:** Implement database persistence for saving sessions.
+
+- **Scalability:**
+
+  - **Priority:** Future
+  - **TODO:** Optimize backend and frontend for handling more users and complex drawings.
+
+- **Security:**
+
+  - **Priority:** Future
+  - **TODO:** Implement user authentication and consider security implications.
+
+- **Error Handling:**
+
+  - **Priority:** Ongoing
+  - **TODO:** Implement robust error handling throughout the application.
+
+- **Enhanced UI/UX & Drawing Functionality:**
+
+  - **Priority:** Future
+  - **TODO:** Add more drawing tools, brush types, UI improvements, etc.
+
+- **Testing:**
+  - **Priority:** Ongoing
+  - **TODO:** Implement unit and integration tests.
