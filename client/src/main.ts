@@ -119,6 +119,11 @@ type RedrawPayload = {
   base64: string;
 };
 
+type UserLayersPayload = {
+  userId: string;
+  base64: string;
+}[];
+
 const userLayers = new Map<
   string,
   {
@@ -146,6 +151,28 @@ const getOrCreateLayer = (userId: string, board: Container) => {
     userLayers.set(userId, layer);
   }
   return layer;
+};
+
+const drawImageFromBase64 = (
+  app: Application,
+  base64: string,
+  rt: RenderTexture
+) => {
+  const img = new Image();
+  img.src = base64;
+  img.onload = () => {
+    const texture = Texture.from(img);
+    const s = new Sprite(texture);
+
+    app.renderer.render({
+      container: s,
+      target: rt,
+    });
+
+    s.destroy();
+    texture.destroy();
+    img.remove();
+  };
 };
 
 const socketEventHandler = (
@@ -209,30 +236,27 @@ const socketEventHandler = (
     });
     stroke.destroy();
 
-    const img = new Image();
-    img.src = payload.base64;
-    img.onload = () => {
-      const texture = Texture.from(img);
-      const s = new Sprite(texture);
+    drawImageFromBase64(app, payload.base64, layer.rt);
+  });
 
-      app.renderer.render({
-        container: s,
-        target: layer.rt,
-      });
-
-      s.destroy();
-      texture.destroy();
-      img.remove();
-    };
+  socket.on('userLayers', (payload: UserLayersPayload) => {
+    console.log(`Received userLayers command`);
+    payload.forEach((item) => {
+      const { userId, base64 } = item;
+      const layer = getOrCreateLayer(userId, board);
+      drawImageFromBase64(app, base64, layer.rt);
+    });
   });
 };
-
 (async () => {
   const socket = await connect();
   if (!socket.id) throw new Error('Socket ID not found');
 
   const { app, board, container, rt } = await init();
   socketEventHandler(socket, app, board);
+
+  socket.emit('getLayers');
+  socket.emit('getUsers');
 
   userLayers.set(socket.id, {
     container,
@@ -255,6 +279,20 @@ const socketEventHandler = (
     });
     s.destroy();
     historyStack.push(newTexture);
+  };
+
+  const saveAndEmitLayer = () => {
+    app.renderer.extract
+      .base64({
+        format: 'png',
+        target: rt,
+      })
+      .then((data) => {
+        socket.emit('saveLayer', {
+          timestamp: Date.now(),
+          base64: data,
+        });
+      });
   };
 
   saveState();
@@ -348,7 +386,7 @@ const socketEventHandler = (
       lastCommands.push(command);
 
       socket.emit('drawCommand', lastCommands);
-
+      saveAndEmitLayer();
       lastCommands = [];
 
       if (historyStack.length > maxHistoryLength) {
@@ -378,7 +416,10 @@ const socketEventHandler = (
         target: rt,
       })
       .then((data) => {
-        socket.emit('redraw', data);
+        socket.emit('redraw', {
+          timestamp: Date.now(),
+          base64: data,
+        });
       });
 
     s.destroy();

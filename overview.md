@@ -12,7 +12,7 @@
 
    - Manages WebSocket connections using Socket.IO and coordinates real-time drawing updates.
    - Tracks user connections and broadcasts drawing actions and canvas redraw events to all connected clients.
-   - Currently uses in-memory state for user connections and **needs to implement saving and sending initial canvas state to new users**.
+   - Implements saving and sending initial canvas state to new users. Now sends the current canvas state to new users upon connection.
 
 3. **Database** (Optional for persistence):
    - Not currently implemented. Could be used to store session data (e.g., user layers, history) for persistence across sessions.
@@ -40,8 +40,7 @@
    - Uses Socket.IO for broadcasting drawing commands and canvas redraws.
 
 4. **Initial Canvas State for New Users**:
-   - **Currently Missing**: When a new user connects, they start with a blank canvas.
-   - **To Implement**: New users should receive the current state of the drawing canvas upon connection so they can see what has already been drawn.
+   - **Implemented**: When a new user connects, they now receive the current state of the drawing canvas upon connection, ensuring they see what has already been drawn.
 
 ---
 
@@ -49,14 +48,12 @@
 
 | **Component**        | **Frontend**          | **Backend**                      |
 | -------------------- | --------------------- | -------------------------------- |
-| **Framework**        | Vanilla JavaScript    | Node.js                          |
+| **Framework**        | TypeScript            | Node.js                          |
 | **Canvas Library**   | Pixi.js               | N/A (backend handles logic only) |
 | **Real-Time Sync**   | Socket.IO Client      | Socket.IO Server                 |
 | **Networking**       | WebSocket (Socket.IO) | WebSocket (Socket.IO)            |
-| **State Management** | Vanilla JavaScript    | In-memory state                  |
+| **State Management** | TypeScript            | In-memory state                  |
 | **Styling**          | CSS                   | N/A                              |
-
-_Note: Frontend styling is currently using plain CSS as seen in `client/public/style.css`, not CSS Modules as previously stated._
 
 ---
 
@@ -96,6 +93,7 @@ _Note: Frontend styling is currently using plain CSS as seen in `client/public/s
     - Renders the received drawing commands (initLine, line, endLine) on the corresponding user's layer, ensuring all clients display the same strokes.
     - Listens for `redraw` events from the server.
     - Upon receiving a `redraw` event, it updates the local canvas by reconstructing the `RenderTexture` from the received base64 encoded PNG data, ensuring canvas state synchronization after undo/redo actions from any client.
+    - **Initial Canvas State Handling:** Listens for the `'userLayers'` event. When received, reconstructs the `RenderTexture` from the base64 PNG data and updates the local canvas, ensuring new users start with the current canvas state.
 
 - **Undo/Redo**:
   - Undo/Redo functionality is implemented in `src/main.ts` and now synchronized across clients:
@@ -112,11 +110,13 @@ _Note: Frontend styling is currently using plain CSS as seen in `client/public/s
   - Manages user connections and in-memory storage of user connections.
   - **Broadcasts `drawCommand` events**: When the server receives a `drawCommand` from a user, it broadcasts this command to all other connected clients, ensuring real-time drawing synchronization.
   - **Broadcasts `redraw` events**: When the server receives a `redraw` event (containing base64 encoded PNG of the canvas) from a user (typically after undo/redo), it broadcasts this event to all other connected clients, ensuring canvas state synchronization after undo/redo actions.
+  - **Sends `userLayers` event**: On new user connection, the server serializes the current canvas `RenderTexture` to a base64 encoded PNG and sends it to the new client via the `'userLayers'` event. The server stores the canvas state in memory as a base64 encoded PNG, updating it after significant canvas changes (e.g., `endLine` or `redraw` events).
 
 #### **3. Data Flow**
 
 1. **User Draws**: User draws on the canvas → Frontend captures stroke → Renders stroke locally onto the user's `RenderTexture` → Frontend emits `drawCommand` events to the server via Socket.IO. → Server broadcasts `drawCommand` events to all other clients. → Clients receive `drawCommand` events and render the stroke on the respective user's layer.
 2. **Undo/Redo**: User triggers undo/redo → Frontend manipulates `historyStack` and `redoStack` and re-renders the local canvas with a state from history. → Frontend serializes the current `RenderTexture` to base64 PNG. → Frontend emits `redraw` event with base64 data to the server via Socket.IO. → Clients receive `redraw` event, reconstruct `RenderTexture` from base64 data, and update their local canvas.
+3. **New User Connects**: New user connects → Server serializes the current canvas `RenderTexture` to base64 PNG and sends it to the new client via the `'userLayersuserLayers'` event. → Frontend receives `'userLayers'` event, reconstructs `RenderTexture` from base64 data, and updates the local canvas.
 
 ---
 
@@ -131,14 +131,14 @@ _Note: Frontend styling is currently using plain CSS as seen in `client/public/s
 
 ### **Key Considerations and TODOs - Prioritized**
 
-**Top Priority:**
+**Completed:**
 
 - **Saving Canvas State for New Users:**
   - **Priority:** **High - P1**
   - **Goal:** Ensure new users see the current canvas state upon joining.
-  - **Backend TODO:** Implement server-side storage of the combined canvas texture (as base64 PNG in memory initially). Periodically update this stored state or update it whenever the canvas changes significantly (e.g., after `endLine` or `redraw` events).
-  - **Backend TODO:** On new user connection, immediately send the stored base64 PNG data to the new client via a new socket event (e.g., `'initialCanvasState'`).
-  - **Frontend TODO:** In `socketEventHandler`, listen for the `'initialCanvasState'` event. When received, reconstruct the `RenderTexture` from the base64 PNG data and update the local canvas.
+  - **Backend DONE:** Implemented server-side storage of the combined canvas texture (as base64 PNG in memory initially). Periodically update this stored state or update it whenever the canvas changes significantly (e.g., after `endLine` or `redraw` events).
+  - **Backend DONE:** On new user connection, immediately send the stored base64 PNG data to the new client via a new socket event (e.g., `'userLayers'`).
+  - **Frontend DONE:** In `socketEventHandler`, listen for the `'userLayers'` event. When received, reconstruct the `RenderTexture` from the base64 PNG data and update the local canvas.
 
 **High Priority:**
 
