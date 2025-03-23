@@ -1,17 +1,57 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/style.css">
-    <title>PixiJS - Template</title>
-</head>
+    <link rel="stylesheet" href="/style.css" />
+    <title>PixiJS - Collabrative Drawing</title>
+  </head>
 
-<body>
+  <body>
     <div id="app">
-        <div id="pixi-container"></div>
+      <div id="pixi-container"></div>
+      <div id="tools">
+        <button class="tool active" data-tool="brush" title="Brush">
+          <img src="/assets/icons/brush.svg" />
+        </button>
+        <button class="tool" data-tool="eraser" title="Eraser">
+          <img src="/assets/icons/eraser.svg" />
+        </button>
+        <button class="tool" data-tool="delete" title="Delete">
+          <img src="/assets/icons/delete.svg" />
+        </button>
+        <button class="tool" data-tool="zoomin" title="Zoom In">
+          <img src="/assets/icons/zoomin.svg" />
+        </button>
+        <button class="tool" data-tool="zoomout" title="Zoom Out">
+          <img src="/assets/icons/zoomout.svg" />
+        </button>
+        <button class="tool" data-tool="download" title="Download Image">
+          <img src="/assets/icons/download.svg" />
+        </button>
+        <button class="tool" data-tool="undo" title="Undo">
+          <img src="/assets/icons/undo.svg" />
+        </button>
+        <button class="tool" data-tool="redo" title="Redo">
+          <img src="/assets/icons/redo.svg" />
+        </button>
+        <button class="tool tool-color" data-tool="color" title="Color">
+          <input type="color" />
+        </button>
+      </div>
+      <div id="layers">
+        <!-- Add layers here dynamically -->
+        <!-- <h3>Layers</h3> 
+        <div class="layer-list">
+          <div class="layer-item active">
+            <div class="layer-thumbnail"></div>
+            <span class="layer-name">Layer 1</span>
+          </div>
+        </div>
+        <button id="add-layer-button">Add Layer</button> -->
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
-</body>
+  </body>
 </html>
