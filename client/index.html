@@ -41,15 +41,28 @@
         </button>
       </div>
       <div id="layers">
-        <!-- Add layers here dynamically -->
-        <!-- <h3>Layers</h3> 
+        <div class="layers-nav">
+          <h3 class="layers-title">Layers</h3>
+          <button title="Add Layer" class="add-layer-button tool">
+            <img src="/assets/icons/add.svg" />
+          </button>
+        </div>
         <div class="layer-list">
           <div class="layer-item active">
-            <div class="layer-thumbnail"></div>
-            <span class="layer-name">Layer 1</span>
+            <div class="layer-preview"></div>
+            <div class="layer-info">
+              <span class="layer-name">Layer 1</span>
+              <span class="layer-owner">Layer Owner</span>
+            </div>
+          </div>
+          <div class="layer-item">
+            <div class="layer-preview"></div>
+            <div class="layer-info">
+              <span class="layer-name">Layer 2</span>
+              <span class="layer-owner">Layer Owner</span>
+            </div>
           </div>
         </div>
-        <button id="add-layer-button">Add Layer</button> -->
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
