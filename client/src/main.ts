@@ -12,25 +12,27 @@ import {
   Texture,
 } from 'pixi.js';
 import io, { Socket } from 'socket.io-client';
-import { boardSize, maxHistoryLength, maxScale, minScale, vSub } from './utils';
+import { v4 } from 'uuid';
+import {
+  boardSize,
+  CommandBlock,
+  DrawCommand,
+  DrawCommandPayload,
+  maxHistoryLength,
+  maxScale,
+  minScale,
+  RedrawPayload,
+  UserLayersPayload,
+  vSub,
+  History,
+  Layer,
+} from './utils';
 
-type DrawCommand =
-  | {
-      command: 'initLine';
-      blendMode?: 'erase' | 'normal';
-      pos: Point;
-      strokeStyle: StrokeStyle;
-    }
-  | {
-      command: 'line';
-      pos: Point;
-    }
-  | {
-      command: 'endLine';
-    };
-
-type CommandBlock = DrawCommand[];
-type History = RenderTexture[];
+const layers = new Map<
+  string, // layer id
+  Layer
+>();
+let activeLayer: Layer | null = null;
 
 const connect = async () => {
   return new Promise<Socket>((resolve) => {
@@ -49,6 +51,7 @@ const connect = async () => {
 };
 
 const init = async () => {
+  // const id = v4();
   const app = new Application();
   extensions.add(CullerPlugin);
 
@@ -81,20 +84,6 @@ const init = async () => {
     .fill(0xffffff);
   board.addChild(canvasMask);
   board.addChild(canvasBg);
-
-  const rt = RenderTexture.create({
-    width: boardSize.width,
-    height: boardSize.height,
-  });
-  const sprite = new Sprite(rt);
-  const container = new Container({
-    x: 0,
-    y: 0,
-    width: board.width,
-    height: board.height,
-  });
-  container.addChild(sprite);
-  board.addChild(container);
   window.addEventListener('resize', () => {
     app.resize();
   });
@@ -106,36 +95,20 @@ const init = async () => {
     if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
   });
 
-  return { app, board, container, rt };
+  return { app, board };
 };
-
-type DrawCommandPayload = {
-  userId: string;
-  commands: DrawCommand[];
-};
-
-type RedrawPayload = {
-  userId: string;
-  base64: string;
-};
-
-type UserLayersPayload = {
-  userId: string;
-  base64: string;
-}[];
-
-const userLayers = new Map<
-  string,
-  {
-    container: Container;
-    rt: RenderTexture;
-  }
->();
 
 const getOrCreateLayer = (userId: string, board: Container) => {
-  let layer = userLayers.get(userId);
+  let layer = Array.from(layers.values()).find(
+    (item) => item.ownerId === userId
+  );
   if (!layer) {
+    const id = v4();
     layer = {
+      id,
+      ownerId: userId,
+      ownerName: userId, //TODO:
+      title: `Layer ${userId}`,
       container: new Container({
         label: `Layer ${userId}`,
       }),
@@ -148,7 +121,7 @@ const getOrCreateLayer = (userId: string, board: Container) => {
     layer.container.addChild(sprite);
     board.addChild(layer.container);
 
-    userLayers.set(userId, layer);
+    layers.set(layer.id, layer);
   }
   return layer;
 };
@@ -252,27 +225,34 @@ const socketEventHandler = (
   const socket = await connect();
   if (!socket.id) throw new Error('Socket ID not found');
 
-  const { app, board, container, rt } = await init();
+  const { app, board } = await init();
   socketEventHandler(socket, app, board);
 
   socket.emit('getLayers');
   socket.emit('getUsers');
 
-  userLayers.set(socket.id, {
-    container,
-    rt,
-  });
+  const existingLayer = Array.from(layers.entries()).find(
+    ([_key, item]) => item.ownerId === socket.id
+  );
+  if (existingLayer) {
+    activeLayer = existingLayer[1];
+  } else {
+    activeLayer = getOrCreateLayer(socket.id, board);
+  }
 
+  // TODO: on layer change clear the history
   let historyStack: History = [];
   let redoStack: History = [];
 
   const saveState = () => {
+    if (!activeLayer) return;
+
     const newTexture = RenderTexture.create({
       width: boardSize.width,
       height: boardSize.height,
     });
 
-    const s = new Sprite(rt);
+    const s = new Sprite(activeLayer.rt);
     app.renderer.render({
       container: s,
       target: newTexture,
@@ -281,14 +261,16 @@ const socketEventHandler = (
     historyStack.push(newTexture);
   };
 
-  const saveAndEmitLayer = () => {
+  const saveAndEmitLayer = (redraw?: boolean) => {
+    if (!activeLayer) return;
+
     app.renderer.extract
       .base64({
         format: 'png',
-        target: rt,
+        target: activeLayer.rt,
       })
       .then((data) => {
-        socket.emit('saveLayer', {
+        socket.emit(redraw ? 'redraw' : 'saveLayer', {
           timestamp: Date.now(),
           base64: data,
         });
@@ -316,6 +298,8 @@ const socketEventHandler = (
   };
 
   const onPointerDown = (e: FederatedPointerEvent) => {
+    if (!activeLayer) return;
+
     const pos = offsetPosition(e.clientX, e.clientY);
 
     if (e.button === 1) {
@@ -342,10 +326,12 @@ const socketEventHandler = (
     stroke.moveTo(pos.x, pos.y);
     stroke.lineTo(pos.x, pos.y - 0.01);
     stroke.stroke();
-    container.addChild(stroke);
+    activeLayer.container.addChild(stroke);
   };
 
   const onPointerMove = (e: FederatedPointerEvent) => {
+    if (!activeLayer) return;
+
     const stageScale = app.stage.scale.x;
     if (pan) {
       board.x += e.movementX / stageScale;
@@ -365,12 +351,14 @@ const socketEventHandler = (
   };
 
   const onPointerUp = () => {
+    if (!activeLayer) return;
+
     drawing = false;
     pan = false;
     if (stroke) {
       app.renderer.render({
         container: stroke,
-        target: rt,
+        target: activeLayer.rt,
         clear: false,
       });
 
@@ -384,9 +372,10 @@ const socketEventHandler = (
       };
 
       lastCommands.push(command);
-
-      socket.emit('drawCommand', lastCommands);
-      saveAndEmitLayer();
+      if (!isErasing) {
+        socket.emit('drawCommand', lastCommands);
+      }
+      saveAndEmitLayer(isErasing);
       lastCommands = [];
 
       if (historyStack.length > maxHistoryLength) {
@@ -396,10 +385,12 @@ const socketEventHandler = (
   };
 
   const redrawCanvas = (texture: RenderTexture) => {
+    if (!activeLayer) return;
+
     let stroke = new Graphics();
     app.renderer.render({
       container: stroke,
-      target: rt,
+      target: activeLayer.rt,
       clear: true,
     });
     stroke.destroy();
@@ -408,12 +399,12 @@ const socketEventHandler = (
 
     app.renderer.render({
       container: s,
-      target: rt,
+      target: activeLayer.rt,
     });
     app.renderer.extract
       .base64({
         format: 'png',
-        target: rt,
+        target: activeLayer.rt,
       })
       .then((data) => {
         socket.emit('redraw', {
@@ -455,7 +446,6 @@ const socketEventHandler = (
     const key = e.key.toLowerCase();
     if (key === 'e') {
       isErasing = !isErasing;
-      console.log('Eraser mode:', isErasing);
     }
     if (key === 'z' && (e.ctrlKey || e.metaKey)) {
       if (e.shiftKey) {

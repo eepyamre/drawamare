@@ -31,6 +31,10 @@ type SaveLayerPayload = {
   base64: string;
 };
 
+type CreateLayerPayload = {
+  id: string;
+};
+
 type Socket = SocketIO.Socket & {
   username?: string;
 };
@@ -87,6 +91,11 @@ io.on('connection', (socket: Socket) => {
     // don't save if userlayers have a newer item than the one we're saving
     if (userLayers[userId]?.timestamp > payload.timestamp) return;
     userLayers[userId] = payload;
+  });
+
+  socket.on('createLayer', (payload: CreateLayerPayload) => {
+    console.log(`Received create layer command from ${userId}`);
+    socket.broadcast.emit('createLayer', { userId, layer: payload });
   });
 
   socket.on('disconnect', () => {
