@@ -6,16 +6,16 @@
 
    - Handles user interface and canvas rendering using Pixi.js.
    - Implements drawing functionalities, user interaction, and real-time synchronization via WebSocket (Socket.IO).
-   - Manages local canvas state, history for undo/redo (**currently needs to be separated per user/layer**), and user layers.
+   - Manages local canvas state, **per-layer history for undo/redo**, and **multiple layers per user**. **Initial structure for multi-layer support is now in place.**
 
 2. **Backend** (Node.js + TypeScript):
 
    - Manages WebSocket connections using Socket.IO and coordinates real-time drawing updates.
    - Tracks user connections and broadcasts drawing actions and canvas redraw events to all connected clients.
-   - Implements saving and sending initial canvas state to new users. Now sends the current canvas state to new users upon connection.
+   - Implements saving and sending initial canvas state to new users. Now sends the current canvas state to new users upon connection. **Backend still needs significant adaptation for multi-layer initial state and management.**
 
 3. **Database** (Optional for persistence):
-   - Not currently implemented. Could be used to store session data (e.g., user layers, history) for persistence across sessions.
+   - Not currently implemented. Could be used to store session data (e.g., user layers, history, layer configurations) for persistence across sessions.
 
 ---
 
@@ -23,24 +23,26 @@
 
 1. **User Layers**:
 
-   - Each user has their own drawing layer, dynamically created and managed on the frontend using Pixi.js `Container` and `RenderTexture`.
-   - Layers are differentiated by user ID, allowing for individual drawing spaces within the shared canvas.
-   - Users are assigned layers upon receiving drawing commands from the server.
+   - **Partially Implemented**: Each user can now technically have **multiple drawing layers** through the refactored data structure. The frontend code now has a structure to manage multiple layers per user, but **layer management UI and full functionality are still pending.**
+   - Layers are differentiated and organized per user, allowing for individual drawing spaces within the shared canvas, with the groundwork laid for multi-layer flexibility.
+   - Users are assigned an initial layer upon connection. **Functionality to create additional layers and select active layers is not yet implemented in the UI.**
+   - **Layer Ordering and Selection**: **UI and logic for layer reordering and selection are still TODO.**
 
 2. **Undo/Redo**:
 
-   - **Undo**: Implemented on the client-side in `src/main.ts`. It utilizes a `historyStack` to store previous states of the canvas as `RenderTexture`s. When undo is triggered, it reverts to the previous state from the history and broadcasts the updated canvas state to other clients. **Needs to be modified to manage history per user/layer.**
-   - **Redo**: Implemented on the client-side in `src/main.ts` using a `redoStack`. It allows re-applying states that were previously undone and broadcasts the updated canvas state to other clients. **Needs to be modified to manage redo per user/layer.**
-   - Undo and redo actions are now synchronized across clients. When a user performs undo/redo, all other clients' canvases are updated to reflect the same state. **Synchronization needs to be reviewed when history is separated per user/layer.**
+   - **Partially Implemented**: **Undo and Redo are being transitioned to a per-layer basis**. The `Layer` type now includes `historyStack` and `redoStack`. **However, the undo/redo logic is still using a global `historyStack` and `redoStack` and needs to be refactored to use the per-layer stacks.**
+   - **Undo**: Client-side implementation in `src/main.ts` is **partially adapted**. The structure is prepared for per-layer history, but the actual logic needs to be updated to utilize the `layer.historyStack`. Broadcasting of updated canvas state to other clients will need to be layer-specific.
+   - **Redo**: Client-side implementation in `src/main.ts` is **partially adapted**. Similar to undo, the structure is prepared, but logic needs to be refactored for per-layer `redoStack`. Broadcasting needs to be layer-specific.
+   - Undo and redo actions are **intended to be layer-specific and synchronized**, but **the implementation is not yet complete**. Synchronization mechanism needs to be updated to handle layer-specific redraws once per-layer history is fully implemented.
 
 3. **Real-Time Sync**:
 
    - Real-time drawing updates are implemented.
-   - When a user draws, their strokes are immediately visible to all other connected users in near real-time.
-   - Uses Socket.IO for broadcasting drawing commands and canvas redraws.
+   - When a user draws, their strokes are immediately visible to all other connected users in near real-time. **Layer identification in drawing commands is not yet implemented in the payload.**
+   - Uses Socket.IO for broadcasting drawing commands and canvas redraws. **Needs to be adapted to include layer IDs in payloads.**
 
 4. **Initial Canvas State for New Users**:
-   - **Implemented**: When a new user connects, they now receive the current state of the drawing canvas upon connection, ensuring they see what has already been drawn.
+   - **Needs Adaptation**: When a new user connects, they currently receive the initial state based on the old single-layer system. **The `userLayers` event and handling need to be completely reworked to accommodate the multi-layer structure and send initial state for all layers.**
 
 ---
 
@@ -69,91 +71,96 @@
     - Initializing a PixiJS `Application`.
     - Setting up a `Container` to hold drawing elements, positioned in the center of the canvas.
     - Creating a `Graphics` object as a mask and background for the canvas area.
-    - Utilizing a `RenderTexture` and `Sprite` to efficiently render and store the drawing on a main layer.
+    - Utilizing `RenderTexture`s and `Sprite`s **per layer, managed within each user's layer structure. Data structure refactoring is done.**
     - Handling window resize events to adjust the canvas.
     - Implementing zoom functionality using the mouse wheel to scale the stage.
 
 - **Drawing Input**:
 
-  - **Drawing input is implemented in `src/main.ts`:**
-  - Drawing input is implemented in `src/main.ts`:
+  - **Drawing input needs significant updates in `src/main.ts` to fully handle layer selection and per-layer drawing:**
+  - Drawing input is partially updated in `src/main.ts`:
     - Listens to `pointerdown`, `pointermove`, and `pointerup` events on the Pixi.Stage to capture drawing actions.
-    - On `pointerdown`, initiates drawing a new stroke using `Graphics`. Supports different stroke styles (color, width, cap), and eraser mode.
-    - On `pointermove`, draws lines based on pointer movement, creating free-hand drawing effect.
-    - On `pointerup`, finalizes the stroke by rendering it onto the user's `RenderTexture`, saves the canvas state to the history stack for undo/redo, and emits drawing commands to the server via Socket.IO to broadcast to other clients.
-    - Implements a basic eraser functionality toggled by the 'e' key, which changes the blend mode and stroke width.
-    - Implements panning functionality using the middle mouse button to move the canvas.
-
-- **Real-Time Updates**:
-
-  - Real-time update handling is now implemented in `src/main.ts`:
+    - On `pointerdown`, initiates drawing a new stroke using `Graphics` on the **`activeLayer`**. Supports different stroke styles (color, width, cap), and eraser mode. **`activeLayer` management and selection UI are still TODO.**
+    - On `pointermove`, draws lines based on pointer movement, creating free-hand drawing effect on the **`activeLayer`**. **Active layer selection still TODO.**
+    - On `pointerup`, finalizes the stroke by rendering it onto the **`activeLayer`'s `RenderTexture`**, **saving to per-layer history is TODO**, and emitting drawing commands to the server via Socket.IO to broadcast to other clients, **layer information needs to be added to the `drawCommand` payload.**
+    - Layer management structure is partially implemented in `src/main.ts`:
     - Connects to the Socket.IO server upon initialization.
-    - Listens for `drawCommand` events from the server.
-    - Upon receiving a `drawCommand`, it identifies the user and their layer. If a layer doesn't exist for the user, it dynamically creates one.
-    - Renders the received drawing commands (initLine, line, endLine) on the corresponding user's layer, ensuring all clients display the same strokes.
-    - Listens for `redraw` events from the server.
-    - Upon receiving a `redraw` event, it updates the local canvas by reconstructing the `RenderTexture` from the received base64 encoded PNG data, ensuring canvas state synchronization after undo/redo actions from any client.
-    - **Initial Canvas State Handling:** Listens for the `'userLayers'` event. When received, reconstructs the `RenderTexture` from the base64 PNG data and updates the local canvas, ensuring new users start with the current canvas state.
+    - Listens for `drawCommand` events from the server. **`drawCommand` payload needs to include layer ID in future updates.**
+    - Upon receiving a `drawCommand`, it identifies the user and **currently uses `getOrCreateLayer` which is still based on single layer per user. Needs to be updated to handle layer IDs and multiple layers.**
+    - **Layer Management**: Dynamic user and initial layer creation is still functional. **Full layer management and selection logic are TODO.**
+    - Renders the received drawing commands (initLine, line, endLine) on the corresponding **user's layer (currently still single layer per user logic). Layer specific rendering needs to be implemented.**
+    - Listens for `redraw` events from the server. **`redraw` event payload needs to include layer ID in future updates.**
+    - Upon receiving a `redraw` event, it updates the local **layer's canvas (currently single layer logic). Layer specific redraw needs to be implemented.**
+    - **Initial Canvas State Handling:** Listens for the `'userLayers'` event. **`'userLayers'` event handling needs complete refactoring to handle multi-layer data.**
 
 - **Undo/Redo**:
-  - Undo/Redo functionality is implemented in `src/main.ts` and now synchronized across clients:
-    - **Undo**: Triggered by 'Ctrl+Z' or 'Cmd+Z'. Reverts the local canvas to the previous state by loading a `RenderTexture` from the `historyStack`. Then, it serializes the current `RenderTexture` to a base64 encoded PNG and emits a `redraw` event to the server via Socket.IO to broadcast the updated full canvas state to other clients.
-    - **Redo**: Triggered by 'Ctrl+Shift+Z' or 'Cmd+Shift+Z'. Re-applies a previously undone state from the `redoStack`. Then, it serializes the current `RenderTexture` to a base64 encoded PNG and emits a `redraw` event to the server via Socket.IO to broadcast the updated full canvas state to other clients.
-    - Saves canvas states to `historyStack` before each stroke completion and manages `redoStack` appropriately.
-    - Limits the `historyStack` to `maxHistoryLength` defined in `src/utils/consts.ts`.
+
+  - Undo/Redo functionality is **partially refactored in `src/main.ts` for per-layer structure, but logic is not yet fully implemented**:
+    - **Per-Layer History Stacks**: Each `Layer` object now includes `historyStack` and `redoStack`. **Logic to use these stacks is TODO.**
+    - **Undo**: Triggered by 'Ctrl+Z' or 'Cmd+Z'. **Currently using global `historyStack`. Needs to be updated to use `activeLayer.historyStack`.** Emitting `redraw` event to the server needs to be layer-specific.
+    - **Redo**: Triggered by 'Ctrl+Shift+Z' or 'Cmd+Shift+Z'. **Currently using global `redoStack`. Needs to be updated to use `activeLayer.redoStack`.** Emitting `redraw` event to the server needs to be layer-specific.
+    - **Saving canvas states is currently using global `historyStack`. Needs to be updated to save to `activeLayer.historyStack`**.
+    - Limits the **per-layer** `historyStack` to `maxHistoryLength` **once per-layer history is fully implemented.**
+
+- **Layer Management UI**:
+  - **Not Implemented**: UI elements in `index.html` and logic in `src/main.ts` to manage layers **are still completely TODO.**
 
 #### **2. Backend (Server-Side)**
 
 - **WebSocket Server**:
-
+  - Backend **still needs significant adaptation** to fully handle layer information in events and manage multi-layer state:
   - Uses Socket.IO to handle WebSocket connections in `server/src/server.ts`.
   - Manages user connections and in-memory storage of user connections.
-  - **Broadcasts `drawCommand` events**: When the server receives a `drawCommand` from a user, it broadcasts this command to all other connected clients, ensuring real-time drawing synchronization.
-  - **Broadcasts `redraw` events**: When the server receives a `redraw` event (containing base64 encoded PNG of the canvas) from a user (typically after undo/redo), it broadcasts this event to all other connected clients, ensuring canvas state synchronization after undo/redo actions.
-  - **Sends `userLayers` event**: On new user connection, the server serializes the current canvas `RenderTexture` to a base64 encoded PNG and sends it to the new client via the `'userLayers'` event. The server stores the canvas state in memory as a base64 encoded PNG, updating it after significant canvas changes (e.g., `endLine` or `redraw` events).
+  - **Broadcasts `drawCommand` events**: When the server receives a `drawCommand` from a user, it broadcasts this command to all other connected clients. **Needs to be updated to relay layer ID information as well.**
+  - **Broadcasts `redraw` events**: When the server receives a `redraw` event from a user, it broadcasts this event to all other connected clients. **Needs to be updated to ensure layer-specific canvas state synchronization and relay layer ID information.**
+  - **Sends `userLayers` event**: On new user connection, the server currently sends data based on the old single-layer system. **`'userLayers'` event payload needs to be completely restructured to efficiently send layer data per user and per layer. Backend needs to store and manage canvas state per layer, per user.**
 
 #### **3. Data Flow**
 
-1. **User Draws**: User draws on the canvas → Frontend captures stroke → Renders stroke locally onto the user's `RenderTexture` → Frontend emits `drawCommand` events to the server via Socket.IO. → Server broadcasts `drawCommand` events to all other clients. → Clients receive `drawCommand` events and render the stroke on the respective user's layer.
-2. **Undo/Redo**: User triggers undo/redo → Frontend manipulates `historyStack` and `redoStack` and re-renders the local canvas with a state from history. → Frontend serializes the current `RenderTexture` to base64 PNG. → Frontend emits `redraw` event with base64 data to the server via Socket.IO. → Clients receive `redraw` event, reconstruct `RenderTexture` from base64 data, and update their local canvas.
-3. **New User Connects**: New user connects → Server serializes the current canvas `RenderTexture` to base64 PNG and sends it to the new client via the `'userLayersuserLayers'` event. → Frontend receives `'userLayers'` event, reconstructs `RenderTexture` from base64 data, and updates the local canvas.
+1. **User Draws on Layer**: User draws on the canvas (**layer selection and active layer logic TODO**) → Frontend captures stroke (**layer ID capture TODO**) → Renders stroke locally onto the **`activeLayer`'s `RenderTexture` (active layer logic TODO)** → Frontend emits `drawCommand` events to the server via Socket.IO (**layer ID in payload TODO**). → Server broadcasts `drawCommand` events to all other clients. → Clients receive `drawCommand` events and render the stroke on the respective **user's layer (currently single layer logic). Layer-specific rendering TODO.**
+2. **Undo/Redo on Layer**: User triggers undo/redo (**per-layer undo/redo logic TODO**) → Frontend manipulates the **`activeLayer`'s `historyStack` and `redoStack` (active layer and per-layer history logic TODO)** and re-renders the **`activeLayer`'s** canvas with a state from history. → Frontend serializes the **`activeLayer`'s `RenderTexture`** to base64 PNG. → Frontend emits `redraw` event with base64 data and **layer ID (layer ID in payload TODO)** to the server via Socket.IO. → Clients receive `redraw` event, reconstruct **the specified layer's** `RenderTexture` from base64 data, and update their local canvas **for that specific layer (layer-specific redraw logic TODO)**.
+3. **New User Connects**: New user connects → Server serializes the current canvas `RenderTexture`s for **all layers of all users (multi-layer serialization and data structure TODO)** to base64 PNGs and sends it to the new client via the `'userLayers'` event, **organized per user and per layer (multi-layer `userLayers` payload TODO)**. → Frontend receives `'userLayers'` event, reconstructs `RenderTexture`s for each layer from base64 data, and updates the local canvas, **populating user layer structure with initial data (multi-layer `userLayers` handling TODO)**.
 
 ---
 
 ### **Database (Optional)**
 
-- **For Persistence**: Currently no database is used. To add persistence:
+- **For Persistence**: Currently no database is used. To add persistence for the multi-layer system:
   - Implement a database (e.g., Redis, PostgreSQL, MongoDB, or even a simple JSON file for basic persistence).
-  - Store user layers (or strokes) in the database.
-  - Load layers from the database on server start and when new users connect if session persistence is required.
+  - Store user layers **as structured data, including layer order, names (if implemented), visibility, and drawing data (potentially as base64 or command history)** in the database.
+  - Load **user layer configurations and drawing data** from the database on server start and when new users connect if session persistence is required.
 
 ---
 
 ### **Key Considerations and TODOs - Prioritized**
 
-**Completed:**
+**Highest Priority:**
 
-- **Saving Canvas State for New Users:**
-  - **Priority:** **High - P1**
-  - **Goal:** Ensure new users see the current canvas state upon joining.
-  - **Backend DONE:** Implemented server-side storage of the combined canvas texture (as base64 PNG in memory initially). Periodically update this stored state or update it whenever the canvas changes significantly (e.g., after `endLine` or `redraw` events).
-  - **Backend DONE:** On new user connection, immediately send the stored base64 PNG data to the new client via a new socket event (e.g., `'userLayers'`).
-  - **Frontend DONE:** In `socketEventHandler`, listen for the `'userLayers'` event. When received, reconstruct the `RenderTexture` from the base64 PNG data and update the local canvas.
+- **Implement Per-Layer History and Multi-Layer Support - Continued Implementation:**
+
+  - **Priority:** **Highest - P1+**
+  - **Goal:** Fully refactor the frontend and backend to support multiple layers per user and per-layer undo/redo history. **Focus on completing the frontend implementation first, then adapt the backend.**
+  - **Frontend TODO (Immediate Focus):**
+
+    - **Implement Layer Management UI**: Create UI in `index.html` and logic in `src/main.ts` to add, delete, reorder, and **select the active layer**. This is crucial for user interaction with layers.
+    - **Update Drawing Input Logic**: Modify `onPointerDown`, `onPointerMove`, `onPointerUp` to **draw on the currently active layer**. Ensure `activeLayer` is correctly managed and updated by the layer selection UI.
+    - **Refactor `saveState`, `undo`, `redo`**: **Completely refactor** these functions to operate on the **`activeLayer`'s `historyStack` and `redoStack`**. Remove usage of global `historyStack` and `redoStack`.
+    - **Refactor `redrawCanvas`**: Update `redrawCanvas` to redraw a **specific layer** based on its `RenderTexture`. Ensure it operates on the `activeLayer` or a specified layer ID.
+    - **Update `DrawCommandPayload` and `RedrawPayload`**: **Include `layerId` in these payloads** for server communication. Start sending `layerId` with draw and redraw events.
+    - **Update `socketEventHandler`**: Modify `socketEventHandler` to handle `drawCommand` and `redraw` events with `layerId` and apply changes to the correct **specified layer**. Update `getOrCreateLayer` to be layer-aware or create a new function for layer retrieval/creation.
+    - **Update `'userLayers'` event handling**: **Completely refactor** the `'userLayers'` event handling to process the new multi-layer data structure when it is sent from the backend. **Backend `userLayers` event payload refactoring will be needed next, after frontend structure is solid.**
+
+  - **Backend TODO (Next Step after Frontend UI and Core Logic):**
+    - **Refactor `userLayers` server-side data structure**: Adapt the `userLayers` structure on the server to mirror the frontend structure to track layer data. Implement efficient storage and retrieval of layer data for initial state.
+    - **Update `'userLayers'` event payload**: **Refactor the `'userLayers'` event payload** to send layer data per user, likely as an array of layer objects containing base64 data and layer IDs, **once the frontend data structure and handling are finalized.**
+    - **Update Event Handling**: Modify `socket.on('drawCommand')`, `socket.on('redraw')`, and `socket.on('saveLayer')` in `server.ts` to correctly handle the new `layerId` property in the payloads and broadcast it to clients.
+    - **Initial State Management**: Refactor how the server manages and stores the initial canvas state for the multi-layer system.
 
 **High Priority:**
 
-- **Separate History Stack per User/Layer:**
-  - **Priority:** **High - P2**
-  - **Goal:** Each user should have independent undo/redo history for their layer.
-  - **Frontend TODO:** Modify `userLayers` map to store `historyStack` and `redoStack` for each user (keyed by `userId`).
-  - **Frontend TODO:** Update `saveState`, `undo`, and `redo` functions to operate on the correct user's `historyStack` and `redoStack`. Ensure `redrawCanvas` updates only the relevant user's layer when triggered by local undo/redo.
-  - **Frontend TODO:** Review and adjust canvas `redraw` synchronization after undo/redo to ensure it still functions correctly with per-user history.
-
-**Medium Priority:**
-
 - **Usernames and User Identification:**
 
-  - **Priority:** **Medium - P3**
+  - **Priority:** **Medium - P2**
   - **Goal:** Display meaningful usernames instead of generic user IDs.
   - **Backend TODO:** Allow users to set usernames upon connection. Store username associated with `socket.id`.
   - **Backend TODO:** Broadcast updated user list (including usernames) to all clients on connection and username changes.
@@ -163,57 +170,57 @@
 
 - **Basic User List UI:**
 
-  - **Priority:** **Medium - P4**
+  - **Priority:** **Medium - P3**
   - **Goal:** Create a simple UI element to display connected users and their usernames.
-  - **Frontend TODO:** Add a `div` in `index.html` for the user list.
-  - **Frontend TODO:** In `socketEventHandler`, listen for user list updates from the server and update the UI element.
+  - **Frontend TODO:** Add a `div` in `index.html` for the user list, potentially alongside the layer management UI.
+  - **Frontend TODO:** In `socketEventHandler`, listen for user list updates from the server (a new event needs to be defined on the server to send user list updates) and update the UI element dynamically to show connected users.
 
 - **Visual Layer Separation:**
-  - **Priority:** **Medium - P5**
+  - **Priority:** **Medium - P4**
   - **Goal:** Provide visual distinction between user layers on the canvas.
-  - **Frontend TODO:** Implement color-coding for strokes based on user ID or username.
-  - **Frontend TODO (Optional):** Add layer name labels (e.g., username) to each user's layer container.
+  - **Frontend TODO:** Implement color-coding for strokes based on user ID or username. Consider assigning default colors per user or per layer and allowing customization in the future.
+  - **Frontend TODO (Optional):** Add layer name labels (e.g., username or layer name) to each user's layer container, potentially as a visual overlay.
 
 **Low Priority / Clarification Needed:**
 
 - **Layer Locking (Clarification and Implementation - If Needed):**
-  - **Priority:** **Low - P6**
-  - **Goal:** Clarify if strict layer locking is required. If so, implement mechanisms to ensure only the "owner" can draw on a layer.
-  - **Discussion:** Decide if strict layer locking is necessary or if visual separation and personal drawing space are sufficient for the collaborative drawing experience.
-  - **Frontend/Backend TODO (If Strict Locking is Needed):** Implement UI elements and server-side logic to manage layer ownership and enforce locking.
+  - **Priority:** **Low - P5**
+  - **Goal:** Clarify if strict layer locking is required. If so, implement mechanisms to ensure only the "owner" can draw on a layer, or perhaps locking per layer regardless of user.
+  - **Discussion:** Decide if strict layer locking is necessary or if visual separation, personal drawing space, and potentially layer visibility controls are sufficient for the collaborative drawing experience.
+  - **Frontend/Backend TODO (If Strict Locking is Needed):** Implement UI elements (e.g., a lock icon per layer in the layer management UI) and server-side logic to manage layer ownership and enforce locking. Consider different locking models (user-based, layer-based, etc.).
 
 **Ongoing / Future Considerations:**
 
 - **Real-time Synchronization Improvements:**
 
   - **Priority:** Ongoing
-  - **TODO:** Explore more efficient synchronization methods (command history, diffs) than full texture redraws.
+  - **TODO:** Explore more efficient synchronization methods (command history diffs, optimized data structures for layer updates) than full texture redraws, especially critical with per-layer updates and potentially many layers.
 
 - **Persistence:**
 
   - **Priority:** Future
-  - **TODO:** Implement database persistence for saving sessions.
+  - **TODO:** Implement database persistence for saving sessions, now needing to persist a more complex data structure for multi-layer data, user layer configurations, and potentially layer history for more robust persistence.
 
 - **Scalability:**
 
   - **Priority:** Future
-  - **TODO:** Optimize backend and frontend for handling more users and complex drawings.
+  - **TODO:** Optimize backend and frontend for handling more users, more layers per user, and complex drawings. Consider server-side layer state management and efficient data broadcasting strategies.
 
 - **Security:**
 
   - **Priority:** Future
-  - **TODO:** Implement user authentication and consider security implications.
+  - **TODO:** Implement user authentication and consider security implications, especially if user-specific layers and persistence are implemented.
 
 - **Error Handling:**
 
   - **Priority:** Ongoing
-  - **TODO:** Implement robust error handling throughout the application.
+  - **TODO:** Implement robust error handling throughout the application, particularly crucial with the added complexity of multi-layer management, layer synchronization, and potential user interactions with layer management UI.
 
 - **Enhanced UI/UX & Drawing Functionality:**
 
   - **Priority:** Future
-  - **TODO:** Add more drawing tools, brush types, UI improvements, etc.
+  - **TODO:** Add more drawing tools (brush types, shapes, selection tools, fill tools), brush settings (size control, opacity control, pressure sensitivity if possible), UI improvements (better color pickers, toolbars, layer panel enhancements), layer management UI enhancements (rename layers, toggle visibility, layer blend modes, layer opacity control), etc.
 
 - **Testing:**
   - **Priority:** Ongoing
-  - **TODO:** Implement unit and integration tests.
+  - **TODO:** Implement unit and integration tests, particularly important to ensure the stability and correctness of the new multi-layer and per-layer history system, layer management UI, and synchronization logic. Focus on testing core layer operations (add, delete, reorder, select, draw, undo/redo on specific layers) and synchronization across multiple clients.
