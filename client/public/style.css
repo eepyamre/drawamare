@@ -104,6 +104,7 @@ body {
 .layer-info {
   display: flex;
   flex-direction: column;
+  max-width: calc(200px - 32px - 20px);
 }
 
 .layer-list {
@@ -132,6 +133,7 @@ body {
   height: 32px;
   /* tmporary placeholder */
   background-color: #222;
+  flex-shrink: 0;
 }
 
 .layer-owner {
@@ -140,4 +142,12 @@ body {
 
 .layer-name {
   font-size: 1rem;
+}
+
+.layer-owner,
+.layer-name {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  overflow: hidden;
 }

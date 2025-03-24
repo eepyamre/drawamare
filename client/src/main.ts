@@ -27,6 +27,7 @@ import {
   History,
   Layer,
 } from './utils';
+import { LayerUI } from './ui';
 
 const layers = new Map<
   string, // layer id
@@ -97,31 +98,56 @@ const init = async () => {
   return { app, board };
 };
 
+const ui = new LayerUI();
+
+const getLayer = (layerId: string) => {
+  return Array.from(layers.values()).find((item) => item.id === layerId);
+};
+
+const createLayer = (
+  layer: Omit<Layer, 'rt' | 'container'>,
+  board: Container
+) => {
+  const l = {
+    id: layer.id,
+    ownerId: layer.ownerId,
+    ownerName: layer.ownerId, //TODO:
+    title: layer.title, //TODO: get title from server
+    container: new Container({
+      label: layer.title,
+    }),
+    rt: RenderTexture.create({
+      width: board.width,
+      height: board.height,
+    }),
+  };
+
+  const sprite = new Sprite(l.rt);
+  l.container.addChild(sprite);
+  board.addChild(l.container);
+
+  layers.set(l.id, l);
+  ui.renderLayers(Array.from(layers.values()));
+  activeLayer?.id && ui.setActiveLayer(activeLayer.id);
+  return l;
+};
+
 const getOrCreateLayer = (
   layerId: string,
   ownerId: string,
   board: Container
 ) => {
-  let layer = Array.from(layers.values()).find((item) => item.id === layerId);
+  let layer = getLayer(layerId);
   if (!layer) {
-    layer = {
-      id: layerId,
-      ownerId: ownerId,
-      ownerName: ownerId, //TODO:
-      title: `Layer ${ownerId}`, //TODO: get title from server
-      container: new Container({
-        label: `Layer ${ownerId}`,
-      }),
-      rt: RenderTexture.create({
-        width: board.width,
-        height: board.height,
-      }),
-    };
-    const sprite = new Sprite(layer.rt);
-    layer.container.addChild(sprite);
-    board.addChild(layer.container);
-
-    layers.set(layer.id, layer);
+    layer = createLayer(
+      {
+        id: layerId,
+        ownerId: ownerId,
+        ownerName: ownerId,
+        title: `Layer ${ownerId}`,
+      },
+      board
+    );
   }
   return layer;
 };
@@ -215,10 +241,26 @@ const socketEventHandler = (
   socket.on('layers', (payload: LayersPayload) => {
     console.log(`Received layers command`);
     payload.forEach((item) => {
-      const { userId, base64, layerId } = item;
-      const layer = getOrCreateLayer(layerId, userId, board);
-      drawImageFromBase64(app, base64, layer.rt);
+      const { base64, id, ownerId, ownerName, title } = item;
+      let layer = getLayer(id);
+      if (!layer) {
+        layer = createLayer(
+          {
+            id,
+            ownerId,
+            ownerName,
+            title,
+          },
+          board
+        );
+      }
+      if (base64) drawImageFromBase64(app, base64, layer.rt);
     });
+  });
+
+  socket.on('createLayer', (payload: Omit<Layer, 'rt' | 'container'>) => {
+    console.log(`Received create layer command`);
+    createLayer(payload, board);
   });
 };
 (async () => {
@@ -226,6 +268,47 @@ const socketEventHandler = (
   if (!socket.id) throw new Error('Socket ID not found');
 
   const { app, board } = await init();
+
+  ui.onSelectLayer((layerId) => {
+    console.log(`Select layer ID: ${layerId}`);
+    const l = getLayer(layerId);
+    if (l) {
+      activeLayer = l;
+      ui.setActiveLayer(l.id);
+    } else {
+      ui.renderLayers(Array.from(layers.values()));
+    }
+
+    // History stack and redo stack should be cleared when a new layer is selected.
+    historyStack = [];
+    redoStack = [];
+  });
+
+  ui.onAddLayer(() => {
+    console.log('Add new layer');
+    const layerId = v4();
+    const userId = socket.id;
+    if (!userId) return;
+    const layer = createLayer(
+      {
+        id: layerId,
+        title: `New Layer ${layerId}`,
+        ownerId: userId,
+        ownerName: userId,
+      },
+      board
+    );
+    activeLayer = layer;
+    ui.setActiveLayer(layer.id);
+
+    socket.emit('createLayer', {
+      id: layer.id,
+      title: layer.title,
+      ownerId: layer.ownerId,
+      ownerName: layer.ownerName,
+    });
+  });
+
   socketEventHandler(socket, app, board);
 
   socket.emit('getLayers');
@@ -237,10 +320,18 @@ const socketEventHandler = (
   if (existingLayer) {
     activeLayer = existingLayer[1];
   } else {
-    activeLayer = getOrCreateLayer(v4(), socket.id, board);
+    const l = {
+      id: v4(),
+      title: `New Layer ${v4()}`,
+      ownerId: socket.id,
+      ownerName: socket.id,
+    };
+    activeLayer = createLayer(l, board);
+    socket.emit('createLayer', l);
   }
+  ui.setActiveLayer(activeLayer.id);
 
-  // TODO: on layer change clear the history
+  // History stack and redo stack should be cleared when a new layer is selected.
   let historyStack: History = [];
   let redoStack: History = [];
 
@@ -265,6 +356,7 @@ const socketEventHandler = (
     if (!activeLayer) return;
 
     const layerId = activeLayer.id;
+    const title = activeLayer.title;
     app.renderer.extract
       .base64({
         format: 'png',
@@ -273,6 +365,7 @@ const socketEventHandler = (
       .then((data) => {
         socket.emit(redraw ? 'redraw' : 'saveLayer', {
           layerId,
+          title,
           timestamp: Date.now(),
           base64: data,
         });
@@ -408,6 +501,8 @@ const socketEventHandler = (
     });
 
     const layerId = activeLayer.id;
+    const title = activeLayer.title;
+
     app.renderer.extract
       .base64({
         format: 'png',
@@ -416,6 +511,7 @@ const socketEventHandler = (
       .then((data) => {
         socket.emit('redraw', {
           layerId,
+          title,
           timestamp: Date.now(),
           base64: data,
         });

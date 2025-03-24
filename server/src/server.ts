@@ -34,11 +34,14 @@ type StrokePayload = {
 type SaveLayerPayload = {
   layerId: string;
   timestamp: number;
+  title: string;
   base64: string;
 };
 
 type CreateLayerPayload = {
   id: string;
+  ownerId: string;
+  title: string;
 };
 
 const httpServer = http.createServer();
@@ -49,8 +52,9 @@ let layers: {
   id: string;
   title: string;
   ownerId: string;
+  ownerName: string;
   timestamp: number;
-  base64: string;
+  base64?: string;
 }[] = [];
 const userConnections: { [userId: string]: Socket } = {};
 
@@ -85,6 +89,7 @@ io.on('connection', (socket: Socket) => {
         id: payload.layerId,
         title: 'New Layer',
         ownerId: userId,
+        ownerName: userId,
         timestamp: payload.timestamp,
         base64: payload.base64,
       };
@@ -109,8 +114,9 @@ io.on('connection', (socket: Socket) => {
     if (!l) {
       l = {
         id: payload.layerId,
-        title: 'New Layer',
+        title: payload.title,
         ownerId: userId,
+        ownerName: userId,
         timestamp: payload.timestamp,
         base64: payload.base64,
       };
@@ -125,7 +131,14 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('createLayer', (payload: CreateLayerPayload) => {
     console.log(`Received create layer command from ${userId}`);
-    socket.broadcast.emit('createLayer', { userId, layer: payload });
+    layers.push({
+      id: payload.id,
+      title: payload.title,
+      ownerId: payload.ownerId,
+      ownerName: payload.ownerId,
+      timestamp: Date.now(),
+    });
+    socket.broadcast.emit('createLayer', payload);
   });
 
   socket.on('disconnect', () => {

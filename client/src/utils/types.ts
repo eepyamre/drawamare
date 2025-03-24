@@ -32,9 +32,12 @@ export type RedrawPayload = {
 };
 
 export type LayersPayload = {
+  id: string;
   userId: string;
-  layerId: string;
-  base64: string;
+  title: string;
+  ownerId: string;
+  ownerName: string;
+  base64?: string;
 }[];
 
 export type Layer = {
