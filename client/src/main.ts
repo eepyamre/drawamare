@@ -22,7 +22,7 @@ import {
   maxScale,
   minScale,
   RedrawPayload,
-  UserLayersPayload,
+  LayersPayload,
   vSub,
   History,
   Layer,
@@ -212,8 +212,8 @@ const socketEventHandler = (
     drawImageFromBase64(app, payload.base64, layer.rt);
   });
 
-  socket.on('userLayers', (payload: UserLayersPayload) => {
-    console.log(`Received userLayers command`);
+  socket.on('layers', (payload: LayersPayload) => {
+    console.log(`Received layers command`);
     payload.forEach((item) => {
       const { userId, base64, layerId } = item;
       const layer = getOrCreateLayer(layerId, userId, board);

@@ -31,7 +31,7 @@ export type RedrawPayload = {
   base64: string;
 };
 
-export type UserLayersPayload = {
+export type LayersPayload = {
   userId: string;
   layerId: string;
   base64: string;
