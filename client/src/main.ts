@@ -51,7 +51,6 @@ const connect = async () => {
 };
 
 const init = async () => {
-  // const id = v4();
   const app = new Application();
   extensions.add(CullerPlugin);
 
@@ -98,19 +97,20 @@ const init = async () => {
   return { app, board };
 };
 
-const getOrCreateLayer = (userId: string, board: Container) => {
-  let layer = Array.from(layers.values()).find(
-    (item) => item.ownerId === userId
-  );
+const getOrCreateLayer = (
+  layerId: string,
+  ownerId: string,
+  board: Container
+) => {
+  let layer = Array.from(layers.values()).find((item) => item.id === layerId);
   if (!layer) {
-    const id = v4();
     layer = {
-      id,
-      ownerId: userId,
-      ownerName: userId, //TODO:
-      title: `Layer ${userId}`,
+      id: layerId,
+      ownerId: ownerId,
+      ownerName: ownerId, //TODO:
+      title: `Layer ${ownerId}`, //TODO: get title from server
       container: new Container({
-        label: `Layer ${userId}`,
+        label: `Layer ${ownerId}`,
       }),
       rt: RenderTexture.create({
         width: board.width,
@@ -156,7 +156,7 @@ const socketEventHandler = (
   socket.on('drawCommand', (payload: DrawCommandPayload) => {
     console.log(`Received draw command from ${payload.userId}`);
 
-    const layer = getOrCreateLayer(payload.userId, board);
+    const layer = getOrCreateLayer(payload.layerId, payload.userId, board);
 
     const commands = payload.commands;
 
@@ -200,7 +200,7 @@ const socketEventHandler = (
 
   socket.on('redraw', (payload: RedrawPayload) => {
     console.log(`Received redraw command from ${payload.userId}`);
-    const layer = getOrCreateLayer(payload.userId, board);
+    const layer = getOrCreateLayer(payload.layerId, payload.userId, board);
     let stroke = new Graphics();
     app.renderer.render({
       container: stroke,
@@ -215,8 +215,8 @@ const socketEventHandler = (
   socket.on('userLayers', (payload: UserLayersPayload) => {
     console.log(`Received userLayers command`);
     payload.forEach((item) => {
-      const { userId, base64 } = item;
-      const layer = getOrCreateLayer(userId, board);
+      const { userId, base64, layerId } = item;
+      const layer = getOrCreateLayer(layerId, userId, board);
       drawImageFromBase64(app, base64, layer.rt);
     });
   });
@@ -237,7 +237,7 @@ const socketEventHandler = (
   if (existingLayer) {
     activeLayer = existingLayer[1];
   } else {
-    activeLayer = getOrCreateLayer(socket.id, board);
+    activeLayer = getOrCreateLayer(v4(), socket.id, board);
   }
 
   // TODO: on layer change clear the history
@@ -264,6 +264,7 @@ const socketEventHandler = (
   const saveAndEmitLayer = (redraw?: boolean) => {
     if (!activeLayer) return;
 
+    const layerId = activeLayer.id;
     app.renderer.extract
       .base64({
         format: 'png',
@@ -271,6 +272,7 @@ const socketEventHandler = (
       })
       .then((data) => {
         socket.emit(redraw ? 'redraw' : 'saveLayer', {
+          layerId,
           timestamp: Date.now(),
           base64: data,
         });
@@ -373,7 +375,10 @@ const socketEventHandler = (
 
       lastCommands.push(command);
       if (!isErasing) {
-        socket.emit('drawCommand', lastCommands);
+        socket.emit('drawCommand', {
+          layerId: activeLayer.id,
+          commands: lastCommands,
+        });
       }
       saveAndEmitLayer(isErasing);
       lastCommands = [];
@@ -401,6 +406,8 @@ const socketEventHandler = (
       container: s,
       target: activeLayer.rt,
     });
+
+    const layerId = activeLayer.id;
     app.renderer.extract
       .base64({
         format: 'png',
@@ -408,6 +415,7 @@ const socketEventHandler = (
       })
       .then((data) => {
         socket.emit('redraw', {
+          layerId,
           timestamp: Date.now(),
           base64: data,
         });

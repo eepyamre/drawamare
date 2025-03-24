@@ -1,6 +1,5 @@
-import SocketIO, { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import http from 'http';
-import { v4 as uuidv4 } from 'uuid';
 
 type Point = {
   x: number;
@@ -9,7 +8,7 @@ type Point = {
 
 type StrokeStyle = object;
 
-type DrawCommand =
+type DrawCommand = { layerId: string } & (
   | {
       command: 'initLine';
       blendMode?: 'erase' | 'normal';
@@ -17,16 +16,23 @@ type DrawCommand =
       strokeStyle: StrokeStyle;
     }
   | {
-      command: 'line';
       pos: Point;
+      command: 'line';
     }
   | {
       command: 'endLine';
-    };
+    }
+);
 
 type DrawCommands = DrawCommand[];
 
+type StrokePayload = {
+  layerId: string;
+  commands: DrawCommands;
+};
+
 type SaveLayerPayload = {
+  layerId: string;
   timestamp: number;
   base64: string;
 };
@@ -35,20 +41,17 @@ type CreateLayerPayload = {
   id: string;
 };
 
-type Socket = SocketIO.Socket & {
-  username?: string;
-};
-
 const httpServer = http.createServer();
 const io = new Server(httpServer);
 
 // Track user layers. Save the last base64 state
-const userLayers: {
-  [userId: string]: {
-    timestamp: number;
-    base64: string;
-  };
-} = {};
+let layers: {
+  id: string;
+  title: string;
+  ownerId: string;
+  timestamp: number;
+  base64: string;
+}[] = [];
 const userConnections: { [userId: string]: Socket } = {};
 
 io.on('connection', (socket: Socket) => {
@@ -62,35 +65,62 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('getLayers', () => {
-    socket.emit(
-      'userLayers',
-      Object.keys(userLayers).map((key) => ({
-        userId: key,
-        base64: userLayers[key].base64,
-      }))
-    );
+    socket.emit('userLayers', layers);
   });
 
-  socket.on('drawCommand', (commands: DrawCommands) => {
+  socket.on('drawCommand', (payload: StrokePayload) => {
     console.log(`Received draw command from ${userId}`);
-    socket.broadcast.emit('drawCommand', { userId: socket.id, commands });
+    socket.broadcast.emit('drawCommand', {
+      userId: socket.id,
+      layerId: payload.layerId,
+      commands: payload.commands,
+    });
   });
 
   socket.on('redraw', (payload: SaveLayerPayload) => {
     console.log(`Received redraw command from ${userId}`);
-    userLayers[userId] = payload;
+    let l = layers.find((item) => item.id === payload.layerId);
+    if (!l) {
+      l = {
+        id: payload.layerId,
+        title: 'New Layer',
+        ownerId: userId,
+        timestamp: payload.timestamp,
+        base64: payload.base64,
+      };
+      layers.push(l);
+    }
 
-    socket.broadcast.emit('redraw', {
-      userId: socket.id,
-      base64: payload.base64,
-    });
+    // don't save if userlayers have a newer item than the one we're saving
+    if (l.timestamp < payload.timestamp) {
+      l.base64 = payload.base64;
+
+      socket.broadcast.emit('redraw', {
+        userId: socket.id,
+        layerId: payload.layerId,
+        base64: payload.base64,
+      });
+    }
   });
 
   socket.on('saveLayer', (payload: SaveLayerPayload) => {
     console.log(`Received save layer command from ${userId}`);
+    let l = layers.find((item) => item.id === payload.layerId);
+    if (!l) {
+      l = {
+        id: payload.layerId,
+        title: 'New Layer',
+        ownerId: userId,
+        timestamp: payload.timestamp,
+        base64: payload.base64,
+      };
+      layers.push(l);
+    }
+
     // don't save if userlayers have a newer item than the one we're saving
-    if (userLayers[userId]?.timestamp > payload.timestamp) return;
-    userLayers[userId] = payload;
+    if (l.timestamp < payload.timestamp) {
+      l.base64 = payload.base64;
+    }
   });
 
   socket.on('createLayer', (payload: CreateLayerPayload) => {
@@ -100,7 +130,7 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User ${userId} disconnected`);
-    delete userLayers[userId]; // TMP. Remove on production
+    layers = layers.filter((l) => l.ownerId !== userId); // TMP. Remove on production
     delete userConnections[userId];
   });
 });

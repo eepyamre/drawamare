@@ -21,16 +21,19 @@ export type History = RenderTexture[];
 
 export type DrawCommandPayload = {
   userId: string;
+  layerId: string;
   commands: DrawCommand[];
 };
 
 export type RedrawPayload = {
   userId: string;
+  layerId: string;
   base64: string;
 };
 
 export type UserLayersPayload = {
   userId: string;
+  layerId: string;
   base64: string;
 }[];
 
