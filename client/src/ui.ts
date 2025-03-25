@@ -11,6 +11,7 @@ export class LayerUI {
   private addLayerButton: HTMLElement;
   private onSelectLayerCallback: LayerSelectCallback | null = null;
   private onAddLayerCallback: AddLayerCallback | null = null;
+  private _userId: string | null = null;
 
   constructor() {
     this.layerListElement = document.querySelector('.layer-list')!;
@@ -54,6 +55,7 @@ export class LayerUI {
       const layerItem = document.createElement('div');
       layerItem.classList.add('layer-item');
       layerItem.dataset.layerId = layer.id;
+      layerItem.dataset.ownerId = layer.ownerId;
 
       const layerPreview = document.createElement('div');
       layerPreview.classList.add('layer-preview');
@@ -75,11 +77,15 @@ export class LayerUI {
       layerItem.appendChild(layerPreview);
       layerItem.appendChild(layerInfo);
 
-      layerItem.addEventListener('click', () => {
-        if (this.onSelectLayerCallback) {
-          this.onSelectLayerCallback(layer.id);
-        }
-      });
+      if (this._userId === layer.ownerId) {
+        layerItem.classList.add('owned');
+
+        layerItem.addEventListener('click', () => {
+          if (this.onSelectLayerCallback) {
+            this.onSelectLayerCallback(layer.id);
+          }
+        });
+      }
 
       this.layerListElement.appendChild(layerItem);
     });
@@ -102,10 +108,16 @@ export class LayerUI {
       `.layer-item[data-layer-id="${layerId}"]`
     );
 
-    console.log(activeLayerItem);
-
     if (activeLayerItem) {
       activeLayerItem.classList.add('active');
     }
+  }
+
+  /**
+   * Sets the user ID for filtering layers.
+   * @param value The user ID.
+   */
+  public set userId(value: string) {
+    this._userId = value;
   }
 }

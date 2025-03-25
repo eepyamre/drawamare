@@ -266,7 +266,8 @@ const socketEventHandler = (
 (async () => {
   const socket = await connect();
   if (!socket.id) throw new Error('Socket ID not found');
-
+  ui.userId = socket.id;
+  ui.renderLayers(Array.from(layers.values()));
   const { app, board } = await init();
 
   ui.onSelectLayer((layerId) => {

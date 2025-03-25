@@ -121,7 +121,13 @@ body {
   padding: 4px 6px;
   border-radius: 4px;
   align-items: center;
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.layer-item.owned {
   cursor: pointer;
+  opacity: 1;
 }
 
 .layer-item.active {

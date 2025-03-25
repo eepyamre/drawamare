@@ -137,15 +137,12 @@
 
 **Highest Priority:**
 
-- **Implement Per-Layer History and Multi-Layer Support - Continued Implementation (Focus on Layer Management and Undo/Redo):**
+- **Focus on Layer Management:**
 
   - **Priority:** **Highest - P1+**
   - **Goal:** Fully refactor the frontend and backend to refine multi-layer support and complete the undo/redo implementation within the context of layer management.
   - **Frontend TODO (Immediate Focus):**
 
-    - **Refactor `saveState`, `undo`, `redo`**: Ensure these functions correctly utilize the **global `historyStack` and `redoStack` which clear on layer change**. Verify correct saving and restoring of canvas state for undo/redo within the current layer context.
-    - **Refactor `redrawCanvas`**: Update `redrawCanvas` to ensure it correctly redraws the **active layer** based on the global history stack and `RenderTexture`.
-    - **Update `socketEventHandler`**: Ensure `socketEventHandler` continues to correctly handle `drawCommand` and `redraw` events with `layerId` in the context of the updated undo/redo and layer selection logic.
     - **Layer Ordering**: Implement UI and logic to reorder layers based on their order in the UI. Implement visual layer ordering in canvas display.
     - **Implement Layer Deletion in UI and Logic**: Add UI button to delete layer and implement logic to remove layer from `layers` map and update UI and backend.
 
