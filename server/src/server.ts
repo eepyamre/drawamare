@@ -141,6 +141,12 @@ io.on('connection', (socket: Socket) => {
     socket.broadcast.emit('createLayer', payload);
   });
 
+  socket.on('deleteLayer', (layerId: string) => {
+    console.log(`Received delete layer command from ${userId}`);
+    layers = layers.filter((l) => l.id !== layerId); // TMP. Remove on production
+    socket.broadcast.emit('deleteLayer', layerId);
+  });
+
   socket.on('disconnect', () => {
     console.log(`User ${userId} disconnected`);
     layers = layers.filter((l) => l.ownerId !== userId); // TMP. Remove on production

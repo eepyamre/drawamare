@@ -262,6 +262,15 @@ const socketEventHandler = (
     console.log(`Received create layer command`);
     createLayer(payload, board);
   });
+
+  socket.on('deleteLayer', (layerId: string) => {
+    console.log(`Received delete layer command`);
+
+    const l = layers.get(layerId);
+    l?.container.destroy();
+    layers.delete(layerId);
+    ui.renderLayers(Array.from(layers.values()));
+  });
 };
 (async () => {
   const socket = await connect();
@@ -310,11 +319,24 @@ const socketEventHandler = (
     });
   });
 
+  ui.onDeleteLayer((layerId) => {
+    const l = layers.get(layerId);
+    l?.container.destroy();
+    layers.delete(layerId);
+
+    historyStack = [];
+    redoStack = [];
+
+    socket.emit('deleteLayer', layerId);
+    ui.renderLayers(Array.from(layers.values()));
+  });
+
   socketEventHandler(socket, app, board);
 
   socket.emit('getLayers');
   socket.emit('getUsers');
 
+  // TODO: do not create layer on user connection
   const existingLayer = Array.from(layers.entries()).find(
     ([_key, item]) => item.ownerId === socket.id
   );

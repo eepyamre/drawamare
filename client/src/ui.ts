@@ -2,6 +2,7 @@ import { Layer } from './utils';
 
 type LayerSelectCallback = (layerId: string) => void;
 type AddLayerCallback = () => void;
+type DeleteLayerCallback = (layerId: string) => void;
 
 /**
  * LayerUI class manages the UI for selecting and adding layers.
@@ -11,6 +12,7 @@ export class LayerUI {
   private addLayerButton: HTMLElement;
   private onSelectLayerCallback: LayerSelectCallback | null = null;
   private onAddLayerCallback: AddLayerCallback | null = null;
+  private onDeleteLayerCallback: DeleteLayerCallback | null = null;
   private _userId: string | null = null;
 
   constructor() {
@@ -40,6 +42,10 @@ export class LayerUI {
    */
   public onAddLayer(callback: AddLayerCallback) {
     this.onAddLayerCallback = callback;
+  }
+
+  public onDeleteLayer(callback: DeleteLayerCallback) {
+    this.onDeleteLayerCallback = callback;
   }
 
   /**
@@ -79,6 +85,18 @@ export class LayerUI {
 
       if (this._userId === layer.ownerId) {
         layerItem.classList.add('owned');
+
+        const layerDeleteBtn = document.createElement('img');
+        layerDeleteBtn.classList.add('layer-delete');
+        layerDeleteBtn.src = '/assets/icons/delete.svg';
+
+        layerItem.appendChild(layerDeleteBtn);
+
+        layerDeleteBtn.addEventListener('click', () => {
+          if (this.onDeleteLayerCallback) {
+            this.onDeleteLayerCallback(layer.id);
+          }
+        });
 
         layerItem.addEventListener('click', () => {
           if (this.onSelectLayerCallback) {
