@@ -6,13 +6,13 @@
 
    - Handles user interface and canvas rendering using Pixi.js.
    - Implements drawing functionalities, user interaction, and real-time synchronization via WebSocket (Socket.IO).
-   - Manages local canvas state, **global history for undo/redo that clears on layer change**, and **multiple layers per user (UI structure and basic management implemented)**.
+   - Manages local canvas state, **global history for undo/redo that clears on layer change**, and **multiple layers per user (UI structure and basic management implemented, including deletion)**.
 
 2. **Backend** (Node.js + TypeScript):
 
    - Manages WebSocket connections using Socket.IO and coordinates real-time drawing updates.
    - Tracks user connections and broadcasts drawing actions and canvas redraw events to all connected clients.
-   - Implements sending initial canvas state to new users, now sending layer data on connection. Backend now supports layer IDs in events and manages a list of layers, including layer creation events.
+   - Implements sending initial canvas state to new users, now sending layer data on connection. Backend now supports layer IDs in events and manages a list of layers, including layer creation and deletion events.
 
 3. **Database** (Optional for persistence):
    - Not currently implemented. Could be used to store session data (e.g., user layers, history, layer configurations) for persistence across sessions.
@@ -23,9 +23,9 @@
 
 1. **User Layers**:
 
-   - Partially Implemented: Each user can now have multiple drawing layers. The frontend code has a UI structure for layer display and selection and logic to manage multiple layers per user. Basic layer creation and selection are implemented via UI.
+   - **Partially Implemented**: Each user can now have multiple drawing layers. The frontend code has a UI structure for layer display and selection and logic to manage multiple layers per user. Basic layer creation, selection, and **deletion** are implemented via UI.
    - Layers are differentiated and organized per user, allowing for individual drawing spaces within the shared canvas, with UI representation for layers.
-   - Users are assigned an initial layer upon connection and can create additional layers via the UI. Layer selection is implemented in the UI, allowing users to choose the active layer.
+   - Users are assigned an initial layer upon connection and can create **and delete** additional layers via the UI. Layer selection is implemented in the UI, allowing users to choose the active layer.
    - Layer Ordering and Selection: UI for layer selection is implemented. UI and logic for layer reordering are still TODO.
 
 2. **Undo/Redo**:
@@ -39,7 +39,7 @@
 
    - Real-time drawing updates are implemented.
    - When a user draws, their strokes are immediately visible to all other connected users in near real-time, now on the selected layer. Layer identification is now included in the `drawCommand` payload.
-   - Uses Socket.IO for broadcasting drawing commands and canvas redraws.
+   - Uses Socket.IO for broadcasting drawing commands and canvas redraws, **and layer deletion events**.
 
 4. **Initial Canvas State for New Users**:
    - Implemented: When a new user connects, they receive the initial state of all existing layers from the server, ensuring that all users start with the same board configuration, including layers.
@@ -86,7 +86,7 @@
     - Connects to the Socket.IO server upon initialization.
     - Listens for `drawCommand` events from the server. `drawCommand` payload now includes layer ID.
     - Upon receiving a `drawCommand`, it identifies the user and uses `getOrCreateLayer` based on layer ID.
-    - Layer Management: Dynamic user and layer creation is functional. Layer selection UI is implemented. Full layer management and layer ordering logic are TODO.
+    - Layer Management: Dynamic user and layer creation is functional. Layer selection UI and **Layer deletion UI and logic are implemented**. Full layer management and layer ordering logic are TODO.
     - Renders the received drawing commands (initLine, line, endLine) on the corresponding user's specified layer.
     - Listens for `redraw` events from the server. `redraw` event payload now includes layer ID.
     - Upon receiving a `redraw` event, it updates the local layer's canvas.
@@ -104,7 +104,7 @@
     - **History Stack Clearing**: The global `historyStack` and `redoStack` are **cleared when the active layer is changed**, ensuring undo/redo context is specific to the selected layer.
 
 - **Layer Management UI**:
-  - Partially Implemented: UI elements in `index.html` and logic in `src/main.ts` to display and select layers are implemented. Adding new layers via UI is implemented. Deleting and reordering layers via UI are still TODO.
+  - **Partially Implemented**: UI elements in `index.html` and logic in `src/main.ts` to display, select, **and delete** layers are implemented. Adding new layers via UI is implemented. Reordering layers via UI is still TODO.
 
 #### **2. Backend (Server-Side)**
 
@@ -114,13 +114,14 @@
   - Manages user connections and in-memory storage of user connections.
   - Broadcasts `drawCommand` events, including layer ID information.
   - Broadcasts `redraw` events, ensuring layer-specific canvas state synchronization, and relaying layer ID information.
-  - Sends `layers` event with the state of each user's layers on connect, including layer creation events.
+  - Sends `layers` event with the state of each user's layers on connect, including layer creation and **deletion** events.
 
 #### **3. Data Flow**
 
 1. **User Draws on Layer**: User selects a layer using UI and draws on the canvas → Frontend captures stroke with layer ID → Renders stroke locally onto the `activeLayer`'s `RenderTexture` → Frontend emits `drawCommand` events to the server via Socket.IO, including layer ID. → Server broadcasts `drawCommand` events to all other clients. → Clients receive `drawCommand` events and render the stroke on the respective user's specified layer.
 2. **Undo/Redo on Layer**: User triggers undo/redo → Frontend manipulates the **global `historyStack` and `redoStack` (global history stack is cleared on layer change)** and re-renders the `activeLayer`'s canvas with a state from history. → Frontend serializes the `activeLayer`'s `RenderTexture` to base64 PNG. → Frontend emits `redraw` event with base64 data and layer ID to the server via Socket.IO. → Clients receive `redraw` event, reconstruct the specified layer's `RenderTexture` from base64 data, and update their local canvas for that specific layer.
 3. **New User Connects**: New user connects → Server sends the initial state of all layers via `'layers'` event → Frontend handles the `'layers'` event, builds layer objects and renders layers UI.
+4. **User Deletes Layer**: User clicks delete button in Layer UI → Frontend calls `onDeleteLayer` handler, removes layer locally, updates UI, and emits `deleteLayer` event to server. → Server receives `deleteLayer` event, removes layer from server-side data, and broadcasts `deleteLayer` event to all clients. → Clients receive `deleteLayer` event and remove the layer locally.
 
 ---
 
@@ -137,17 +138,18 @@
 
 **Highest Priority:**
 
-- **Focus on Layer Management:**
+- **Focus on Layer Management - Continued Implementation:**
 
   - **Priority:** **Highest - P1+**
-  - **Goal:** Fully refactor the frontend and backend to refine multi-layer support and complete the undo/redo implementation within the context of layer management.
+  - **Goal:** Further refine layer management and UI, focusing on completing core layer operations.
   - **Frontend TODO (Immediate Focus):**
 
-    - **Layer Ordering**: Implement UI and logic to reorder layers based on their order in the UI. Implement visual layer ordering in canvas display.
-    - **Implement Layer Deletion in UI and Logic**: Add UI button to delete layer and implement logic to remove layer from `layers` map and update UI and backend.
+    - **Layer Ordering**: Implement UI and logic to reorder layers based on their order in the UI (drag and drop, up/down buttons). Implement visual layer ordering in canvas display (adjust z-index of layer containers).
+    - **Refine Layer Deletion UX**: Consider adding a confirmation dialog before deleting a layer.
 
   - **Backend TODO (Next Step after Frontend UI and Core Logic):**
-    - **Layer Ordering**: Implement a system to persist and broadcast layer order.
+    - **Layer Ordering**: Implement a system to persist and broadcast layer order to all clients, ensuring that the layer display order is consistent across all users.
+    - **Robustness & Error Handling:** Add more robust error handling to the layer deletion process, both on the frontend and backend. For example, handle cases where a layer cannot be deleted, or the deletion fails to propagate to all clients.
 
 **High Priority:**
 
@@ -175,7 +177,8 @@
   - **Frontend TODO (Optional):** Add layer name labels (e.g., username or layer name) to each user's layer container, potentially as a visual overlay.
 
 - **Layer Locking:**
-  - **Priority:** **Low - P5**
+
+  - **Priority:** **Low - P6**
   - **Goal:** Implement mechanisms to ensure only the "owner" can draw on a layer, or perhaps locking per layer regardless of user.
   - **Frontend/Backend TODO:** Implement UI elements (e.g., a lock icon per layer in the layer management UI) and server-side logic to manage layer ownership and enforce locking. Consider different locking models (user-based, layer-based, etc.).
 
@@ -183,11 +186,11 @@
 
 - **Enhanced UI/UX & Drawing Functionality:**
 
-  - **Priority:** **Low - P6**
+  - **Priority:** **Low - P7**
   - **TODO:** Add more drawing tools (brush types, shapes, selection tools, fill tools), brush settings (size control, opacity control, pressure sensitivity), UI improvements (better color pickers, toolbars, layer panel enhancements), layer management UI enhancements (rename layers, toggle visibility, layer blend modes, layer opacity control), etc.
 
 - **Security:**
-  - **Priority:** **Low - P7**
+  - **Priority:** **Low - P8**
   - **TODO:** Implement user authentication and consider security implications, especially if user-specific layers and persistence are implemented.
   - **TODO:** Implement the user roles (admin, editor), and permissions management (admin can manage all layers, editors can only edit their own layers).
   - **TODO:** Implement the ability to revoke access to layers or entire accounts.
