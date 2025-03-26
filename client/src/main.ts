@@ -27,7 +27,7 @@ import {
   History,
   Layer,
 } from './utils';
-import { LayerUI } from './ui';
+import { LayerUI, ToolbarUI, Tools } from './ui';
 
 const layers = new Map<
   string, // layer id
@@ -89,16 +89,14 @@ const init = async () => {
   });
 
   window.addEventListener('wheel', (e) => {
-    const y = e.deltaY > 0 ? -0.1 : 0.1;
-    app.stage.scale = app.stage.scale.x + y;
-    if (app.stage.scale.x < minScale) app.stage.scale = minScale; // Prevent inverting or too small scale
-    if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
+    scale(app, e.deltaY);
   });
 
   return { app, board };
 };
 
 const ui = new LayerUI();
+const toolbarUi = new ToolbarUI();
 
 const getLayer = (layerId: string) => {
   return Array.from(layers.values()).find((item) => item.id === layerId);
@@ -238,8 +236,8 @@ const socketEventHandler = (
     drawImageFromBase64(app, payload.base64, layer.rt);
   });
 
-  socket.on('layers', (payload: LayersPayload) => {
-    console.log(`Received layers command`);
+  socket.on('initLayers', (payload: LayersPayload) => {
+    console.log(`Received initLayers command`);
     payload.forEach((item) => {
       const { base64, id, ownerId, ownerName, title } = item;
       let layer = getLayer(id);
@@ -256,6 +254,23 @@ const socketEventHandler = (
       }
       if (base64) drawImageFromBase64(app, base64, layer.rt);
     });
+
+    const existingLayer = Array.from(layers.entries()).find(
+      ([_key, item]) => item.ownerId === socket.id
+    );
+    if (existingLayer) {
+      activeLayer = existingLayer[1];
+    } else {
+      const l = {
+        id: v4(),
+        title: `New Layer ${v4()}`,
+        ownerId: socket.id!,
+        ownerName: socket.id!,
+      };
+      activeLayer = createLayer(l, board);
+      socket.emit('createLayer', l);
+    }
+    ui.setActiveLayer(activeLayer.id);
   });
 
   socket.on('createLayer', (payload: Omit<Layer, 'rt' | 'container'>) => {
@@ -272,6 +287,14 @@ const socketEventHandler = (
     ui.renderLayers(Array.from(layers.values()));
   });
 };
+
+const scale = (app: Application, delta: number) => {
+  const y = delta > 0 ? -0.1 : 0.1;
+  app.stage.scale = app.stage.scale.x + y;
+  if (app.stage.scale.x < minScale) app.stage.scale = minScale; // Prevent inverting or too small scale
+  if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
+};
+
 (async () => {
   const socket = await connect();
   if (!socket.id) throw new Error('Socket ID not found');
@@ -336,23 +359,58 @@ const socketEventHandler = (
   socket.emit('getLayers');
   socket.emit('getUsers');
 
-  // TODO: do not create layer on user connection
-  const existingLayer = Array.from(layers.entries()).find(
-    ([_key, item]) => item.ownerId === socket.id
-  );
-  if (existingLayer) {
-    activeLayer = existingLayer[1];
-  } else {
-    const l = {
-      id: v4(),
-      title: `New Layer ${v4()}`,
-      ownerId: socket.id,
-      ownerName: socket.id,
-    };
-    activeLayer = createLayer(l, board);
-    socket.emit('createLayer', l);
-  }
-  ui.setActiveLayer(activeLayer.id);
+  toolbarUi.onToolClick((tool) => {
+    switch (tool) {
+      case Tools.BRUSH: {
+        isErasing = false;
+        break;
+      }
+      case Tools.ERASER: {
+        isErasing = true;
+        break;
+      }
+      case Tools.DELETE: {
+        if (!activeLayer) return;
+        let stroke = new Graphics();
+        app.renderer.render({
+          container: stroke,
+          target: activeLayer.rt,
+          clear: true,
+        });
+        stroke.destroy();
+        saveState();
+        emitLayer(true);
+        break;
+      }
+      case Tools.ZOOMIN: {
+        scale(app, -1);
+        break;
+      }
+      case Tools.ZOOMOUT: {
+        scale(app, 1);
+        break;
+      }
+      case Tools.DOWNLOAD: {
+        let mask = board.mask;
+        board.mask = null;
+        app.renderer.extract.download(app.stage);
+        board.mask = mask;
+        break;
+      }
+      case Tools.UNDO: {
+        undo();
+        break;
+      }
+      case Tools.REDO: {
+        redo();
+        break;
+      }
+    }
+  });
+
+  toolbarUi.onColorChange((color) => {
+    strokeStyle.color = Number(color.replace('#', '0x'));
+  });
 
   // History stack and redo stack should be cleared when a new layer is selected.
   let historyStack: History = [];
@@ -375,7 +433,7 @@ const socketEventHandler = (
     historyStack.push(newTexture);
   };
 
-  const saveAndEmitLayer = (redraw?: boolean) => {
+  const emitLayer = (redraw?: boolean) => {
     if (!activeLayer) return;
 
     const layerId = activeLayer.id;
@@ -496,7 +554,7 @@ const socketEventHandler = (
           commands: lastCommands,
         });
       }
-      saveAndEmitLayer(isErasing);
+      emitLayer(isErasing);
       lastCommands = [];
 
       if (historyStack.length > maxHistoryLength) {
@@ -573,6 +631,11 @@ const socketEventHandler = (
     const key = e.key.toLowerCase();
     if (key === 'e') {
       isErasing = !isErasing;
+      if (isErasing) {
+        toolbarUi.setActiveTool(Tools.ERASER);
+      } else {
+        toolbarUi.setActiveTool(Tools.BRUSH);
+      }
     }
     if (key === 'z' && (e.ctrlKey || e.metaKey)) {
       if (e.shiftKey) {

@@ -69,7 +69,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('getLayers', () => {
-    socket.emit('layers', layers);
+    socket.emit('initLayers', layers);
   });
 
   socket.on('drawCommand', (payload: StrokePayload) => {
