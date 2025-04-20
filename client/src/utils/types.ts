@@ -1,29 +1,7 @@
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { BLEND_MODES, Container, RenderTexture } from 'pixi.js';
-import { DrawCommand } from '../module_bindings';
 
 export type History = RenderTexture[];
-
-export type DrawCommandPayload = {
-  userId: string;
-  layerId: string;
-  commands: DrawCommand[];
-};
-
-export type RedrawPayload = {
-  userId: string;
-  layerId: string;
-  base64: string;
-};
-
-export type LayersPayload = {
-  id: string;
-  userId: string;
-  title: string;
-  ownerId: string;
-  ownerName: string;
-  base64?: string;
-}[];
 
 export type Layer = {
   id: number;

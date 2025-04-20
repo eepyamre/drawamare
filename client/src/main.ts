@@ -32,118 +32,11 @@ import {
   DrawCommand,
 } from './module_bindings';
 
+// Layers
 const layers = new Map<
   number, // layer id
   Layer
 >();
-let activeLayer: Layer | null = null;
-
-let identity: Identity | null = null;
-
-const connect = () => {
-  return new Promise<DbConnection>((res, rej) => {
-    const subscribeToQueries = (conn: DbConnection, queries: string[]) => {
-      let count = 0;
-      for (const query of queries) {
-        conn
-          ?.subscriptionBuilder()
-          .onApplied(() => {
-            count++;
-            if (count === queries.length) {
-              console.log('SDK client cache initialized.');
-            }
-          })
-          .subscribe(query);
-      }
-    };
-
-    const onConnect = (
-      conn: DbConnection,
-      userIdentity: Identity,
-      token: string
-    ) => {
-      identity = userIdentity;
-      localStorage.setItem('auth_token', token);
-      console.log(
-        'Connected to SpacetimeDB with identity:',
-        identity.toHexString()
-      );
-
-      subscribeToQueries(conn, [
-        'SELECT * FROM layer',
-        'SELECT * FROM user',
-        'SELECT * FROM command',
-      ]);
-      res(conn);
-    };
-
-    const onDisconnect = () => {
-      // todo
-    };
-
-    const onConnectError = (_ctx: ErrorContext, err: Error) => {
-      console.log('Error connecting to SpacetimeDB:', err);
-      rej(err);
-    };
-
-    DbConnection.builder()
-      .withUri('ws://localhost:3000')
-      .withModuleName('drawamare')
-      .withToken(localStorage.getItem('auth_token') || '')
-      .onConnect(onConnect)
-      .onDisconnect(onDisconnect)
-      .onConnectError(onConnectError)
-      .build();
-  });
-};
-
-const init = async () => {
-  const app = new Application();
-  extensions.add(CullerPlugin);
-
-  await app.init({
-    background: '#2b2b2b',
-    resizeTo: window,
-    antialias: true,
-    multiView: true,
-  });
-
-  app.stage.eventMode = 'static';
-  app.stage.hitArea = app.screen;
-
-  document.getElementById('pixi-container')!.appendChild(app.canvas);
-
-  const board = new Container({
-    x: app.canvas.width / 2 - boardSize.width / 2,
-    y: app.canvas.height / 2 - boardSize.height / 2,
-  });
-
-  app.stage.addChild(board);
-
-  const canvasMask = new Graphics()
-    .rect(0, 0, boardSize.width, boardSize.height)
-    .fill(0xffffff);
-  board.mask = canvasMask;
-
-  const canvasBg = new Graphics()
-    .rect(0, 0, boardSize.width, boardSize.height)
-    .fill(0xffffff);
-  board.addChild(canvasMask);
-  board.addChild(canvasBg);
-  window.addEventListener('resize', () => {
-    app.resize();
-  });
-
-  window.addEventListener('wheel', (e) => {
-    scale(app, e.deltaY);
-  });
-
-  return { app, board };
-};
-
-const ui = new LayerUI();
-const toolbarUi = new ToolbarUI();
-
 const getLayer = (layerId: number) => {
   return Array.from(layers.values()).find((item) => item.id === layerId);
 };
@@ -176,6 +69,36 @@ const createLayer = (
   return l;
 };
 
+const initLayers = (conn: DbConnection, app: Application, board: Container) => {
+  for (const layer of conn.db.layer.iter()) {
+    const { base64, id, owner, name } = layer;
+
+    let l = getLayer(id);
+
+    if (!l) {
+      l = createLayer(
+        {
+          id,
+          ownerId: owner,
+          ownerName: owner.toHexString().slice(0, 8),
+          title: name || owner.toHexString().slice(0, 8),
+        },
+        board
+      );
+    }
+    if (base64) drawImageFromBase64(app, base64, l.rt);
+  }
+
+  const existingLayer = Array.from(layers.entries()).find(
+    ([_key, item]) => identity && item.ownerId.isEqual(identity)
+  );
+  if (existingLayer) {
+    activeLayer = existingLayer[1];
+  } else {
+    conn.reducers.createLayer();
+  }
+};
+
 const getOrCreateLayer = (
   layerId: number,
   ownerId: Identity,
@@ -195,28 +118,11 @@ const getOrCreateLayer = (
   }
   return layer;
 };
+// Layers End
 
-const drawImageFromBase64 = (
-  app: Application,
-  base64: string,
-  rt: RenderTexture
-) => {
-  const img = new Image();
-  img.src = base64;
-  img.onload = () => {
-    const texture = Texture.from(img);
-    const s = new Sprite(texture);
+let activeLayer: Layer | null = null;
 
-    app.renderer.render({
-      container: s,
-      target: rt,
-    });
-
-    s.destroy();
-    texture.destroy();
-    img.remove();
-  };
-};
+let identity: Identity | null = null;
 
 const socketEventHandler = (
   conn: DbConnection,
@@ -334,41 +240,137 @@ const socketEventHandler = (
   });
 };
 
+const connect = () => {
+  return new Promise<DbConnection>((res, rej) => {
+    const subscribeToQueries = (conn: DbConnection, queries: string[]) => {
+      let count = 0;
+      for (const query of queries) {
+        conn
+          ?.subscriptionBuilder()
+          .onApplied(() => {
+            count++;
+            if (count === queries.length) {
+              console.log('SDK client cache initialized.');
+            }
+          })
+          .subscribe(query);
+      }
+    };
+
+    const onConnect = (
+      conn: DbConnection,
+      userIdentity: Identity,
+      token: string
+    ) => {
+      identity = userIdentity;
+      localStorage.setItem('auth_token', token);
+      console.log(
+        'Connected to SpacetimeDB with identity:',
+        identity.toHexString()
+      );
+
+      subscribeToQueries(conn, [
+        'SELECT * FROM layer',
+        'SELECT * FROM user',
+        'SELECT * FROM command',
+      ]);
+      res(conn);
+    };
+
+    const onDisconnect = () => {
+      // todo
+    };
+
+    const onConnectError = (_ctx: ErrorContext, err: Error) => {
+      console.log('Error connecting to SpacetimeDB:', err);
+      rej(err);
+    };
+
+    DbConnection.builder()
+      .withUri('ws://localhost:3000')
+      .withModuleName('drawamare')
+      .withToken(localStorage.getItem('auth_token') || '')
+      .onConnect(onConnect)
+      .onDisconnect(onDisconnect)
+      .onConnectError(onConnectError)
+      .build();
+  });
+};
+
+const init = async () => {
+  const app = new Application();
+  extensions.add(CullerPlugin);
+
+  await app.init({
+    background: '#2b2b2b',
+    resizeTo: window,
+    antialias: true,
+    multiView: true,
+  });
+
+  app.stage.eventMode = 'static';
+  app.stage.hitArea = app.screen;
+
+  document.getElementById('pixi-container')!.appendChild(app.canvas);
+
+  const board = new Container({
+    x: app.canvas.width / 2 - boardSize.width / 2,
+    y: app.canvas.height / 2 - boardSize.height / 2,
+  });
+
+  app.stage.addChild(board);
+
+  const canvasMask = new Graphics()
+    .rect(0, 0, boardSize.width, boardSize.height)
+    .fill(0xffffff);
+  board.mask = canvasMask;
+
+  const canvasBg = new Graphics()
+    .rect(0, 0, boardSize.width, boardSize.height)
+    .fill(0xffffff);
+  board.addChild(canvasMask);
+  board.addChild(canvasBg);
+  window.addEventListener('resize', () => {
+    app.resize();
+  });
+
+  window.addEventListener('wheel', (e) => {
+    scale(app, e.deltaY);
+  });
+
+  return { app, board };
+};
+
+const ui = new LayerUI();
+const toolbarUi = new ToolbarUI();
+
+const drawImageFromBase64 = (
+  app: Application,
+  base64: string,
+  rt: RenderTexture
+) => {
+  const img = new Image();
+  img.src = base64;
+  img.onload = () => {
+    const texture = Texture.from(img);
+    const s = new Sprite(texture);
+
+    app.renderer.render({
+      container: s,
+      target: rt,
+    });
+
+    s.destroy();
+    texture.destroy();
+    img.remove();
+  };
+};
+
 const scale = (app: Application, delta: number) => {
   const y = delta > 0 ? -0.1 : 0.1;
   app.stage.scale = app.stage.scale.x + y;
   if (app.stage.scale.x < minScale) app.stage.scale = minScale; // Prevent inverting or too small scale
   if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
-};
-
-const initLayers = (conn: DbConnection, app: Application, board: Container) => {
-  for (const layer of conn.db.layer.iter()) {
-    const { base64, id, owner, name } = layer;
-
-    let l = getLayer(id);
-
-    if (!l) {
-      l = createLayer(
-        {
-          id,
-          ownerId: owner,
-          ownerName: owner.toHexString().slice(0, 8),
-          title: name || owner.toHexString().slice(0, 8),
-        },
-        board
-      );
-    }
-    if (base64) drawImageFromBase64(app, base64, l.rt);
-  }
-
-  const existingLayer = Array.from(layers.entries()).find(
-    ([_key, item]) => identity && item.ownerId.isEqual(identity)
-  );
-  if (existingLayer) {
-    activeLayer = existingLayer[1];
-  } else {
-    conn.reducers.createLayer();
-  }
 };
 
 (async () => {
