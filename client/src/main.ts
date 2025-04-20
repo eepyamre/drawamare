@@ -13,8 +13,6 @@ import {
 } from 'pixi.js';
 import {
   boardSize,
-  CommandBlock,
-  DrawCommand,
   maxHistoryLength,
   maxScale,
   minScale,
@@ -31,6 +29,7 @@ import {
   ErrorContext,
   EventContext,
   Layer as ServerLayer,
+  DrawCommand,
 } from './module_bindings';
 
 const layers = new Map<
@@ -225,6 +224,7 @@ const socketEventHandler = (
   board: Container
 ) => {
   conn.db.command.onInsert((_ctx: EventContext, command: Command) => {
+    if (!identity || command.owner.isEqual(identity)) return;
     console.log(
       `Received draw command from ${command.owner.toHexString().slice(0, 8)}`
     );
@@ -234,13 +234,23 @@ const socketEventHandler = (
     const commands = command.commands;
 
     let stroke = new Graphics();
+    console.log(activeLayer);
+
     commands.forEach((commandBlock) => {
       switch (commandBlock.commandType) {
         case 'initLine': {
+          if (!commandBlock.pos) return;
           stroke.destroy();
           stroke = new Graphics();
           const pos = commandBlock.pos;
-          stroke.strokeStyle = commandBlock.strokeStyle;
+          stroke.strokeStyle = {
+            width: 10,
+            cap: 'round',
+            color: 0x000000,
+            ...commandBlock.strokeStyle,
+          };
+          console.log(commandBlock.strokeStyle);
+
           const mode = checkBlendModes(commandBlock.blendMode);
           stroke.blendMode = mode;
           stroke.moveTo(pos.x, pos.y);
@@ -250,6 +260,7 @@ const socketEventHandler = (
           break;
         }
         case 'line': {
+          if (!commandBlock.pos) return;
           const pos = commandBlock.pos;
           stroke.lineTo(pos.x, pos.y);
           stroke.stroke();
@@ -275,9 +286,14 @@ const socketEventHandler = (
   // redraw
   conn.db.layer.onUpdate(
     (_ctx: EventContext, _oldLayer: ServerLayer, newLayer: ServerLayer) => {
-      console.log(`Received update layer command`);
-      if (!newLayer.base64 || !identity || newLayer.owner.isEqual(identity))
+      if (
+        !newLayer.forceUpdate ||
+        !newLayer.base64 ||
+        !identity ||
+        newLayer.owner.isEqual(identity)
+      )
         return;
+      console.log(`Received update layer command`);
       const l = getOrCreateLayer(newLayer.id, newLayer.owner, board);
       let stroke = new Graphics();
       app.renderer.render({
@@ -411,7 +427,7 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
         });
         stroke.destroy();
         saveState();
-        emitLayer();
+        emitLayer(true);
         break;
       }
       case Tools.ZOOMIN: {
@@ -465,7 +481,7 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
     historyStack.push(newTexture);
   };
 
-  const emitLayer = () => {
+  const emitLayer = (forceUpdate: boolean) => {
     if (!activeLayer) return;
 
     const layerId = activeLayer.id;
@@ -475,7 +491,7 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
         target: activeLayer.rt,
       })
       .then((data) => {
-        conn.reducers.saveLayer(layerId, data);
+        conn.reducers.saveLayer(layerId, data, forceUpdate);
       });
   };
 
@@ -491,7 +507,7 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
   let drawing = false;
   let pan = false;
   let isErasing = false;
-  let lastCommands: CommandBlock = [];
+  let lastCommands: DrawCommand[] = [];
 
   const offsetPosition = (x: number, y: number): Point => {
     const stageScale = app.stage.scale.x;
@@ -511,7 +527,7 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
     if (e.button !== 0) return;
     redoStack = [];
     const command: DrawCommand = {
-      command: 'initLine',
+      commandType: 'initLine',
       pos,
       blendMode: 'normal',
       strokeStyle: { ...strokeStyle },
@@ -543,8 +559,10 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
     if (!drawing || !stroke) return;
     const pos = offsetPosition(e.clientX, e.clientY);
     const command: DrawCommand = {
-      command: 'line',
+      commandType: 'line',
       pos,
+      blendMode: undefined,
+      strokeStyle: undefined,
     };
 
     lastCommands.push(command);
@@ -569,11 +587,15 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
       stroke = null;
 
       const command: DrawCommand = {
-        command: 'endLine',
+        commandType: 'endLine',
+        blendMode: undefined,
+        strokeStyle: undefined,
+        pos: undefined,
       };
 
       lastCommands.push(command);
-      emitLayer();
+      emitLayer(false);
+      conn.reducers.sendCommand(activeLayer.id, lastCommands);
       lastCommands = [];
 
       if (historyStack.length > maxHistoryLength) {
@@ -608,7 +630,7 @@ const initLayers = (conn: DbConnection, app: Application, board: Container) => {
         target: activeLayer.rt,
       })
       .then((data) => {
-        conn.reducers.saveLayer(layerId, data);
+        conn.reducers.saveLayer(layerId, data, true);
       });
 
     s.destroy();

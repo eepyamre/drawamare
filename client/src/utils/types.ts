@@ -1,28 +1,6 @@
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
-import {
-  BLEND_MODES,
-  Container,
-  Point,
-  RenderTexture,
-  StrokeStyle,
-} from 'pixi.js';
-
-export type DrawCommand =
-  | {
-      command: 'initLine';
-      blendMode?: 'erase' | 'normal';
-      pos: Point;
-      strokeStyle: StrokeStyle;
-    }
-  | {
-      command: 'line';
-      pos: Point;
-    }
-  | {
-      command: 'endLine';
-    };
-
-export type CommandBlock = DrawCommand[];
+import { BLEND_MODES, Container, RenderTexture } from 'pixi.js';
+import { DrawCommand } from '../module_bindings';
 
 export type History = RenderTexture[];
 

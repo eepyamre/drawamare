@@ -34,6 +34,7 @@ import {
 export type SaveLayer = {
   layer: number,
   base64: string,
+  forceUpdate: boolean,
 };
 
 /**
@@ -48,6 +49,7 @@ export namespace SaveLayer {
     return AlgebraicType.createProductType([
       new ProductTypeElement("layer", AlgebraicType.createI32Type()),
       new ProductTypeElement("base64", AlgebraicType.createStringType()),
+      new ProductTypeElement("forceUpdate", AlgebraicType.createBoolType()),
     ]);
   }
 

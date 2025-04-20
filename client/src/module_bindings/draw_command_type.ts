@@ -35,10 +35,9 @@ import { StrokeStyle as __StrokeStyle } from "./stroke_style_type";
 
 export type DrawCommand = {
   commandType: string,
-  layerId: string,
   blendMode: string | undefined,
-  pos: __Point,
-  strokeStyle: __StrokeStyle,
+  pos: __Point | undefined,
+  strokeStyle: __StrokeStyle | undefined,
 };
 
 /**
@@ -52,10 +51,9 @@ export namespace DrawCommand {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("commandType", AlgebraicType.createStringType()),
-      new ProductTypeElement("layerId", AlgebraicType.createStringType()),
       new ProductTypeElement("blendMode", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
-      new ProductTypeElement("pos", __Point.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("strokeStyle", __StrokeStyle.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("pos", AlgebraicType.createOptionType(__Point.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("strokeStyle", AlgebraicType.createOptionType(__StrokeStyle.getTypeScriptAlgebraicType())),
     ]);
   }
 

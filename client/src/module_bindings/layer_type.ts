@@ -35,6 +35,7 @@ export type Layer = {
   name: string | undefined,
   owner: Identity,
   base64: string | undefined,
+  forceUpdate: boolean,
 };
 
 /**
@@ -51,6 +52,7 @@ export namespace Layer {
       new ProductTypeElement("name", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
       new ProductTypeElement("owner", AlgebraicType.createIdentityType()),
       new ProductTypeElement("base64", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
+      new ProductTypeElement("forceUpdate", AlgebraicType.createBoolType()),
     ]);
   }
 

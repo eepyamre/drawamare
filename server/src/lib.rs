@@ -16,6 +16,7 @@ pub struct Layer {
     name: Option<String>,
     owner: Identity,
     base64: Option<String>,
+    force_update: bool,
 }
 
 #[derive(SpacetimeType)]
@@ -32,10 +33,9 @@ pub struct StrokeStyle {
 #[derive(SpacetimeType)]
 pub struct DrawCommand {
     command_type: String,
-    layer_id: String,
     blend_mode: Option<String>,
-    pos: Point,
-    stroke_style: StrokeStyle,
+    pos: Option<Point>,
+    stroke_style: Option<StrokeStyle>,
 }
 
 #[table(name = command, public)]
@@ -71,12 +71,13 @@ pub fn set_name(ctx: &ReducerContext, name: String) -> Result<(), String> {
 }
 
 #[reducer]
-pub fn save_layer(ctx: &ReducerContext, layer: i32, base64: String) {
+pub fn save_layer(ctx: &ReducerContext, layer: i32, base64: String, force_update: bool) {
     if let Some(active_layer) = ctx.db.layer().id().find(layer) {
         log::info!("Updating a Layer");
         ctx.db.layer().id().update(Layer {
             owner: ctx.sender,
             base64: Some(base64),
+            force_update,
             ..active_layer
         });
     } else {
@@ -85,6 +86,7 @@ pub fn save_layer(ctx: &ReducerContext, layer: i32, base64: String) {
             owner: ctx.sender,
             base64: Some(base64),
             name: None,
+            force_update: true,
         });
     }
 }
@@ -96,6 +98,7 @@ pub fn create_layer(ctx: &ReducerContext) {
         owner: ctx.sender,
         base64: None,
         name: None,
+        force_update: true,
     });
 }
 
@@ -129,14 +132,6 @@ pub fn send_command(
         return Err(format!("Layer with id {} is not exist", layer).to_string());
     }
 
-    // for cmd in ctx
-    //     .db
-    //     .command()
-    //     .iter()
-    //     .filter(|item| item.owner == ctx.sender)
-    // {
-    //     ctx.db.command().id().delete(cmd.id);
-    // }
     ctx.db.command().insert(Command {
         id: 0,
         layer,

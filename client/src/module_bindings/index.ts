@@ -222,19 +222,19 @@ export class RemoteReducers {
     this.connection.offReducer("rename_layer", callback);
   }
 
-  saveLayer(layer: number, base64: string) {
-    const __args = { layer, base64 };
+  saveLayer(layer: number, base64: string, forceUpdate: boolean) {
+    const __args = { layer, base64, forceUpdate };
     let __writer = new BinaryWriter(1024);
     SaveLayer.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("save_layer", __argsBuffer, this.setCallReducerFlags.saveLayerFlags);
   }
 
-  onSaveLayer(callback: (ctx: ReducerEventContext, layer: number, base64: string) => void) {
+  onSaveLayer(callback: (ctx: ReducerEventContext, layer: number, base64: string, forceUpdate: boolean) => void) {
     this.connection.onReducer("save_layer", callback);
   }
 
-  removeOnSaveLayer(callback: (ctx: ReducerEventContext, layer: number, base64: string) => void) {
+  removeOnSaveLayer(callback: (ctx: ReducerEventContext, layer: number, base64: string, forceUpdate: boolean) => void) {
     this.connection.offReducer("save_layer", callback);
   }
 
