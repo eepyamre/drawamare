@@ -11,43 +11,90 @@ import {
   StrokeStyle,
   Texture,
 } from 'pixi.js';
-import io, { Socket } from 'socket.io-client';
-import { v4 } from 'uuid';
 import {
   boardSize,
   CommandBlock,
   DrawCommand,
-  DrawCommandPayload,
   maxHistoryLength,
   maxScale,
   minScale,
-  RedrawPayload,
-  LayersPayload,
   vSub,
   History,
   Layer,
+  checkBlendModes,
 } from './utils';
 import { LayerUI, ToolbarUI, Tools } from './ui';
+import { Identity } from '@clockworklabs/spacetimedb-sdk';
+import {
+  Command,
+  DbConnection,
+  ErrorContext,
+  EventContext,
+  Layer as ServerLayer,
+} from './module_bindings';
 
 const layers = new Map<
-  string, // layer id
+  number, // layer id
   Layer
 >();
 let activeLayer: Layer | null = null;
 
-const connect = async () => {
-  return new Promise<Socket>((resolve) => {
-    const socket = io('http://localhost:3000');
+let identity: Identity | null = null;
 
-    socket.on('connect', () => {
-      console.log('Connected to server');
-      resolve(socket);
-    });
+const connect = () => {
+  return new Promise<DbConnection>((res, rej) => {
+    const subscribeToQueries = (conn: DbConnection, queries: string[]) => {
+      let count = 0;
+      for (const query of queries) {
+        conn
+          ?.subscriptionBuilder()
+          .onApplied(() => {
+            count++;
+            if (count === queries.length) {
+              console.log('SDK client cache initialized.');
+            }
+          })
+          .subscribe(query);
+      }
+    };
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-      // TODO: Handle disconnection gracefully
-    });
+    const onConnect = (
+      conn: DbConnection,
+      userIdentity: Identity,
+      token: string
+    ) => {
+      identity = userIdentity;
+      localStorage.setItem('auth_token', token);
+      console.log(
+        'Connected to SpacetimeDB with identity:',
+        identity.toHexString()
+      );
+
+      subscribeToQueries(conn, [
+        'SELECT * FROM layer',
+        'SELECT * FROM user',
+        'SELECT * FROM command',
+      ]);
+      res(conn);
+    };
+
+    const onDisconnect = () => {
+      // todo
+    };
+
+    const onConnectError = (_ctx: ErrorContext, err: Error) => {
+      console.log('Error connecting to SpacetimeDB:', err);
+      rej(err);
+    };
+
+    DbConnection.builder()
+      .withUri('ws://localhost:3000')
+      .withModuleName('drawamare')
+      .withToken(localStorage.getItem('auth_token') || '')
+      .onConnect(onConnect)
+      .onDisconnect(onDisconnect)
+      .onConnectError(onConnectError)
+      .build();
   });
 };
 
@@ -98,7 +145,7 @@ const init = async () => {
 const ui = new LayerUI();
 const toolbarUi = new ToolbarUI();
 
-const getLayer = (layerId: string) => {
+const getLayer = (layerId: number) => {
   return Array.from(layers.values()).find((item) => item.id === layerId);
 };
 
@@ -109,7 +156,7 @@ const createLayer = (
   const l = {
     id: layer.id,
     ownerId: layer.ownerId,
-    ownerName: layer.ownerId, //TODO:
+    ownerName: layer.ownerId.toHexString().slice(0, 8), //TODO:
     title: layer.title, //TODO: get title from server
     container: new Container({
       label: layer.title,
@@ -131,8 +178,8 @@ const createLayer = (
 };
 
 const getOrCreateLayer = (
-  layerId: string,
-  ownerId: string,
+  layerId: number,
+  ownerId: Identity,
   board: Container
 ) => {
   let layer = getLayer(layerId);
@@ -141,7 +188,7 @@ const getOrCreateLayer = (
       {
         id: layerId,
         ownerId: ownerId,
-        ownerName: ownerId,
+        ownerName: ownerId.toHexString().slice(0, 8),
         title: `Layer ${ownerId}`,
       },
       board
@@ -173,26 +220,29 @@ const drawImageFromBase64 = (
 };
 
 const socketEventHandler = (
-  socket: Socket,
+  conn: DbConnection,
   app: Application,
   board: Container
 ) => {
-  socket.on('drawCommand', (payload: DrawCommandPayload) => {
-    console.log(`Received draw command from ${payload.userId}`);
+  conn.db.command.onInsert((_ctx: EventContext, command: Command) => {
+    console.log(
+      `Received draw command from ${command.owner.toHexString().slice(0, 8)}`
+    );
 
-    const layer = getOrCreateLayer(payload.layerId, payload.userId, board);
+    const layer = getOrCreateLayer(command.layer, command.owner, board);
 
-    const commands = payload.commands;
+    const commands = command.commands;
 
     let stroke = new Graphics();
     commands.forEach((commandBlock) => {
-      switch (commandBlock.command) {
+      switch (commandBlock.commandType) {
         case 'initLine': {
           stroke.destroy();
           stroke = new Graphics();
           const pos = commandBlock.pos;
           stroke.strokeStyle = commandBlock.strokeStyle;
-          stroke.blendMode = commandBlock.blendMode || 'normal';
+          const mode = checkBlendModes(commandBlock.blendMode);
+          stroke.blendMode = mode;
           stroke.moveTo(pos.x, pos.y);
           stroke.lineTo(pos.x, pos.y - 0.01);
           stroke.stroke();
@@ -222,68 +272,48 @@ const socketEventHandler = (
     stroke.destroy();
   });
 
-  socket.on('redraw', (payload: RedrawPayload) => {
-    console.log(`Received redraw command from ${payload.userId}`);
-    const layer = getOrCreateLayer(payload.layerId, payload.userId, board);
-    let stroke = new Graphics();
-    app.renderer.render({
-      container: stroke,
-      target: layer.rt,
-      clear: true,
-    });
-    stroke.destroy();
-
-    drawImageFromBase64(app, payload.base64, layer.rt);
-  });
-
-  socket.on('initLayers', (payload: LayersPayload) => {
-    console.log(`Received initLayers command`);
-    payload.forEach((item) => {
-      const { base64, id, ownerId, ownerName, title } = item;
-      let layer = getLayer(id);
-      if (!layer) {
-        layer = createLayer(
-          {
-            id,
-            ownerId,
-            ownerName,
-            title,
-          },
-          board
-        );
-      }
-      if (base64) drawImageFromBase64(app, base64, layer.rt);
-    });
-
-    const existingLayer = Array.from(layers.entries()).find(
-      ([_key, item]) => item.ownerId === socket.id
-    );
-    if (existingLayer) {
-      activeLayer = existingLayer[1];
-    } else {
-      const l = {
-        id: v4(),
-        title: `New Layer ${v4()}`,
-        ownerId: socket.id!,
-        ownerName: socket.id!,
-      };
-      activeLayer = createLayer(l, board);
-      socket.emit('createLayer', l);
+  // redraw
+  conn.db.layer.onUpdate(
+    (_ctx: EventContext, _oldLayer: ServerLayer, newLayer: ServerLayer) => {
+      console.log(`Received update layer command`);
+      if (!newLayer.base64 || !identity || newLayer.owner.isEqual(identity))
+        return;
+      const l = getOrCreateLayer(newLayer.id, newLayer.owner, board);
+      let stroke = new Graphics();
+      app.renderer.render({
+        container: stroke,
+        target: l.rt,
+        clear: true,
+      });
+      stroke.destroy();
+      drawImageFromBase64(app, newLayer.base64, l.rt);
     }
-    ui.setActiveLayer(activeLayer.id);
-  });
+  );
 
-  socket.on('createLayer', (payload: Omit<Layer, 'rt' | 'container'>) => {
+  conn.db.layer.onInsert((_ctx: EventContext, layer: ServerLayer) => {
     console.log(`Received create layer command`);
-    createLayer(payload, board);
+    const l = createLayer(
+      {
+        id: layer.id,
+        ownerId: layer.owner,
+        ownerName: layer.owner.toHexString().slice(0, 8),
+        title: layer.name || layer.owner.toHexString().slice(0, 8),
+      },
+      board
+    );
+
+    if (identity && layer.owner.isEqual(identity)) {
+      activeLayer = l;
+      ui.setActiveLayer(layer.id);
+    }
   });
 
-  socket.on('deleteLayer', (layerId: string) => {
+  conn.db.layer.onDelete((_ctx: EventContext, layer: ServerLayer) => {
     console.log(`Received delete layer command`);
 
-    const l = layers.get(layerId);
+    const l = layers.get(layer.id);
     l?.container.destroy();
-    layers.delete(layerId);
+    layers.delete(layer.id);
     ui.renderLayers(Array.from(layers.values()));
   });
 };
@@ -295,13 +325,44 @@ const scale = (app: Application, delta: number) => {
   if (app.stage.scale.x > maxScale) app.stage.scale = maxScale; // Prevent too big scale
 };
 
-(async () => {
-  const socket = await connect();
-  if (!socket.id) throw new Error('Socket ID not found');
-  ui.userId = socket.id;
-  ui.renderLayers(Array.from(layers.values()));
-  const { app, board } = await init();
+const initLayers = (conn: DbConnection, app: Application, board: Container) => {
+  for (const layer of conn.db.layer.iter()) {
+    const { base64, id, owner, name } = layer;
 
+    let l = getLayer(id);
+
+    if (!l) {
+      l = createLayer(
+        {
+          id,
+          ownerId: owner,
+          ownerName: owner.toHexString().slice(0, 8),
+          title: name || owner.toHexString().slice(0, 8),
+        },
+        board
+      );
+    }
+    if (base64) drawImageFromBase64(app, base64, l.rt);
+  }
+
+  const existingLayer = Array.from(layers.entries()).find(
+    ([_key, item]) => identity && item.ownerId.isEqual(identity)
+  );
+  if (existingLayer) {
+    activeLayer = existingLayer[1];
+  } else {
+    conn.reducers.createLayer();
+  }
+};
+
+(async () => {
+  const conn = await connect();
+  if (!conn.identity) throw new Error('User identity is not defined');
+  const { app, board } = await init();
+  initLayers(conn, app, board);
+
+  ui.userId = conn.identity;
+  ui.renderLayers(Array.from(layers.values()));
   ui.onSelectLayer((layerId) => {
     console.log(`Select layer ID: ${layerId}`);
     const l = getLayer(layerId);
@@ -319,45 +380,16 @@ const scale = (app: Application, delta: number) => {
 
   ui.onAddLayer(() => {
     console.log('Add new layer');
-    const layerId = v4();
-    const userId = socket.id;
-    if (!userId) return;
-    const layer = createLayer(
-      {
-        id: layerId,
-        title: `New Layer ${layerId}`,
-        ownerId: userId,
-        ownerName: userId,
-      },
-      board
-    );
-    activeLayer = layer;
-    ui.setActiveLayer(layer.id);
-
-    socket.emit('createLayer', {
-      id: layer.id,
-      title: layer.title,
-      ownerId: layer.ownerId,
-      ownerName: layer.ownerName,
-    });
+    conn.reducers.createLayer();
   });
 
   ui.onDeleteLayer((layerId) => {
-    const l = layers.get(layerId);
-    l?.container.destroy();
-    layers.delete(layerId);
-
     historyStack = [];
     redoStack = [];
-
-    socket.emit('deleteLayer', layerId);
-    ui.renderLayers(Array.from(layers.values()));
+    conn.reducers.deleteLayer(layerId);
   });
 
-  socketEventHandler(socket, app, board);
-
-  socket.emit('getLayers');
-  socket.emit('getUsers');
+  socketEventHandler(conn, app, board);
 
   toolbarUi.onToolClick((tool) => {
     switch (tool) {
@@ -379,7 +411,7 @@ const scale = (app: Application, delta: number) => {
         });
         stroke.destroy();
         saveState();
-        emitLayer(true);
+        emitLayer();
         break;
       }
       case Tools.ZOOMIN: {
@@ -433,23 +465,17 @@ const scale = (app: Application, delta: number) => {
     historyStack.push(newTexture);
   };
 
-  const emitLayer = (redraw?: boolean) => {
+  const emitLayer = () => {
     if (!activeLayer) return;
 
     const layerId = activeLayer.id;
-    const title = activeLayer.title;
     app.renderer.extract
       .base64({
         format: 'png',
         target: activeLayer.rt,
       })
       .then((data) => {
-        socket.emit(redraw ? 'redraw' : 'saveLayer', {
-          layerId,
-          title,
-          timestamp: Date.now(),
-          base64: data,
-        });
+        conn.reducers.saveLayer(layerId, data);
       });
   };
 
@@ -537,7 +563,6 @@ const scale = (app: Application, delta: number) => {
         target: activeLayer.rt,
         clear: false,
       });
-
       saveState();
 
       stroke?.destroy();
@@ -548,13 +573,7 @@ const scale = (app: Application, delta: number) => {
       };
 
       lastCommands.push(command);
-      if (!isErasing) {
-        socket.emit('drawCommand', {
-          layerId: activeLayer.id,
-          commands: lastCommands,
-        });
-      }
-      emitLayer(isErasing);
+      emitLayer();
       lastCommands = [];
 
       if (historyStack.length > maxHistoryLength) {
@@ -582,7 +601,6 @@ const scale = (app: Application, delta: number) => {
     });
 
     const layerId = activeLayer.id;
-    const title = activeLayer.title;
 
     app.renderer.extract
       .base64({
@@ -590,12 +608,7 @@ const scale = (app: Application, delta: number) => {
         target: activeLayer.rt,
       })
       .then((data) => {
-        socket.emit('redraw', {
-          layerId,
-          title,
-          timestamp: Date.now(),
-          base64: data,
-        });
+        conn.reducers.saveLayer(layerId, data);
       });
 
     s.destroy();

@@ -1,8 +1,9 @@
+import { Identity } from '@clockworklabs/spacetimedb-sdk';
 import { Layer } from './utils';
 
-type LayerSelectCallback = (layerId: string) => void;
+type LayerSelectCallback = (layerId: number) => void;
 type AddLayerCallback = () => void;
-type DeleteLayerCallback = (layerId: string) => void;
+type DeleteLayerCallback = (layerId: number) => void;
 
 /**
  * LayerUI class manages the UI for selecting and adding layers.
@@ -13,7 +14,7 @@ export class LayerUI {
   private onSelectLayerCallback: LayerSelectCallback | null = null;
   private onAddLayerCallback: AddLayerCallback | null = null;
   private onDeleteLayerCallback: DeleteLayerCallback | null = null;
-  private _userId: string | null = null;
+  private _userId: Identity | undefined;
 
   constructor() {
     this.layerListElement = document.querySelector('.layer-list')!;
@@ -60,8 +61,8 @@ export class LayerUI {
     layers.forEach((layer) => {
       const layerItem = document.createElement('div');
       layerItem.classList.add('layer-item');
-      layerItem.dataset.layerId = layer.id;
-      layerItem.dataset.ownerId = layer.ownerId;
+      layerItem.dataset.layerId = String(layer.id);
+      layerItem.dataset.ownerId = layer.ownerId.toHexString();
 
       const layerPreview = document.createElement('div');
       layerPreview.classList.add('layer-preview');
@@ -83,7 +84,7 @@ export class LayerUI {
       layerItem.appendChild(layerPreview);
       layerItem.appendChild(layerInfo);
 
-      if (this._userId === layer.ownerId) {
+      if (this._userId?.isEqual(layer.ownerId)) {
         layerItem.classList.add('owned');
 
         const layerDeleteBtn = document.createElement('img');
@@ -115,7 +116,7 @@ export class LayerUI {
    * @returns void
    * @description Sets the specified layer as active in the UI. It removes the 'active' class from all layers and adds it to the selected layer. This is useful for visualizing which layer is currently being edited or viewed.
    */
-  public setActiveLayer(layerId: string) {
+  public setActiveLayer(layerId: number) {
     // Remove active class from all layers
     this.layerListElement
       .querySelectorAll('.layer-item')
@@ -135,7 +136,7 @@ export class LayerUI {
    * Sets the user ID for filtering layers.
    * @param value The user ID.
    */
-  public set userId(value: string) {
+  public set userId(value: Identity) {
     this._userId = value;
   }
 }
