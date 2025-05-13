@@ -20,6 +20,7 @@ import {
   History,
   Layer,
   checkBlendModes,
+  distance,
 } from './utils';
 import { LayerUI, ToolbarUI, Tools } from './ui';
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
@@ -141,7 +142,7 @@ const socketEventHandler = (
 
     let stroke = new Graphics();
     console.log(activeLayer);
-
+    let lastPos: Point;
     commands.forEach((commandBlock) => {
       switch (commandBlock.commandType) {
         case 'initLine': {
@@ -163,13 +164,20 @@ const socketEventHandler = (
           stroke.lineTo(pos.x, pos.y - 0.01);
           stroke.stroke();
           layer.container.addChild(stroke);
+          lastPos = new Point(pos.x, pos.y);
           break;
         }
         case 'line': {
           if (!commandBlock.pos) return;
           const pos = commandBlock.pos;
-          stroke.lineTo(pos.x, pos.y);
+          const mid = {
+            x: (pos.x + lastPos.x) * 0.5,
+            y: (pos.y + lastPos.y) * 0.5,
+          };
+
+          stroke.quadraticCurveTo(lastPos.x, lastPos.y, mid.x, mid.y);
           stroke.stroke();
+          lastPos = new Point(pos.x, pos.y);
           break;
         }
         case 'endLine':
@@ -517,6 +525,9 @@ const scale = (app: Application, delta: number) => {
     return vSub(pos, board.position);
   };
 
+  let lastPos: Point;
+  const minDelta = 5;
+
   const onPointerDown = (e: FederatedPointerEvent) => {
     if (!activeLayer) return;
 
@@ -547,11 +558,11 @@ const scale = (app: Application, delta: number) => {
     stroke.lineTo(pos.x, pos.y - 0.01);
     stroke.stroke();
     activeLayer.container.addChild(stroke);
+    lastPos = pos;
   };
 
   const onPointerMove = (e: FederatedPointerEvent) => {
     if (!activeLayer) return;
-
     const stageScale = app.stage.scale.x;
     if (pan) {
       board.x += e.movementX / stageScale;
@@ -560,6 +571,9 @@ const scale = (app: Application, delta: number) => {
     }
     if (!drawing || !stroke) return;
     const pos = offsetPosition(e.clientX, e.clientY);
+
+    if (distance(pos, lastPos) < minDelta) return;
+
     const command: DrawCommand = {
       commandType: 'line',
       pos,
@@ -568,13 +582,18 @@ const scale = (app: Application, delta: number) => {
     };
 
     lastCommands.push(command);
-    stroke.lineTo(pos.x, pos.y);
+    const mid = {
+      x: (pos.x + lastPos.x) * 0.5,
+      y: (pos.y + lastPos.y) * 0.5,
+    };
+
+    stroke.quadraticCurveTo(lastPos.x, lastPos.y, mid.x, mid.y);
     stroke.stroke();
+    lastPos = pos;
   };
 
   const onPointerUp = () => {
     if (!activeLayer) return;
-
     drawing = false;
     pan = false;
     if (stroke) {
