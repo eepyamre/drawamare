@@ -1,0 +1,7 @@
+- Brush Stabilization
+- More Drawing Tools
+- Layer deletion confirmation
+- Authentication
+- Moderation
+- UserList UI
+- Chat
