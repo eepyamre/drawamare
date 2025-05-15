@@ -27,7 +27,9 @@ pub struct Point {
 
 #[derive(SpacetimeType)]
 pub struct StrokeStyle {
-    // Define fields as needed
+    width: i32,
+    cap: String,
+    color: i32,
 }
 
 #[derive(SpacetimeType)]

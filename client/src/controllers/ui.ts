@@ -1,5 +1,5 @@
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
-import { Layer } from './utils';
+import { Layer } from '../utils';
 
 type LayerSelectCallback = (layerId: number) => void;
 type AddLayerCallback = () => void;
@@ -93,7 +93,8 @@ export class LayerUI {
 
         layerItem.appendChild(layerDeleteBtn);
 
-        layerDeleteBtn.addEventListener('click', () => {
+        layerDeleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
           if (this.onDeleteLayerCallback) {
             this.onDeleteLayerCallback(layer.id);
           }
