@@ -1,4 +1,4 @@
-- Brush Stabilization
+- Better Brush Stabilization
 - More Drawing Tools
 - Layer deletion confirmation
 - Authentication

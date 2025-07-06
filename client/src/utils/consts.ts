@@ -1,6 +1,6 @@
 export const boardSize = {
-  width: 768,
-  height: 768,
+  width: 2048,
+  height: 2048,
 };
 
 export const maxScale = 3;

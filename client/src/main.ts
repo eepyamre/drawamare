@@ -28,6 +28,16 @@ const startApp = async () => {
   networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr);
 
   // TOOLBAR INIT
+  const clearLayer = () => {
+    const activeLayer = layerCtr.getActiveLayer();
+    if (!activeLayer) return;
+    pixiCtr.clearRenderTarget(activeLayer.rt);
+    historyCtr.saveState(pixiCtr, activeLayer);
+    pixiCtr.extractBase64(activeLayer.rt).then((data) => {
+      networkCtr.emitSaveLayerRequest(activeLayer.id, data, true);
+    });
+  };
+
   {
     toolbarUI.onToolClick((tool) => {
       switch (tool) {
@@ -37,13 +47,7 @@ const startApp = async () => {
           break;
         }
         case Tools.DELETE: {
-          const activeLayer = layerCtr.getActiveLayer();
-          if (!activeLayer) return;
-          pixiCtr.clearRenderTarget(activeLayer.rt);
-          historyCtr.saveState(pixiCtr, activeLayer);
-          pixiCtr.extractBase64(activeLayer.rt).then((data) => {
-            networkCtr.emitSaveLayerRequest(activeLayer.id, data, true);
-          });
+          clearLayer();
           break;
         }
         case Tools.ZOOMIN: {
@@ -75,19 +79,36 @@ const startApp = async () => {
 
     window.addEventListener('keydown', (e) => {
       const key = e.key.toLowerCase();
-      if (key === 'e') {
-        if (drawingCtr.toggleEraser()) {
-          toolbarUI.setActiveTool(Tools.ERASER);
-        } else {
-          toolbarUI.setActiveTool(Tools.BRUSH);
-        }
+      const keys = ['e', 'z', 'delete', '+', '-'];
+      if (keys.includes(key)) {
+        e.preventDefault();
       }
-      if (key === 'z' && (e.ctrlKey || e.metaKey)) {
-        if (e.shiftKey) {
-          historyCtr.redo(pixiCtr, layerCtr, networkCtr);
-        } else {
-          historyCtr.undo(pixiCtr, layerCtr, networkCtr);
-        }
+      switch (key) {
+        case 'e':
+          if (drawingCtr.toggleEraser()) {
+            toolbarUI.setActiveTool(Tools.ERASER);
+          } else {
+            toolbarUI.setActiveTool(Tools.BRUSH);
+          }
+          break;
+        case 'z':
+          if (e.ctrlKey || e.metaKey) {
+            if (e.shiftKey) {
+              historyCtr.redo(pixiCtr, layerCtr, networkCtr);
+            } else {
+              historyCtr.undo(pixiCtr, layerCtr, networkCtr);
+            }
+          }
+          break;
+        case 'delete':
+          clearLayer();
+          break;
+        case '+':
+          pixiCtr.scale(-1);
+          break;
+        case '-':
+          pixiCtr.scale(+1);
+          break;
       }
     });
   }
