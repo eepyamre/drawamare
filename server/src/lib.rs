@@ -38,6 +38,8 @@ pub struct DrawCommand {
     blend_mode: Option<String>,
     pos: Option<Point>,
     stroke_style: Option<StrokeStyle>,
+    start_width: Option<i32>,
+    end_width: Option<i32>,
 }
 
 #[table(name = command, public)]

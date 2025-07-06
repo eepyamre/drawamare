@@ -38,6 +38,8 @@ export type DrawCommand = {
   blendMode: string | undefined,
   pos: __Point | undefined,
   strokeStyle: __StrokeStyle | undefined,
+  startWidth: number | undefined,
+  endWidth: number | undefined,
 };
 
 /**
@@ -54,6 +56,8 @@ export namespace DrawCommand {
       new ProductTypeElement("blendMode", AlgebraicType.createOptionType(AlgebraicType.createStringType())),
       new ProductTypeElement("pos", AlgebraicType.createOptionType(__Point.getTypeScriptAlgebraicType())),
       new ProductTypeElement("strokeStyle", AlgebraicType.createOptionType(__StrokeStyle.getTypeScriptAlgebraicType())),
+      new ProductTypeElement("startWidth", AlgebraicType.createOptionType(AlgebraicType.createI32Type())),
+      new ProductTypeElement("endWidth", AlgebraicType.createOptionType(AlgebraicType.createI32Type())),
     ]);
   }
 
