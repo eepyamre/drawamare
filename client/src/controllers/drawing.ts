@@ -79,6 +79,7 @@ export class DrawingController {
       if (cmd.commandType === 'initLine' && cmd.pos && cmd.strokeStyle) {
         lastPos = new Point(cmd.pos.x, cmd.pos.y);
         lastColor = cmd.strokeStyle.color!;
+
         this.drawStamp(
           pixiCtr,
           layer,
@@ -88,7 +89,12 @@ export class DrawingController {
           cmd.strokeStyle.alpha!,
           cmd.blendMode as BLEND_MODES
         );
-      } else if (cmd.commandType === 'line' && lastPos && cmd.pos) {
+      } else if (
+        cmd.commandType === 'line' &&
+        lastPos &&
+        cmd.pos &&
+        cmd.strokeStyle
+      ) {
         const start = lastPos;
         const end = new Point(cmd.pos.x, cmd.pos.y);
         const sw = cmd.startWidth!;
@@ -108,7 +114,7 @@ export class DrawingController {
             new Point(x, y),
             w,
             lastColor,
-            this.strokeStyle.alpha,
+            cmd.strokeStyle.alpha,
             cmd.blendMode as BLEND_MODES
           );
         }
@@ -118,7 +124,7 @@ export class DrawingController {
           end,
           ew,
           lastColor,
-          this.strokeStyle.alpha,
+          cmd.strokeStyle.alpha,
           cmd.blendMode as BLEND_MODES
         );
         lastPos = end;
@@ -152,9 +158,10 @@ export class DrawingController {
     this.lastWidth = width;
     const alpha = this.strokeStyle.alpha * pressure;
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
-    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.NORMAL;
+    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
 
     this.drawStamp(pixiCtr, layer, pos, width, style.color, alpha, blend);
+
     this.accumulatedDrawCommands.push({
       commandType: 'initLine',
       pos,
@@ -191,7 +198,7 @@ export class DrawingController {
     const pressure = e.pointerType !== 'mouse' ? e.pressure : 1;
     const ew = this.strokeStyle.width * pressure;
     const alpha = this.strokeStyle.alpha * pressure;
-    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.NORMAL;
+    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
     const step = Math.min(sw, ew) / 4 || 1;
 
     for (let i = 0; i <= dist; i += step) {
@@ -219,14 +226,19 @@ export class DrawingController {
       blend
     );
 
-    this.accumulatedDrawCommands.push({
+    const command: DrawCommand = {
       commandType: 'line',
       pos: end,
       blendMode: blend,
       startWidth: sw,
       endWidth: ew,
-      strokeStyle: undefined,
-    });
+      strokeStyle: {
+        ...this.strokeStyle,
+        alpha,
+      },
+    };
+
+    this.accumulatedDrawCommands.push(command);
 
     this.lastDrawingPosition = end;
     this.lastWidth = ew;

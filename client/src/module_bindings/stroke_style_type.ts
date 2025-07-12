@@ -47,10 +47,10 @@ export namespace StrokeStyle {
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("width", AlgebraicType.createI32Type()),
+      new ProductTypeElement("width", AlgebraicType.createF32Type()),
       new ProductTypeElement("cap", AlgebraicType.createStringType()),
       new ProductTypeElement("color", AlgebraicType.createI32Type()),
-      new ProductTypeElement("alpha", AlgebraicType.createI32Type()),
+      new ProductTypeElement("alpha", AlgebraicType.createF32Type()),
     ]);
   }
 
