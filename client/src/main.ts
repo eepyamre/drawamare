@@ -3,7 +3,7 @@ import { HistoryController } from './controllers/history';
 import { LayerController } from './controllers/layer';
 import { NetworkController } from './controllers/network';
 import { PixiController } from './controllers/pixi';
-import { LayerUI, ToolbarUI, Tools } from './controllers/ui';
+import { BrushSettingsUI, LayerUI, ToolbarUI, Tools } from './controllers/ui';
 
 const startApp = async () => {
   const networkCtr = new NetworkController();
@@ -17,6 +17,7 @@ const startApp = async () => {
   const layerCtr = new LayerController(layerUI);
   layerCtr.init(networkCtr, pixiCtr);
 
+  const brushUI = new BrushSettingsUI();
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -27,7 +28,6 @@ const startApp = async () => {
   );
   networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr);
 
-  // TOOLBAR INIT
   const clearLayer = () => {
     const activeLayer = layerCtr.getActiveLayer();
     if (!activeLayer) return;
@@ -38,6 +38,7 @@ const startApp = async () => {
     });
   };
 
+  // TOOLBAR INIT
   {
     toolbarUI.onToolClick((tool) => {
       switch (tool) {
@@ -135,6 +136,17 @@ const startApp = async () => {
       networkCtr.emitDeleteLayerRequest(layerId);
     });
   }
+
+  // BRUSH SETTINGS
+
+  brushUI.onSizeChange((size) => {
+    drawingCtr.setSize(size);
+  });
+  brushUI.onOpacityChange((opacity) => {
+    drawingCtr.setOpacity(opacity);
+  });
+  brushUI.onPressureToggle((settings) => {});
+  brushUI.onBrushChange((brush) => {});
 };
 
 startApp();

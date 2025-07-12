@@ -51,6 +51,44 @@
           <!-- Layer items will be rendered here -->
         </div>
       </div>
+      <div id="brush-settings">
+        <h3 class="brush-settings-title">Brush Settings</h3>
+        <div class="setting">
+          <label for="brush-size">Size</label>
+          <input type="range" id="brush-size" min="1" max="100" value="10" />
+        </div>
+        <div class="setting">
+          <label for="brush-opacity">Opacity</label>
+          <input
+            type="range"
+            id="brush-opacity"
+            min="0.05"
+            max="1"
+            step="0.05"
+            value="1"
+          />
+        </div>
+        <div class="setting-checkbox">
+          <input type="checkbox" id="pressure-size" />
+          <label for="pressure-size">Pressure affects Size</label>
+        </div>
+        <div class="setting-checkbox">
+          <input type="checkbox" id="pressure-opacity" />
+          <label for="pressure-opacity">Pressure affects Opacity</label>
+        </div>
+        <h4 class="brush-list-title">Brushes</h4>
+        <div class="brush-list">
+          <button class="brush-item active" title="Round">
+            <img src="/assets/icons/brush.svg" />
+          </button>
+          <button class="brush-item" title="Square">
+            <img src="/assets/icons/brush-square.svg" />
+          </button>
+          <button class="brush-item" title="Spray">
+            <img src="/assets/icons/brush-spray.svg" />
+          </button>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

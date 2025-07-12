@@ -34,6 +34,7 @@ export type StrokeStyle = {
   width: number,
   cap: string,
   color: number,
+  alpha: number,
 };
 
 /**
@@ -49,6 +50,7 @@ export namespace StrokeStyle {
       new ProductTypeElement("width", AlgebraicType.createI32Type()),
       new ProductTypeElement("cap", AlgebraicType.createStringType()),
       new ProductTypeElement("color", AlgebraicType.createI32Type()),
+      new ProductTypeElement("alpha", AlgebraicType.createI32Type()),
     ]);
   }
 

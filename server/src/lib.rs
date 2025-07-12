@@ -30,6 +30,7 @@ pub struct StrokeStyle {
     width: i32,
     cap: String,
     color: i32,
+    alpha: i32,
 }
 
 #[derive(SpacetimeType)]

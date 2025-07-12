@@ -33,6 +33,7 @@ body {
   background-color: #3c3c3c;
   padding: 6px;
   border-radius: 4px;
+  z-index: 10;
 }
 
 .tool {
@@ -169,4 +170,88 @@ body {
 .layer-delete:hover {
   opacity: 0.75;
   z-index: 2;
+}
+
+/* --- BRUSH SETTINGS --- */
+
+.hidden {
+  display: none;
+}
+
+#brush-settings {
+  position: fixed;
+  left: 62px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #3c3c3c;
+  padding: 10px;
+  border-radius: 4px;
+  width: 220px;
+}
+
+.brush-settings-title {
+  font-size: 1rem;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #555;
+}
+
+.setting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setting label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.setting-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-checkbox label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  user-select: none;
+  cursor: pointer;
+}
+
+.brush-list-title {
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.brush-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+}
+
+.brush-item {
+  border: none;
+  background-color: #323232;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  height: 40px;
+  width: 100%;
+  user-select: none;
+}
+
+.brush-item.active,
+.brush-item:hover {
+  background-color: #222;
+}
+
+.brush-item img {
+  width: 24px;
+  height: 24px;
 }

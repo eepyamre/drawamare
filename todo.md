@@ -1,3 +1,4 @@
+- ui for brush selection, size/opacity changing
 - Better Brush Stabilization
 - More Drawing Tools
 - Layer deletion confirmation

@@ -229,3 +229,110 @@ export class ToolbarUI {
     this.onColorChangeCallback = callback;
   }
 }
+
+export type PressureSettings = {
+  size: boolean;
+  opacity: boolean;
+};
+
+export class BrushSettingsUI {
+  private sizeSlider: HTMLInputElement;
+  private opacitySlider: HTMLInputElement;
+  private pressureSizeCheckbox: HTMLInputElement;
+  private pressureOpacityCheckbox: HTMLInputElement;
+  private brushItems: NodeListOf<HTMLButtonElement>;
+  private activeBrush: string;
+
+  private onSizeChangeCallback: ((size: number) => void) | null = null;
+  private onOpacityChangeCallback: ((opacity: number) => void) | null = null;
+  private onPressureToggleCallback:
+    | ((settings: PressureSettings) => void)
+    | null = null;
+  private onBrushChangeCallback: ((brush: string) => void) | null = null;
+
+  constructor() {
+    this.sizeSlider = document.querySelector<HTMLInputElement>('#brush-size')!;
+    this.opacitySlider =
+      document.querySelector<HTMLInputElement>('#brush-opacity')!;
+    this.pressureSizeCheckbox =
+      document.querySelector<HTMLInputElement>('#pressure-size')!;
+    this.pressureOpacityCheckbox =
+      document.querySelector<HTMLInputElement>('#pressure-opacity')!;
+    this.brushItems = document.querySelectorAll('.brush-item');
+
+    const initialActiveBrush = document.querySelector('.brush-item.active');
+    this.activeBrush = initialActiveBrush?.getAttribute('title') || 'Round';
+
+    this.initEventListeners();
+  }
+
+  private initEventListeners() {
+    this.sizeSlider.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value);
+      this.onSizeChangeCallback?.(value);
+    });
+
+    this.opacitySlider.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value);
+      this.onOpacityChangeCallback?.(value);
+    });
+
+    const handlePressureChange = () => {
+      this.onPressureToggleCallback?.({
+        size: this.pressureSizeCheckbox.checked,
+        opacity: this.pressureOpacityCheckbox.checked,
+      });
+    };
+
+    this.pressureSizeCheckbox.addEventListener('change', handlePressureChange);
+    this.pressureOpacityCheckbox.addEventListener(
+      'change',
+      handlePressureChange
+    );
+
+    this.brushItems.forEach((button) => {
+      button.addEventListener('click', () => {
+        const brushName = button.getAttribute('title');
+        if (brushName) {
+          this.setActiveBrush(brushName);
+          this.onBrushChangeCallback?.(brushName);
+        }
+      });
+    });
+  }
+
+  public onSizeChange(callback: (size: number) => void) {
+    this.onSizeChangeCallback = callback;
+  }
+
+  public onOpacityChange(callback: (opacity: number) => void) {
+    this.onOpacityChangeCallback = callback;
+  }
+
+  public onPressureToggle(callback: (settings: PressureSettings) => void) {
+    this.onPressureToggleCallback = callback;
+  }
+
+  public onBrushChange(callback: (brush: string) => void) {
+    this.onBrushChangeCallback = callback;
+  }
+
+  public setActiveBrush(brushName: string) {
+    this.brushItems.forEach((button) => {
+      if (button.getAttribute('title') === brushName) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+    this.activeBrush = brushName;
+  }
+
+  public getBrushSize = (): number => parseFloat(this.sizeSlider.value);
+  public getBrushOpacity = (): number => parseFloat(this.opacitySlider.value);
+  public getPressureSettings = (): PressureSettings => ({
+    size: this.pressureSizeCheckbox.checked,
+    opacity: this.pressureOpacityCheckbox.checked,
+  });
+  public getActiveBrush = (): string => this.activeBrush;
+}

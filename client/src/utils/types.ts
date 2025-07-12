@@ -1,5 +1,5 @@
 import { Identity } from '@clockworklabs/spacetimedb-sdk';
-import { BLEND_MODES, Container, RenderTexture } from 'pixi.js';
+import { Container, RenderTexture } from 'pixi.js';
 
 export type History = RenderTexture[];
 
@@ -12,45 +12,38 @@ export type Layer = {
   title: string;
 };
 
-export const checkBlendModes = (mode?: string): BLEND_MODES => {
-  const modes: BLEND_MODES[] = [
-    'inherit',
-    'normal',
-    'add',
-    'multiply',
-    'screen',
-    'darken',
-    'lighten',
-    'erase',
-    'color-dodge',
-    'color-burn',
-    'linear-burn',
-    'linear-dodge',
-    'linear-light',
-    'hard-light',
-    'soft-light',
-    'pin-light',
-    'difference',
-    'exclusion',
-    'overlay',
-    'saturation',
-    'color',
-    'luminosity',
-    'normal-npm',
-    'add-npm',
-    'screen-npm',
-    'none',
-    'subtract',
-    'divide',
-    'vivid-light',
-    'hard-mix',
-    'negation',
-    'min',
-    'max',
-  ];
-
-  if (!mode || !modes.includes(mode as BLEND_MODES)) {
-    return 'normal';
-  }
-  return mode as BLEND_MODES;
-};
+export enum BLEND_MODES {
+  INHERIT = 'inherit',
+  NORMAL = 'normal',
+  ADD = 'add',
+  MULTIPLY = 'multiply',
+  SCREEN = 'screen',
+  DARKEN = 'darken',
+  LIGHTEN = 'lighten',
+  ERASE = 'erase',
+  COLOR_DODGE = 'color-dodge',
+  COLOR_BURN = 'color-burn',
+  LINEAR_BURN = 'linear-burn',
+  LINEAR_DODGE = 'linear-dodge',
+  LINEAR_LIGHT = 'linear-light',
+  HARD_LIGHT = 'hard-light',
+  SOFT_LIGHT = 'soft-light',
+  PIN_LIGHT = 'pin-light',
+  DIFFERENCE = 'difference',
+  EXCLUSION = 'exclusion',
+  OVERLAY = 'overlay',
+  SATURATION = 'saturation',
+  COLOR = 'color',
+  LUMINOSITY = 'luminosity',
+  NORMAL_NPM = 'normal-npm',
+  ADD_NPM = 'add-npm',
+  SCREEN_NPM = 'screen-npm',
+  NONE = 'none',
+  SUBTRACT = 'subtract',
+  DIVIDE = 'divide',
+  VIVID_LIGHT = 'vivid-light',
+  HARD_MIX = 'hard-mix',
+  NEGATION = 'negation',
+  MIN = 'min',
+  MAX = 'max',
+}
