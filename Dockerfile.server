@@ -1,0 +1,6 @@
+FROM clockworklabs/spacetime
+
+WORKDIR /app
+
+COPY . .
+

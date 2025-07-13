@@ -63,7 +63,7 @@ export class NetworkController {
       };
 
       DbConnection.builder()
-        .withUri('ws://localhost:3000')
+        .withUri(import.meta.env.VITE_SPACETIME_URL)
         .withModuleName('drawamare')
         .withToken(localStorage.getItem('auth_token') || '')
         .onConnect(onConnect)

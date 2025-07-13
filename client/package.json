@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npm run dev",
+    "start": "npm run dev ",
     "build": "npm run lint && tsc && vite build",
     "lint": "eslint .",
-    "dev": "vite"
+    "dev": "vite --host"
   },
   "dependencies": {
     "@clockworklabs/spacetimedb-sdk": "^1.0.3",
