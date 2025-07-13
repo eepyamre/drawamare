@@ -24,7 +24,8 @@ const startApp = async () => {
     pixiCtr,
     layerCtr,
     historyCtr,
-    networkCtr
+    networkCtr,
+    brushUI
   );
   networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr);
 
@@ -145,7 +146,9 @@ const startApp = async () => {
   brushUI.onOpacityChange((opacity) => {
     drawingCtr.setOpacity(opacity);
   });
-  brushUI.onPressureToggle((settings) => {});
+  brushUI.onPressureToggle((settings) => {
+    drawingCtr.setPressureSettings(settings);
+  });
   brushUI.onBrushChange((brush) => {});
 };
 

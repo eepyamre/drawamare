@@ -2,7 +2,7 @@ import { FederatedPointerEvent, Graphics, Point } from 'pixi.js';
 import { Layer, BLEND_MODES } from '../utils';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
 import { PixiController } from './pixi';
-import { Tools } from './ui';
+import { BrushSettingsUI, PressureSettings, Tools } from './ui';
 import { LayerController } from './layer';
 import { NetworkController } from './network';
 import { HistoryController } from './history';
@@ -21,14 +21,23 @@ export class DrawingController {
   lastDrawingPosition: Point | null = null;
   lastWidth = 0;
   accumulatedDrawCommands: DrawCommand[] = [];
+  pressureSettings: PressureSettings = {
+    opacity: false,
+    size: false,
+  };
 
   constructor(
     pixiCtr: PixiController,
     layerCtr: LayerController,
     historyCtr: HistoryController,
-    networkCtr: NetworkController
+    networkCtr: NetworkController,
+    brushSettingsUI: BrushSettingsUI
   ) {
     const stage = pixiCtr.app.stage;
+    this.strokeStyle.width = brushSettingsUI.getBrushSize();
+    this.strokeStyle.alpha = brushSettingsUI.getBrushOpacity();
+    this.pressureSettings = brushSettingsUI.getPressureSettings();
+
     stage
       .on('pointerdown', (e: FederatedPointerEvent) =>
         this.onPointerDown(e, pixiCtr, layerCtr, historyCtr)
@@ -154,9 +163,15 @@ export class DrawingController {
     this.lastDrawingPosition = pos;
 
     const pressure = e.pointerType !== 'mouse' ? e.pressure : 1;
-    const width = this.strokeStyle.width * pressure;
+    const width = this.pressureSettings.size
+      ? this.strokeStyle.width * pressure
+      : this.strokeStyle.width;
+    const alpha = this.pressureSettings.opacity
+      ? this.strokeStyle.alpha * pressure
+      : this.strokeStyle.alpha;
+
     this.lastWidth = width;
-    const alpha = this.strokeStyle.alpha * pressure;
+
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
 
@@ -196,8 +211,12 @@ export class DrawingController {
     const ang = Math.atan2(end.y - start.y, end.x - start.x);
     const sw = this.lastWidth;
     const pressure = e.pointerType !== 'mouse' ? e.pressure : 1;
-    const ew = this.strokeStyle.width * pressure;
-    const alpha = this.strokeStyle.alpha * pressure;
+    const ew = this.pressureSettings.size
+      ? this.strokeStyle.width * pressure
+      : this.strokeStyle.width;
+    const alpha = this.pressureSettings.opacity
+      ? this.strokeStyle.alpha * pressure
+      : this.strokeStyle.alpha;
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
     const step = Math.min(sw, ew) / 4 || 1;
 
@@ -292,5 +311,8 @@ export class DrawingController {
   }
   setOpacity(opacity: number) {
     this.strokeStyle.alpha = opacity;
+  }
+  setPressureSettings(settings: PressureSettings) {
+    this.pressureSettings = settings;
   }
 }
