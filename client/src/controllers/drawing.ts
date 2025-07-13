@@ -151,7 +151,7 @@ export class DrawingController {
   ) {
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
-    if (e.button === 1) {
+    if (e.button === 1 || this.pan) {
       this.pan = true;
       return;
     }
@@ -194,7 +194,8 @@ export class DrawingController {
   ) {
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
-    if (this.pan) {
+
+    if (e.buttons !== 0 && this.pan) {
       pixiCtr.moveBoardBy(
         e.movementX / pixiCtr.getScale(),
         e.movementY / pixiCtr.getScale()
@@ -314,5 +315,8 @@ export class DrawingController {
   }
   setPressureSettings(settings: PressureSettings) {
     this.pressureSettings = settings;
+  }
+  setPanMode(boolean: boolean) {
+    this.pan = boolean;
   }
 }

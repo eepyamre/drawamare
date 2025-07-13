@@ -81,10 +81,11 @@ const startApp = async () => {
 
     window.addEventListener('keydown', (e) => {
       const key = e.key.toLowerCase();
-      const keys = ['e', 'z', 'delete', '+', '-'];
+      const keys = ['e', 'z', 'delete', '+', '-', ' '];
       if (keys.includes(key)) {
         e.preventDefault();
       }
+
       switch (key) {
         case 'e':
           if (drawingCtr.toggleEraser()) {
@@ -110,6 +111,23 @@ const startApp = async () => {
           break;
         case '-':
           pixiCtr.scale(+1);
+          break;
+        case ' ':
+          drawingCtr.setPanMode(true);
+          break;
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const key = e.key.toLowerCase();
+      const keys = ['e', 'z', 'delete', '+', '-', ' '];
+      if (keys.includes(key)) {
+        e.preventDefault();
+      }
+
+      switch (key) {
+        case ' ':
+          drawingCtr.setPanMode(false);
           break;
       }
     });
@@ -149,7 +167,9 @@ const startApp = async () => {
   brushUI.onPressureToggle((settings) => {
     drawingCtr.setPressureSettings(settings);
   });
-  brushUI.onBrushChange((brush) => {});
+  brushUI.onBrushChange((brush) => {
+    alert('NOT YET!');
+  });
 };
 
 startApp();

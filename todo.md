@@ -1,4 +1,5 @@
-- ui for brush selection, size/opacity changing
+- Gradually change brush opacity
+- undo layer deleting
 - Better Brush Stabilization
 - More Drawing Tools
 - Layer deletion confirmation
