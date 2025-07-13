@@ -1,5 +1,4 @@
-- Gradually change brush opacity
-- undo layer deleting
+- Undo layer deleting
 - Better Brush Stabilization
 - More Drawing Tools
 - Layer deletion confirmation

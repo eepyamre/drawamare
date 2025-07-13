@@ -21,6 +21,11 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: auto;
+}
+
+#pixi-container {
+  cursor: none;
 }
 
 #tools {

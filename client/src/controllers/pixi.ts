@@ -15,6 +15,7 @@ import 'pixi.js/math-extras';
 export class PixiController {
   app!: Application;
   board!: Container;
+  mouse!: Graphics;
 
   async init() {
     this.app = new Application();
@@ -47,8 +48,12 @@ export class PixiController {
     const canvasBg = new Graphics()
       .rect(0, 0, boardSize.width, boardSize.height)
       .fill(0xffffff);
+
+    this.mouse = new Graphics().circle(0, 0, 10);
+    this.mouse.stroke(0x2b2b2b);
     this.board.addChild(canvasMask);
     this.board.addChild(canvasBg);
+    this.board.addChild(this.mouse);
 
     window.addEventListener('resize', () => {
       this.app.resize();
@@ -57,13 +62,30 @@ export class PixiController {
     window.addEventListener('wheel', (e) => {
       this.scale(e.deltaY);
     });
+
+    let scaleMode = false;
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ' && (e.ctrlKey || e.metaKey)) scaleMode = true;
+    });
+
+    window.addEventListener('keyup', () => {
+      scaleMode = false;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (scaleMode && e.buttons !== 0) this._scale(-e.movementY / 500);
+    });
+  }
+
+  private _scale(delta: number) {
+    this.app.stage.scale = this.app.stage.scale.x + delta;
+    if (this.app.stage.scale.x < minScale) this.app.stage.scale = minScale; // Prevent inverting or too small scale
+    if (this.app.stage.scale.x > maxScale) this.app.stage.scale = maxScale; // Prevent too big scale
   }
 
   scale(delta: number) {
     const y = delta > 0 ? -0.1 : 0.1;
-    this.app.stage.scale = this.app.stage.scale.x + y;
-    if (this.app.stage.scale.x < minScale) this.app.stage.scale = minScale; // Prevent inverting or too small scale
-    if (this.app.stage.scale.x > maxScale) this.app.stage.scale = maxScale; // Prevent too big scale
+    this._scale(y);
   }
 
   drawImageFromBase64(base64: string, rt: RenderTexture): Promise<void> {
@@ -196,5 +218,13 @@ export class PixiController {
   moveBoardBy(x: number, y: number) {
     this.board.x += x;
     this.board.y += y;
+  }
+
+  setMousePosition(point: Point) {
+    this.mouse.position = point;
+  }
+
+  setMouseSize(radius: number) {
+    this.mouse.width = this.mouse.height = radius + 8;
   }
 }

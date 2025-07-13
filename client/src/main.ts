@@ -160,6 +160,7 @@ const startApp = async () => {
 
   brushUI.onSizeChange((size) => {
     drawingCtr.setSize(size);
+    pixiCtr.setMouseSize(size);
   });
   brushUI.onOpacityChange((opacity) => {
     drawingCtr.setOpacity(opacity);
@@ -167,7 +168,7 @@ const startApp = async () => {
   brushUI.onPressureToggle((settings) => {
     drawingCtr.setPressureSettings(settings);
   });
-  brushUI.onBrushChange((brush) => {
+  brushUI.onBrushChange((_brush) => {
     alert('NOT YET!');
   });
 };

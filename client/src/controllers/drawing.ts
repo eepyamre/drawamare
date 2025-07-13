@@ -20,6 +20,7 @@ export class DrawingController {
 
   lastDrawingPosition: Point | null = null;
   lastWidth = 0;
+  lastAlpha = 1;
   accumulatedDrawCommands: DrawCommand[] = [];
   pressureSettings: PressureSettings = {
     opacity: false,
@@ -163,14 +164,18 @@ export class DrawingController {
     this.lastDrawingPosition = pos;
 
     const pressure = e.pointerType !== 'mouse' ? e.pressure : 1;
-    const width = this.pressureSettings.size
+    let width = this.pressureSettings.size
       ? this.strokeStyle.width * pressure
       : this.strokeStyle.width;
+
+    if (width < 0) width = 1;
+
     const alpha = this.pressureSettings.opacity
       ? this.strokeStyle.alpha * pressure
       : this.strokeStyle.alpha;
 
     this.lastWidth = width;
+    this.lastAlpha = alpha;
 
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
@@ -192,6 +197,9 @@ export class DrawingController {
     pixiCtr: PixiController,
     layerCtr: LayerController
   ) {
+    const offsetPosition = pixiCtr.offsetPosition(e.clientX, e.clientY);
+    pixiCtr.setMousePosition(offsetPosition);
+
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
 
@@ -205,46 +213,46 @@ export class DrawingController {
     if (!this.drawing || !this.lastDrawingPosition) return;
 
     const start = this.lastDrawingPosition;
-    const end = pixiCtr.offsetPosition(e.clientX, e.clientY);
+    const end = offsetPosition;
     const dist = Math.hypot(end.x - start.x, end.y - start.y);
     if (dist === 0) return;
 
     const ang = Math.atan2(end.y - start.y, end.x - start.x);
     const sw = this.lastWidth;
+    const sa = this.lastAlpha;
     const pressure = e.pointerType !== 'mouse' ? e.pressure : 1;
-    const ew = this.pressureSettings.size
+    let ew = this.pressureSettings.size
       ? this.strokeStyle.width * pressure
       : this.strokeStyle.width;
-    const alpha = this.pressureSettings.opacity
+
+    if (ew < 0) ew = 1;
+
+    const ea = this.pressureSettings.opacity
       ? this.strokeStyle.alpha * pressure
       : this.strokeStyle.alpha;
+
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
     const step = Math.min(sw, ew) / 4 || 1;
+
+    pixiCtr.setMouseSize(ew);
 
     for (let i = 0; i <= dist; i += step) {
       const t = i / dist;
       const x = start.x + Math.cos(ang) * i;
       const y = start.y + Math.sin(ang) * i;
       const w = sw + (ew - sw) * t;
+      const a = sa + (ea - sa) * t;
       this.drawStamp(
         pixiCtr,
         layer,
         new Point(x, y),
         w,
         this.strokeStyle.color,
-        alpha,
+        a,
         blend
       );
     }
-    this.drawStamp(
-      pixiCtr,
-      layer,
-      end,
-      ew,
-      this.strokeStyle.color,
-      alpha,
-      blend
-    );
+    this.drawStamp(pixiCtr, layer, end, ew, this.strokeStyle.color, ea, blend);
 
     const command: DrawCommand = {
       commandType: 'line',
@@ -254,7 +262,7 @@ export class DrawingController {
       endWidth: ew,
       strokeStyle: {
         ...this.strokeStyle,
-        alpha,
+        alpha: ea,
       },
     };
 
@@ -262,6 +270,7 @@ export class DrawingController {
 
     this.lastDrawingPosition = end;
     this.lastWidth = ew;
+    this.lastAlpha = ea;
   }
 
   onPointerUp(
