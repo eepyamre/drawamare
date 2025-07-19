@@ -55,6 +55,7 @@ export class NetworkController {
 
       const onDisconnect = () => {
         // todo
+        console.log('Disconnected');
       };
 
       const onConnectError = (_ctx: ErrorContext, err: Error) => {
@@ -125,6 +126,7 @@ export class NetworkController {
           newLayer.owner,
           pixiCtr
         );
+
         pixiCtr.clearRenderTarget(l.rt);
         pixiCtr.drawImageFromBase64(newLayer.base64, l.rt);
       }
@@ -142,6 +144,10 @@ export class NetworkController {
           },
           pixiCtr
         );
+
+        if (layer.base64) {
+          pixiCtr.drawImageFromBase64(layer.base64, l.rt);
+        }
 
         if (this.confirmLayerIdentity(layer)) {
           layerCtr.setActiveLayer(l.id);

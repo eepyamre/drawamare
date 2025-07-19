@@ -125,7 +125,7 @@ export class PixiController {
   }
 
   download() {
-    let mask = this.board.mask;
+    const mask = this.board.mask;
     this.board.mask = null;
     this.app.renderer.extract.download(this.app.stage);
     this.board.mask = mask;
@@ -193,7 +193,7 @@ export class PixiController {
   }
 
   redrawLayer(layer: Layer, texture: RenderTexture) {
-    let stroke = new Graphics();
+    const stroke = new Graphics();
     this.app.renderer.render({
       container: stroke,
       target: layer.rt,
