@@ -1,4 +1,4 @@
-import { Identity } from '@clockworklabs/spacetimedb-sdk';
+import { Identity } from 'spacetimedb';
 import { Layer } from '../utils';
 
 type LayerSelectCallback = (layerId: number) => void;

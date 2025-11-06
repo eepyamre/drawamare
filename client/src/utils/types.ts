@@ -1,4 +1,4 @@
-import { Identity } from '@clockworklabs/spacetimedb-sdk';
+import { Identity } from 'spacetimedb';
 import { Container, RenderTexture } from 'pixi.js';
 
 export type History = RenderTexture[];
