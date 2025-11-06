@@ -29,7 +29,6 @@ export class PixiController {
     });
 
     this.app.stage.eventMode = 'static';
-    this.app.stage.hitArea = this.app.screen;
 
     document.getElementById('pixi-container')!.appendChild(this.app.canvas);
 
