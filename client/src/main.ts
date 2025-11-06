@@ -4,10 +4,20 @@ import { LayerController } from './controllers/layer';
 import { NetworkController } from './controllers/network';
 import { PixiController } from './controllers/pixi';
 import { BrushSettingsUI, LayerUI, ToolbarUI, Tools } from './controllers/ui';
+import { wait } from './utils';
 
 const startApp = async () => {
   const networkCtr = new NetworkController();
-  await networkCtr.connect();
+  let connected = false;
+  while (!connected) {
+    try {
+      await networkCtr.connect();
+      connected = true;
+    } catch (e) {
+      console.log('Trying to reconnect in 5 seconds...');
+      await wait(5000);
+    }
+  }
   if (!networkCtr.getIdentity())
     throw new Error('User identity is not defined');
 

@@ -3,63 +3,68 @@
 
 /* eslint-disable */
 /* tslint:disable */
-// @ts-nocheck
 import {
-  AlgebraicType,
-  AlgebraicValue,
-  BinaryReader,
-  BinaryWriter,
-  CallReducerFlags,
-  ConnectionId,
-  DbConnectionBuilder,
-  DbConnectionImpl,
-  DbContext,
-  ErrorContextInterface,
-  Event,
-  EventContextInterface,
-  Identity,
-  ProductType,
-  ProductTypeElement,
-  ReducerEventContextInterface,
-  SubscriptionBuilderImpl,
-  SubscriptionEventContextInterface,
-  SumType,
-  SumTypeVariant,
-  TableCache,
-  TimeDuration,
-  Timestamp,
-  deepEqual,
-} from "@clockworklabs/spacetimedb-sdk";
+  AlgebraicType as __AlgebraicTypeValue,
+  BinaryReader as __BinaryReader,
+  BinaryWriter as __BinaryWriter,
+  ClientCache as __ClientCache,
+  ConnectionId as __ConnectionId,
+  DbConnectionBuilder as __DbConnectionBuilder,
+  DbConnectionImpl as __DbConnectionImpl,
+  Identity as __Identity,
+  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
+  TableCache as __TableCache,
+  TimeDuration as __TimeDuration,
+  Timestamp as __Timestamp,
+  deepEqual as __deepEqual,
+  type AlgebraicType as __AlgebraicTypeType,
+  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
+  type CallReducerFlags as __CallReducerFlags,
+  type ErrorContextInterface as __ErrorContextInterface,
+  type Event as __Event,
+  type EventContextInterface as __EventContextInterface,
+  type ReducerEventContextInterface as __ReducerEventContextInterface,
+  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
+} from "spacetimedb";
 
-import { DrawCommand as __DrawCommand } from "./draw_command_type";
+import { DrawCommand } from "./draw_command_type";
+// Mark import as potentially unused
+declare type __keep_DrawCommand = DrawCommand;
 
 export type SendCommand = {
   layer: number,
-  commands: __DrawCommand[],
+  commands: DrawCommand[],
 };
+let _cached_SendCommand_type_value: __AlgebraicTypeType | null = null;
 
 /**
- * A namespace for generated helper functions.
+ * An object for generated helper functions.
  */
-export namespace SendCommand {
+export const SendCommand = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  export function getTypeScriptAlgebraicType(): AlgebraicType {
-    return AlgebraicType.createProductType([
-      new ProductTypeElement("layer", AlgebraicType.createI32Type()),
-      new ProductTypeElement("commands", AlgebraicType.createArrayType(__DrawCommand.getTypeScriptAlgebraicType())),
-    ]);
-  }
+  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
+    if (_cached_SendCommand_type_value) return _cached_SendCommand_type_value;
+    _cached_SendCommand_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_SendCommand_type_value.value.elements.push(
+      { name: "layer", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "commands", algebraicType: __AlgebraicTypeValue.Array(DrawCommand.getTypeScriptAlgebraicType()) },
+    );
+    return _cached_SendCommand_type_value;
+  },
 
-  export function serialize(writer: BinaryWriter, value: SendCommand): void {
-    SendCommand.getTypeScriptAlgebraicType().serialize(writer, value);
-  }
+  serialize(writer: __BinaryWriter, value: SendCommand): void {
+    __AlgebraicTypeValue.serializeValue(writer, SendCommand.getTypeScriptAlgebraicType(), value);
+  },
 
-  export function deserialize(reader: BinaryReader): SendCommand {
-    return SendCommand.getTypeScriptAlgebraicType().deserialize(reader);
-  }
+  deserialize(reader: __BinaryReader): SendCommand {
+    return __AlgebraicTypeValue.deserializeValue(reader, SendCommand.getTypeScriptAlgebraicType());
+  },
 
 }
+
+export default SendCommand;
 

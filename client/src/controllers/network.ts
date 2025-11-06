@@ -1,4 +1,4 @@
-import { Identity } from '@clockworklabs/spacetimedb-sdk';
+import { Identity } from 'spacetimedb';
 import {
   Command,
   DbConnection,
@@ -60,6 +60,7 @@ export class NetworkController {
 
       const onConnectError = (_ctx: ErrorContext, err: Error) => {
         console.log('Error connecting to SpacetimeDB:', err);
+        localStorage.removeItem('auth_token');
         rej(err);
       };
 
@@ -68,8 +69,8 @@ export class NetworkController {
         .withModuleName('drawamare')
         .withToken(localStorage.getItem('auth_token') || '')
         .onConnect(onConnect)
-        .onDisconnect(onDisconnect)
         .onConnectError(onConnectError)
+        .onDisconnect(onDisconnect)
         .build();
     });
   }

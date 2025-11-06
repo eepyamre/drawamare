@@ -3,59 +3,62 @@
 
 /* eslint-disable */
 /* tslint:disable */
-// @ts-nocheck
 import {
-  AlgebraicType,
-  AlgebraicValue,
-  BinaryReader,
-  BinaryWriter,
-  CallReducerFlags,
-  ConnectionId,
-  DbConnectionBuilder,
-  DbConnectionImpl,
-  DbContext,
-  ErrorContextInterface,
-  Event,
-  EventContextInterface,
-  Identity,
-  ProductType,
-  ProductTypeElement,
-  ReducerEventContextInterface,
-  SubscriptionBuilderImpl,
-  SubscriptionEventContextInterface,
-  SumType,
-  SumTypeVariant,
-  TableCache,
-  TimeDuration,
-  Timestamp,
-  deepEqual,
-} from "@clockworklabs/spacetimedb-sdk";
+  AlgebraicType as __AlgebraicTypeValue,
+  BinaryReader as __BinaryReader,
+  BinaryWriter as __BinaryWriter,
+  ClientCache as __ClientCache,
+  ConnectionId as __ConnectionId,
+  DbConnectionBuilder as __DbConnectionBuilder,
+  DbConnectionImpl as __DbConnectionImpl,
+  Identity as __Identity,
+  SubscriptionBuilderImpl as __SubscriptionBuilderImpl,
+  TableCache as __TableCache,
+  TimeDuration as __TimeDuration,
+  Timestamp as __Timestamp,
+  deepEqual as __deepEqual,
+  type AlgebraicType as __AlgebraicTypeType,
+  type AlgebraicTypeVariants as __AlgebraicTypeVariants,
+  type CallReducerFlags as __CallReducerFlags,
+  type ErrorContextInterface as __ErrorContextInterface,
+  type Event as __Event,
+  type EventContextInterface as __EventContextInterface,
+  type ReducerEventContextInterface as __ReducerEventContextInterface,
+  type SubscriptionEventContextInterface as __SubscriptionEventContextInterface,
+  type TableHandle as __TableHandle,
+} from "spacetimedb";
 
 export type SetName = {
   name: string,
 };
+let _cached_SetName_type_value: __AlgebraicTypeType | null = null;
 
 /**
- * A namespace for generated helper functions.
+ * An object for generated helper functions.
  */
-export namespace SetName {
+export const SetName = {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
-  export function getTypeScriptAlgebraicType(): AlgebraicType {
-    return AlgebraicType.createProductType([
-      new ProductTypeElement("name", AlgebraicType.createStringType()),
-    ]);
-  }
+  getTypeScriptAlgebraicType(): __AlgebraicTypeType {
+    if (_cached_SetName_type_value) return _cached_SetName_type_value;
+    _cached_SetName_type_value = __AlgebraicTypeValue.Product({ elements: [] });
+    _cached_SetName_type_value.value.elements.push(
+      { name: "name", algebraicType: __AlgebraicTypeValue.String },
+    );
+    return _cached_SetName_type_value;
+  },
 
-  export function serialize(writer: BinaryWriter, value: SetName): void {
-    SetName.getTypeScriptAlgebraicType().serialize(writer, value);
-  }
+  serialize(writer: __BinaryWriter, value: SetName): void {
+    __AlgebraicTypeValue.serializeValue(writer, SetName.getTypeScriptAlgebraicType(), value);
+  },
 
-  export function deserialize(reader: BinaryReader): SetName {
-    return SetName.getTypeScriptAlgebraicType().deserialize(reader);
-  }
+  deserialize(reader: __BinaryReader): SetName {
+    return __AlgebraicTypeValue.deserializeValue(reader, SetName.getTypeScriptAlgebraicType());
+  },
 
 }
+
+export default SetName;
 

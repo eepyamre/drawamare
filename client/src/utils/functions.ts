@@ -5,3 +5,9 @@ export const distance = (a: Point, b: Point) => {
   const dy = a.y - b.y;
   return Math.hypot(dx, dy);
 };
+
+export const wait = (ms: number) => {
+  return new Promise<void>((res) => {
+    setTimeout(() => res(), ms);
+  });
+};
