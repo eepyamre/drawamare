@@ -1,5 +1,5 @@
-import { Identity } from 'spacetimedb';
 import { Brushes, isBrush, Layer } from '../utils';
+import { Identity } from 'spacetimedb';
 
 type LayerSelectCallback = (layerId: number) => void;
 type AddLayerCallback = () => void;

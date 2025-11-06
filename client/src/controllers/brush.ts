@@ -1,6 +1,6 @@
-import { Point, Graphics } from 'pixi.js';
 import { BLEND_MODES, Brushes, Layer, StampFn } from '../utils';
 import { PixiController } from './pixi';
+import { Point, Graphics } from 'pixi.js';
 
 const stamps: Record<Brushes, StampFn> = {
   [Brushes.ROUND]: (

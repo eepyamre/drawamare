@@ -1,8 +1,8 @@
-import { Identity } from 'spacetimedb';
 import { Layer } from '../utils';
+import { NetworkController } from './network';
 import { PixiController } from './pixi';
 import { LayerUI } from './ui';
-import { NetworkController } from './network';
+import { Identity } from 'spacetimedb';
 
 export class LayerController {
   private layers = new Map<number, Layer>();
@@ -60,7 +60,7 @@ export class LayerController {
 
     this.layers.set(l.id, l);
     this.ui.renderLayers(Array.from(this.layers.values()));
-    this.activeLayer?.id && this.ui.setActiveLayer(this.activeLayer.id);
+    if (this.activeLayer?.id) this.ui.setActiveLayer(this.activeLayer.id);
     return l;
   }
 

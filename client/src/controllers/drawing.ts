@@ -1,12 +1,12 @@
-import { FederatedPointerEvent, Point } from 'pixi.js';
-import { Layer, BLEND_MODES } from '../utils';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
-import { PixiController } from './pixi';
-import { BrushSettingsUI, PressureSettings, Tools } from './ui';
+import { Layer, BLEND_MODES } from '../utils';
+import { BrushController } from './brush';
+import { HistoryController } from './history';
 import { LayerController } from './layer';
 import { NetworkController } from './network';
-import { HistoryController } from './history';
-import { BrushController } from './brush';
+import { PixiController } from './pixi';
+import { BrushSettingsUI, PressureSettings, Tools } from './ui';
+import { FederatedPointerEvent, Point } from 'pixi.js';
 
 export class DrawingController {
   strokeStyle: StrokeStyle = {

@@ -1,6 +1,6 @@
-import { Identity } from 'spacetimedb';
-import { Container, RenderTexture, Point } from 'pixi.js';
 import { PixiController } from '../controllers/pixi';
+import { Container, RenderTexture, Point } from 'pixi.js';
+import { Identity } from 'spacetimedb';
 
 export type History = RenderTexture[];
 

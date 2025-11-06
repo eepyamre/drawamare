@@ -1,3 +1,4 @@
+import { boardSize, Layer, maxScale, minScale } from '../utils';
 import {
   Application,
   Graphics,
@@ -9,7 +10,6 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import { boardSize, Layer, maxScale, minScale } from '../utils';
 import 'pixi.js/math-extras';
 
 export class PixiController {

@@ -1,4 +1,3 @@
-import { Identity } from 'spacetimedb';
 import {
   Command,
   DbConnection,
@@ -7,10 +6,11 @@ import {
   EventContext,
   Layer as ServerLayer,
 } from '../module_bindings';
+import { BrushController } from './brush';
+import { DrawingController } from './drawing';
 import { LayerController } from './layer';
 import { PixiController } from './pixi';
-import { DrawingController } from './drawing';
-import { BrushController } from './brush';
+import { Identity } from 'spacetimedb';
 
 export class NetworkController {
   private conn: DbConnection | null = null;
