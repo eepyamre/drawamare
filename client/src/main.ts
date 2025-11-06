@@ -1,3 +1,4 @@
+import { BrushController } from './controllers/brush';
 import { DrawingController } from './controllers/drawing';
 import { HistoryController } from './controllers/history';
 import { LayerController } from './controllers/layer';
@@ -28,6 +29,7 @@ const startApp = async () => {
   layerCtr.init(networkCtr, pixiCtr);
 
   const brushUI = new BrushSettingsUI();
+  const brushCtr = new BrushController();
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -35,9 +37,10 @@ const startApp = async () => {
     layerCtr,
     historyCtr,
     networkCtr,
-    brushUI
+    brushUI,
+    brushCtr
   );
-  networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr);
+  networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr, brushCtr);
 
   const clearLayer = () => {
     const activeLayer = layerCtr.getActiveLayer();
@@ -178,8 +181,8 @@ const startApp = async () => {
   brushUI.onPressureToggle((settings) => {
     drawingCtr.setPressureSettings(settings);
   });
-  brushUI.onBrushChange((_brush) => {
-    alert('NOT YET!');
+  brushUI.onBrushChange((brush) => {
+    brushCtr.setBrush(brush);
   });
 };
 

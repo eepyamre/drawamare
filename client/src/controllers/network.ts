@@ -10,6 +10,7 @@ import {
 import { LayerController } from './layer';
 import { PixiController } from './pixi';
 import { DrawingController } from './drawing';
+import { BrushController } from './brush';
 
 export class NetworkController {
   private conn: DbConnection | null = null;
@@ -90,7 +91,8 @@ export class NetworkController {
   initEventListeners(
     pixiCtr: PixiController,
     layerCtr: LayerController,
-    drawingController: DrawingController
+    drawingController: DrawingController,
+    brushCtr: BrushController
   ) {
     this.getClientDb()?.command.onInsert(
       (_ctx: EventContext, command: Command) => {
@@ -108,7 +110,7 @@ export class NetworkController {
         );
         const commands = command.commands;
 
-        drawingController.execDrawCommand(pixiCtr, layer, commands);
+        drawingController.execDrawCommand(pixiCtr, brushCtr, layer, commands);
       }
     );
 

@@ -1,5 +1,6 @@
 import { Identity } from 'spacetimedb';
-import { Container, RenderTexture } from 'pixi.js';
+import { Container, RenderTexture, Point } from 'pixi.js';
+import { PixiController } from '../controllers/pixi';
 
 export type History = RenderTexture[];
 
@@ -47,3 +48,19 @@ export enum BLEND_MODES {
   MIN = 'min',
   MAX = 'max',
 }
+
+export enum Brushes {
+  ROUND = 'Round',
+  SQUARE = 'Square',
+  SPRAY = 'Spray',
+}
+
+export type StampFn = (
+  pixiCtr: PixiController,
+  layer: Layer,
+  position: Point,
+  diameter: number,
+  color: number,
+  alpha: number,
+  blendMode: BLEND_MODES
+) => void;

@@ -1,4 +1,4 @@
-import { FederatedPointerEvent, Graphics, Point } from 'pixi.js';
+import { FederatedPointerEvent, Point } from 'pixi.js';
 import { Layer, BLEND_MODES } from '../utils';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
 import { PixiController } from './pixi';
@@ -6,6 +6,7 @@ import { BrushSettingsUI, PressureSettings, Tools } from './ui';
 import { LayerController } from './layer';
 import { NetworkController } from './network';
 import { HistoryController } from './history';
+import { BrushController } from './brush';
 
 export class DrawingController {
   strokeStyle: StrokeStyle = {
@@ -32,7 +33,8 @@ export class DrawingController {
     layerCtr: LayerController,
     historyCtr: HistoryController,
     networkCtr: NetworkController,
-    brushSettingsUI: BrushSettingsUI
+    brushSettingsUI: BrushSettingsUI,
+    brushCtr: BrushController
   ) {
     const stage = pixiCtr.app.stage;
     this.strokeStyle.width = brushSettingsUI.getBrushSize();
@@ -41,10 +43,10 @@ export class DrawingController {
 
     stage
       .on('pointerdown', (e: FederatedPointerEvent) =>
-        this.onPointerDown(e, pixiCtr, layerCtr, historyCtr)
+        this.onPointerDown(e, pixiCtr, layerCtr, historyCtr, brushCtr)
       )
       .on('pointermove', (e: FederatedPointerEvent) =>
-        this.onPointerMove(e, pixiCtr, layerCtr)
+        this.onPointerMove(e, pixiCtr, layerCtr, brushCtr)
       )
       .on('pointerup', () =>
         this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr)
@@ -54,31 +56,9 @@ export class DrawingController {
       );
   }
 
-  /** Draw a single circle “stamp”, using ERASE if erasing, otherwise MAX for no double‑alpha */
-  private drawStamp(
-    pixiCtr: PixiController,
-    layer: Layer,
-    position: Point,
-    diameter: number,
-    color: number,
-    alpha: number,
-    blendMode: BLEND_MODES
-  ) {
-    const stamp = new Graphics();
-    const actualBlend =
-      blendMode === BLEND_MODES.ERASE ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
-    stamp.blendMode = actualBlend;
-    stamp.groupBlendMode = actualBlend;
-    stamp.beginFill(color, alpha);
-    stamp.drawCircle(position.x, position.y, diameter / 2);
-    stamp.endFill();
-
-    pixiCtr.renderToTarget(stamp, layer.rt, false);
-    stamp.destroy();
-  }
-
   execDrawCommand(
     pixiCtr: PixiController,
+    brushCtr: BrushController,
     layer: Layer,
     commands: DrawCommand[]
   ) {
@@ -90,7 +70,7 @@ export class DrawingController {
         lastPos = new Point(cmd.pos.x, cmd.pos.y);
         lastColor = cmd.strokeStyle.color!;
 
-        this.drawStamp(
+        brushCtr.drawStamp(
           pixiCtr,
           layer,
           lastPos,
@@ -118,7 +98,7 @@ export class DrawingController {
           const x = start.x + Math.cos(ang) * i;
           const y = start.y + Math.sin(ang) * i;
           const w = sw + (ew - sw) * t;
-          this.drawStamp(
+          brushCtr.drawStamp(
             pixiCtr,
             layer,
             new Point(x, y),
@@ -128,7 +108,7 @@ export class DrawingController {
             cmd.blendMode as BLEND_MODES
           );
         }
-        this.drawStamp(
+        brushCtr.drawStamp(
           pixiCtr,
           layer,
           end,
@@ -148,7 +128,8 @@ export class DrawingController {
     e: FederatedPointerEvent,
     pixiCtr: PixiController,
     layerCtr: LayerController,
-    historyCtr: HistoryController
+    historyCtr: HistoryController,
+    brushCtr: BrushController
   ) {
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
@@ -180,7 +161,7 @@ export class DrawingController {
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
 
-    this.drawStamp(pixiCtr, layer, pos, width, style.color, alpha, blend);
+    brushCtr.drawStamp(pixiCtr, layer, pos, width, style.color, alpha, blend);
 
     this.accumulatedDrawCommands.push({
       commandType: 'initLine',
@@ -195,7 +176,8 @@ export class DrawingController {
   onPointerMove(
     e: FederatedPointerEvent,
     pixiCtr: PixiController,
-    layerCtr: LayerController
+    layerCtr: LayerController,
+    brushCtr: BrushController
   ) {
     const offsetPosition = pixiCtr.offsetPosition(e.clientX, e.clientY);
     pixiCtr.setMousePosition(offsetPosition);
@@ -242,7 +224,7 @@ export class DrawingController {
       const y = start.y + Math.sin(ang) * i;
       const w = sw + (ew - sw) * t;
       const a = sa + (ea - sa) * t;
-      this.drawStamp(
+      brushCtr.drawStamp(
         pixiCtr,
         layer,
         new Point(x, y),
@@ -252,7 +234,15 @@ export class DrawingController {
         blend
       );
     }
-    this.drawStamp(pixiCtr, layer, end, ew, this.strokeStyle.color, ea, blend);
+    brushCtr.drawStamp(
+      pixiCtr,
+      layer,
+      end,
+      ew,
+      this.strokeStyle.color,
+      ea,
+      blend
+    );
 
     const command: DrawCommand = {
       commandType: 'line',

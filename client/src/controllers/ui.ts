@@ -1,5 +1,5 @@
 import { Identity } from 'spacetimedb';
-import { Layer } from '../utils';
+import { Brushes, isBrush, Layer } from '../utils';
 
 type LayerSelectCallback = (layerId: number) => void;
 type AddLayerCallback = () => void;
@@ -248,7 +248,7 @@ export class BrushSettingsUI {
   private onPressureToggleCallback:
     | ((settings: PressureSettings) => void)
     | null = null;
-  private onBrushChangeCallback: ((brush: string) => void) | null = null;
+  private onBrushChangeCallback: ((brush: Brushes) => void) | null = null;
 
   constructor() {
     this.sizeSlider = document.querySelector<HTMLInputElement>('#brush-size')!;
@@ -293,6 +293,9 @@ export class BrushSettingsUI {
     this.brushItems.forEach((button) => {
       button.addEventListener('click', () => {
         const brushName = button.getAttribute('title');
+        if (!brushName || !isBrush(brushName)) {
+          throw new Error('Unknown Brush');
+        }
         if (brushName) {
           this.setActiveBrush(brushName);
           this.onBrushChangeCallback?.(brushName);
@@ -313,7 +316,7 @@ export class BrushSettingsUI {
     this.onPressureToggleCallback = callback;
   }
 
-  public onBrushChange(callback: (brush: string) => void) {
+  public onBrushChange(callback: (brush: Brushes) => void) {
     this.onBrushChangeCallback = callback;
   }
 
