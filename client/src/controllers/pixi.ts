@@ -50,6 +50,7 @@ export class PixiController {
       .fill(0xffffff);
 
     this.mouse = new Graphics().circle(0, 0, 10);
+    this.mouse.zIndex = 10;
     this.mouse.stroke(0x2b2b2b);
     this.board.addChild(canvasMask);
     this.board.addChild(canvasBg);
