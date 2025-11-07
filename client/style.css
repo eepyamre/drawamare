@@ -260,3 +260,69 @@ body {
   width: 24px;
   height: 24px;
 }
+
+.brush-editor {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #323232;
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.brush-stamp {
+  width: 150px;
+  height: 150px;
+  background-color: #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.brush-editor_content {
+  display: flex;
+  margin-top: 12px;
+  gap: 24px;
+  align-items: center;
+}
+
+.brush-editor_type {
+  margin-top: 12px;
+}
+
+.brush-editor_title {
+  font-size: 1.25rem;
+}
+
+.brush-editor_settings {
+  display: flex;
+  flex-direction: column;
+}
+
+.brush-editor_settings__item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  gap: 12px;
+}
+
+.brush-editor_settings__item > span {
+  flex-basis: 70px;
+  flex-shrink: 0;
+}
+
+.range-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 200px;
+}
+
+.range-label input {
+  flex-basis: 150px;
+}
+
+.range-label span {
+  flex-basis: 50px;
+  flex-shrink: 0;
+}

@@ -1,4 +1,5 @@
 import { BrushController } from './controllers/brush';
+import { BrushEngine } from './controllers/brushEngine';
 import { DrawingController } from './controllers/drawing';
 import { HistoryController } from './controllers/history';
 import { LayerController } from './controllers/layer';
@@ -41,6 +42,8 @@ const startApp = async () => {
     brushCtr
   );
   networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr, brushCtr);
+
+  const brushEngine = new BrushEngine('.brush-editor');
 
   const clearLayer = () => {
     const activeLayer = layerCtr.getActiveLayer();
