@@ -1,3 +1,4 @@
+import { MAX_DOTS_AT_FULL_DENSITY } from '../utils';
 import { Application, Graphics } from 'pixi.js';
 
 export class BrushEngine {
@@ -83,19 +84,20 @@ export class BrushEngine {
     }
     stage.removeChildren();
 
+    if (this.density <= 0) {
+      return;
+    }
+
     const width = 150;
     const height = 150;
     const centerX = width / 2;
     const centerY = height / 2;
 
-    const stamp = new Graphics();
+    const stampShape = new Graphics();
 
     const baseRadius = 50;
     const spikeCount = this.spikes;
-    // const pointCount = this.density; // unused here
-    // const spacing = this.spacing; // unused here
     const ratio = this.ratio;
-
     const color = 0x000000;
 
     const cx = centerX;
@@ -103,17 +105,15 @@ export class BrushEngine {
     const rx = baseRadius;
     const ry = baseRadius * ratio;
 
-    // magic factor for a cubic-approx quarter-circle: 4/3 * tan(π/8)
     const K = 0.5522847498307936;
 
-    // base (unrotated) points for the two-quarter arc (relative to center)
-    const P0 = { x: cx, y: cy + ry }; // bottom
+    const P0 = { x: cx, y: cy + ry };
     const CP1 = { x: cx + K * rx, y: cy + ry };
     const CP2 = { x: cx + rx, y: cy + K * ry };
-    const P1 = { x: cx + rx, y: cy }; // right (middle)
+    const P1 = { x: cx + rx, y: cy };
     const CP3 = { x: cx + rx, y: cy - K * ry };
     const CP4 = { x: cx + K * rx, y: cy - ry };
-    const P2 = { x: cx, y: cy - ry }; // top
+    const P2 = { x: cx, y: cy - ry };
 
     const rotatePoint = (px: number, py: number, angle: number) => {
       const dx = px - cx;
@@ -139,15 +139,44 @@ export class BrushEngine {
       const rCP4 = rotatePoint(CP4.x, CP4.y, theta);
       const rP2 = rotatePoint(P2.x, P2.y, theta);
 
-      stamp.moveTo(cx, cy);
-      stamp.lineTo(rP0.x, rP0.y);
-      stamp.bezierCurveTo(rCP1.x, rCP1.y, rCP2.x, rCP2.y, rP1.x, rP1.y);
-      stamp.bezierCurveTo(rCP3.x, rCP3.y, rCP4.x, rCP4.y, rP2.x, rP2.y);
-      stamp.lineTo(cx, cy);
+      stampShape.moveTo(cx, cy);
+      stampShape.lineTo(rP0.x, rP0.y);
+      stampShape.bezierCurveTo(rCP1.x, rCP1.y, rCP2.x, rCP2.y, rP1.x, rP1.y);
+      stampShape.bezierCurveTo(rCP3.x, rCP3.y, rCP4.x, rCP4.y, rP2.x, rP2.y);
+      stampShape.lineTo(cx, cy);
     }
-    stamp.fill(color);
 
-    stamp.position.set(0, 0);
-    stage.addChild(stamp);
+    if (this.density >= 100) {
+      stampShape.fill(color);
+      stage.addChild(stampShape);
+    } else {
+      stampShape.fill(0xffffff);
+      stage.addChild(stampShape);
+
+      const dotsContainer = new Graphics();
+
+      const boundingRadius = baseRadius * Math.max(1, this.ratio);
+
+      const approximateStampArea = Math.PI * boundingRadius * boundingRadius;
+      const singleDotArea =
+        (approximateStampArea / MAX_DOTS_AT_FULL_DENSITY) * 2;
+      const dotRadius = Math.sqrt(singleDotArea / Math.PI);
+      const numDots = Math.floor(
+        MAX_DOTS_AT_FULL_DENSITY * (this.density / 100)
+      );
+
+      for (let i = 0; i < numDots; i++) {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.sqrt(Math.random()) * boundingRadius;
+
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+
+        dotsContainer.circle(x, y, dotRadius).fill(color);
+      }
+
+      dotsContainer.mask = stampShape;
+      stage.addChild(dotsContainer);
+    }
   }
 }
