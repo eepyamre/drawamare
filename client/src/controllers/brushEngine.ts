@@ -1,5 +1,11 @@
-import { MAX_DOTS_AT_FULL_DENSITY } from '../utils';
-import { Application, Graphics } from 'pixi.js';
+import { MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
+import {
+  Application,
+  Graphics,
+  Renderer,
+  RenderTexture,
+  Sprite,
+} from 'pixi.js';
 
 export class BrushEngine {
   app: Application | null = null;
@@ -56,12 +62,11 @@ export class BrushEngine {
       const value = (e.currentTarget as HTMLInputElement)!.value;
       span.textContent = value;
       this[key] = Number(value);
-      this.drawStamp();
-      this.drawStamp();
+      this.drawStampEditor();
     });
 
     span.textContent = input.value = String(this[key]);
-    this.drawStamp();
+    this.drawStampEditor();
   }
 
   async pixiInit() {
@@ -77,28 +82,31 @@ export class BrushEngine {
     this.stampEl.appendChild(this.app.canvas);
   }
 
-  drawStamp() {
+  drawStampEditor() {
     const stage = this.app?.stage;
     if (!stage) {
       throw new Error('No stage!');
     }
     stage.removeChildren();
+    const stamp = this.drawStamp(this.app?.renderer!);
+    if (stamp) stage.addChild(stamp);
+  }
 
+  drawStamp(renderer: Renderer, size?: number, color: number = 0x000000) {
     if (this.density <= 0) {
       return;
     }
 
-    const width = 150;
-    const height = 150;
+    const width = size ? size * 2 : 150;
+    const height = size ? size * 2 : 150;
     const centerX = width / 2;
     const centerY = height / 2;
 
     const stampShape = new Graphics();
 
-    const baseRadius = 50;
+    const baseRadius = size ? size / 2 : 50;
     const spikeCount = this.spikes;
     const ratio = this.ratio;
-    const color = 0x000000;
 
     const cx = centerX;
     const cy = centerY;
@@ -115,29 +123,18 @@ export class BrushEngine {
     const CP4 = { x: cx + K * rx, y: cy - ry };
     const P2 = { x: cx, y: cy - ry };
 
-    const rotatePoint = (px: number, py: number, angle: number) => {
-      const dx = px - cx;
-      const dy = py - cy;
-      const cosA = Math.cos(angle);
-      const sinA = Math.sin(angle);
-      return {
-        x: cx + dx * cosA - dy * sinA,
-        y: cy + dx * sinA + dy * cosA,
-      };
-    };
-
     const globalRotation = ((this.angle || 0) * Math.PI) / 180;
 
     for (let i = 0; i < spikeCount; i++) {
       const theta = (2 * Math.PI * i) / spikeCount + globalRotation;
 
-      const rP0 = rotatePoint(P0.x, P0.y, theta);
-      const rCP1 = rotatePoint(CP1.x, CP1.y, theta);
-      const rCP2 = rotatePoint(CP2.x, CP2.y, theta);
-      const rP1 = rotatePoint(P1.x, P1.y, theta);
-      const rCP3 = rotatePoint(CP3.x, CP3.y, theta);
-      const rCP4 = rotatePoint(CP4.x, CP4.y, theta);
-      const rP2 = rotatePoint(P2.x, P2.y, theta);
+      const rP0 = rotatePoint(P0.x, P0.y, theta, cx, cy);
+      const rCP1 = rotatePoint(CP1.x, CP1.y, theta, cx, cy);
+      const rCP2 = rotatePoint(CP2.x, CP2.y, theta, cx, cy);
+      const rP1 = rotatePoint(P1.x, P1.y, theta, cx, cy);
+      const rCP3 = rotatePoint(CP3.x, CP3.y, theta, cx, cy);
+      const rCP4 = rotatePoint(CP4.x, CP4.y, theta, cx, cy);
+      const rP2 = rotatePoint(P2.x, P2.y, theta, cx, cy);
 
       stampShape.moveTo(cx, cy);
       stampShape.lineTo(rP0.x, rP0.y);
@@ -148,35 +145,47 @@ export class BrushEngine {
 
     if (this.density >= 100) {
       stampShape.fill(color);
-      stage.addChild(stampShape);
-    } else {
-      stampShape.fill(0xffffff);
-      stage.addChild(stampShape);
 
-      const dotsContainer = new Graphics();
-
-      const boundingRadius = baseRadius * Math.max(1, this.ratio);
-
-      const approximateStampArea = Math.PI * boundingRadius * boundingRadius;
-      const singleDotArea =
-        (approximateStampArea / MAX_DOTS_AT_FULL_DENSITY) * 2;
-      const dotRadius = Math.sqrt(singleDotArea / Math.PI);
-      const numDots = Math.floor(
-        MAX_DOTS_AT_FULL_DENSITY * (this.density / 100)
-      );
-
-      for (let i = 0; i < numDots; i++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.sqrt(Math.random()) * boundingRadius;
-
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        dotsContainer.circle(x, y, dotRadius).fill(color);
-      }
-
-      dotsContainer.mask = stampShape;
-      stage.addChild(dotsContainer);
+      return stampShape;
     }
+
+    stampShape.fill(0xffffff);
+
+    const dotsContainer = new Graphics();
+
+    const boundingRadius = baseRadius * Math.max(1, this.ratio);
+
+    const approximateStampArea = Math.PI * boundingRadius * boundingRadius;
+    // TODO: make MAX_DOTS_AT_FULL_DENSITY a parameter
+    const singleDotArea = (approximateStampArea / MAX_DOTS_AT_FULL_DENSITY) * 2;
+    const dotRadius = Math.sqrt(singleDotArea / Math.PI);
+    const numDots = Math.floor(MAX_DOTS_AT_FULL_DENSITY * (this.density / 100));
+
+    for (let i = 0; i < numDots; i++) {
+      const angle = Math.random() * 2 * Math.PI;
+      const radius = Math.sqrt(Math.random()) * boundingRadius;
+
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+
+      dotsContainer.circle(x, y, dotRadius).fill(color);
+    }
+    dotsContainer.addChild(stampShape);
+    dotsContainer.mask = stampShape;
+
+    const rt = RenderTexture.create({
+      width,
+      height,
+    });
+    renderer.render({
+      container: dotsContainer,
+      target: rt,
+    });
+
+    const sprite = new Sprite({
+      texture: rt,
+    });
+    dotsContainer.destroy(true);
+    return sprite;
   }
 }

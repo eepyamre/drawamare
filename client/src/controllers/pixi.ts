@@ -125,10 +125,9 @@ export class PixiController {
   }
 
   download() {
-    const mask = this.board.mask;
     this.board.mask = null;
     this.app.renderer.extract.download(this.app.stage);
-    this.board.mask = mask;
+    this.board.mask = this.board.mask;
   }
 
   extractBase64(target: RenderTexture | Container): Promise<string> {
@@ -155,7 +154,7 @@ export class PixiController {
   ) {
     this.app.renderer.render({
       container: source,
-      target: target,
+      target,
       clear,
     });
   }

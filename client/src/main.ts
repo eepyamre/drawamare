@@ -9,6 +9,17 @@ import { BrushSettingsUI, LayerUI, ToolbarUI, Tools } from './controllers/ui';
 import { wait } from './utils';
 
 const startApp = async () => {
+  if (!(window as any).chrome) {
+    alert(
+      'This app is currently supported only in Chrome. See the console for more details.'
+    );
+    console.error(
+      'Due to a known issue in pixi.js(https://github.com/pixijs/pixijs/issues/11378), only Chrome is supported at this time.'
+    );
+
+    return;
+  }
+
   const networkCtr = new NetworkController();
   let connected = false;
   while (!connected) {
@@ -30,7 +41,8 @@ const startApp = async () => {
   layerCtr.init(networkCtr, pixiCtr);
 
   const brushUI = new BrushSettingsUI();
-  const brushCtr = new BrushController();
+  const brushEngine = new BrushEngine('.brush-editor');
+  const brushCtr = new BrushController(brushEngine);
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -42,8 +54,6 @@ const startApp = async () => {
     brushCtr
   );
   networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr, brushCtr);
-
-  const brushEngine = new BrushEngine('.brush-editor');
 
   const clearLayer = () => {
     const activeLayer = layerCtr.getActiveLayer();
