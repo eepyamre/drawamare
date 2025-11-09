@@ -1,4 +1,4 @@
-import { Brush, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
+import { BrushExtended, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
 import { BrushController } from './brush';
 import {
   Application,
@@ -106,10 +106,7 @@ export class BrushEngine {
     if (stamp) stage.addChild(stamp);
   }
 
-  static drawStamp(
-    renderer: Renderer,
-    brush: Brush & { size?: number; color?: number }
-  ) {
+  static drawStamp(renderer: Renderer, brush: BrushExtended) {
     if (brush.density <= 0) {
       return;
     }

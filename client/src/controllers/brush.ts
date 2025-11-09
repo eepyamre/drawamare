@@ -1,5 +1,6 @@
-import { BLEND_MODES, Brush, StampFn } from '../utils';
+import { BLEND_MODES, Brush, BrushExtended, StampFn } from '../utils';
 import { BrushEngine } from './brushEngine';
+import { Sprite } from 'pixi.js';
 
 export class BrushController {
   brush: Brush = {
@@ -10,6 +11,17 @@ export class BrushController {
     spacing: 1,
   };
 
+  // string of <angle><density><ratio><spikes><spacing><size><color>
+  stampCache: Record<string, Sprite> = {};
+
+  saveCache(brush: BrushExtended, sprite: Sprite) {
+    this.stampCache[this.getCacheName(brush)] = sprite;
+  }
+
+  getCacheName(brush: BrushExtended) {
+    return `${brush.angle}${brush.density}${brush.ratio}${brush.spikes}${brush.spacing}${brush.size}${brush.color}`;
+  }
+
   drawStamp: StampFn = (
     pixiCtr,
     layer,
@@ -17,14 +29,21 @@ export class BrushController {
     size,
     color,
     alpha,
-    blendMode
+    blendMode,
+    clearCache
   ) => {
-    // TODO: SPACING
-    const stamp = BrushEngine.drawStamp(pixiCtr.app.renderer, {
-      ...this.brush,
-      size,
-      color,
-    });
+    const extendedBrush = { ...this.brush, size, color };
+    if (clearCache) {
+      this.clearCache(extendedBrush);
+    }
+    const cached = this.stampCache[this.getCacheName(extendedBrush)];
+    const stamp =
+      cached ??
+      BrushEngine.drawStamp(pixiCtr.app.renderer, {
+        ...this.brush,
+        size,
+        color,
+      });
 
     if (stamp) {
       const actualBlend =
@@ -34,6 +53,13 @@ export class BrushController {
       stamp.position.set(position.x - size, position.y - size);
       stamp.alpha = alpha;
       pixiCtr.renderToTarget(stamp, layer.rt, false);
+      this.saveCache(extendedBrush, stamp);
+    }
+  };
+
+  clearCache(brush: BrushExtended) {
+    const stamp = this.stampCache[this.getCacheName(brush)];
+    if (stamp) {
       stamp.destroy({
         children: true,
         texture: true,
@@ -41,8 +67,9 @@ export class BrushController {
         context: true,
         style: true,
       });
+      delete this.stampCache[this.getCacheName(brush)];
     }
-  };
+  }
 
   setBrush(newBrush: Brush) {
     this.brush = newBrush;

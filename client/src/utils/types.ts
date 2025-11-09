@@ -49,13 +49,6 @@ export enum BLEND_MODES {
   MAX = 'max',
 }
 
-// TODO: REmove
-export enum Brushes {
-  ROUND = 'Round',
-  SQUARE = 'Square',
-  SPRAY = 'Spray',
-}
-
 export type Brush = {
   ratio: number;
   spikes: number;
@@ -64,6 +57,8 @@ export type Brush = {
   angle: number;
 };
 
+export type BrushExtended = Brush & { size?: number; color?: number };
+
 export type StampFn = (
   pixiCtr: PixiController,
   layer: Layer,
@@ -71,5 +66,6 @@ export type StampFn = (
   diameter: number,
   color: number,
   alpha: number,
-  blendMode: BLEND_MODES
+  blendMode: BLEND_MODES,
+  clearCache: boolean
 ) => void;
