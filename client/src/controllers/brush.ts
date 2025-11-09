@@ -1,12 +1,14 @@
-import { BLEND_MODES, Brushes, StampFn } from '../utils';
+import { BLEND_MODES, Brush, StampFn } from '../utils';
 import { BrushEngine } from './brushEngine';
 
 export class BrushController {
-  private brushEngine: BrushEngine;
-
-  constructor(brushEngine: BrushEngine) {
-    this.brushEngine = brushEngine;
-  }
+  brush: Brush = {
+    angle: 0,
+    density: 100,
+    ratio: 1,
+    spikes: 12,
+    spacing: 1,
+  };
 
   drawStamp: StampFn = (
     pixiCtr,
@@ -18,7 +20,11 @@ export class BrushController {
     blendMode
   ) => {
     // TODO: SPACING
-    const stamp = this.brushEngine.drawStamp(pixiCtr.app.renderer, size, color);
+    const stamp = BrushEngine.drawStamp(pixiCtr.app.renderer, {
+      ...this.brush,
+      size,
+      color,
+    });
 
     if (stamp) {
       const actualBlend =
@@ -26,6 +32,7 @@ export class BrushController {
       stamp.blendMode = actualBlend;
       stamp.groupBlendMode = actualBlend;
       stamp.position.set(position.x - size, position.y - size);
+      stamp.alpha = alpha;
       pixiCtr.renderToTarget(stamp, layer.rt, false);
       stamp.destroy({
         children: true,
@@ -37,8 +44,7 @@ export class BrushController {
     }
   };
 
-  setBrush(newBrush: Brushes) {
-    alert('TODO');
-    // this.brush = newBrush;
+  setBrush(newBrush: Brush) {
+    this.brush = newBrush;
   }
 }

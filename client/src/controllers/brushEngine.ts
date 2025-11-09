@@ -1,4 +1,5 @@
-import { MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
+import { Brush, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
+import { BrushController } from './brush';
 import {
   Application,
   Graphics,
@@ -10,13 +11,14 @@ import {
 export class BrushEngine {
   app: Application | null = null;
   stampEl: HTMLDivElement;
+  saveBtn: HTMLButtonElement;
 
   ratio: number = 1;
   spikes: number = 12;
   density: number = 100;
   spacing: number = 1;
   angle: number = 0;
-  constructor(editorRoot: string) {
+  constructor(editorRoot: string, brushCtr: BrushController) {
     const rootEl = document.querySelector<HTMLDivElement>(editorRoot);
     if (!rootEl) {
       throw new Error('No editor node');
@@ -28,15 +30,27 @@ export class BrushEngine {
     const densityEl = rootEl.querySelector<HTMLLabelElement>('#density');
     const spacingEl = rootEl.querySelector<HTMLLabelElement>('#spacing');
     const angleEl = rootEl.querySelector<HTMLLabelElement>('#angle');
-
+    const saveBtn =
+      rootEl.querySelector<HTMLButtonElement>('#brush-editor_save');
     if (
-      [stampEl, ratioEl, spacingEl, spikesEl, densityEl, angleEl].some(
+      [stampEl, saveBtn, ratioEl, spacingEl, spikesEl, densityEl, angleEl].some(
         (item) => item === null
       )
     ) {
       throw new Error('Invalid node layout');
     }
     this.stampEl = stampEl!;
+    this.saveBtn = saveBtn!;
+
+    this.saveBtn.addEventListener('click', () => {
+      brushCtr.setBrush({
+        angle: this.angle,
+        density: this.density,
+        ratio: this.ratio,
+        spacing: this.spacing,
+        spikes: this.spikes,
+      });
+    });
 
     this.pixiInit().then(() => {
       this.initInput(ratioEl!, 'ratio');
@@ -88,25 +102,30 @@ export class BrushEngine {
       throw new Error('No stage!');
     }
     stage.removeChildren();
-    const stamp = this.drawStamp(this.app?.renderer!);
+    const stamp = BrushEngine.drawStamp(this.app?.renderer!, this);
     if (stamp) stage.addChild(stamp);
   }
 
-  drawStamp(renderer: Renderer, size?: number, color: number = 0x000000) {
-    if (this.density <= 0) {
+  static drawStamp(
+    renderer: Renderer,
+    brush: Brush & { size?: number; color?: number }
+  ) {
+    if (brush.density <= 0) {
       return;
     }
 
-    const width = size ? size * 2 : 150;
-    const height = size ? size * 2 : 150;
+    const color = brush?.color ?? 0x000000;
+    const width = brush?.size ? brush?.size * 2 : 150;
+    const height = brush?.size ? brush?.size * 2 : 150;
     const centerX = width / 2;
     const centerY = height / 2;
 
     const stampShape = new Graphics();
 
-    const baseRadius = size ? size / 2 : 50;
-    const spikeCount = this.spikes;
-    const ratio = this.ratio;
+    const baseRadius = brush?.size ? brush?.size / 2 : 50;
+    const spikeCount = brush?.spikes;
+    const ratio = brush?.ratio;
+    const density = brush?.density;
 
     const cx = centerX;
     const cy = centerY;
@@ -123,7 +142,7 @@ export class BrushEngine {
     const CP4 = { x: cx + K * rx, y: cy - ry };
     const P2 = { x: cx, y: cy - ry };
 
-    const globalRotation = ((this.angle || 0) * Math.PI) / 180;
+    const globalRotation = ((brush.angle || 0) * Math.PI) / 180;
 
     for (let i = 0; i < spikeCount; i++) {
       const theta = (2 * Math.PI * i) / spikeCount + globalRotation;
@@ -143,7 +162,7 @@ export class BrushEngine {
       stampShape.lineTo(cx, cy);
     }
 
-    if (this.density >= 100) {
+    if (density >= 100) {
       stampShape.fill(color);
 
       return stampShape;
@@ -153,13 +172,13 @@ export class BrushEngine {
 
     const dotsContainer = new Graphics();
 
-    const boundingRadius = baseRadius * Math.max(1, this.ratio);
+    const boundingRadius = baseRadius * Math.max(1, ratio);
 
     const approximateStampArea = Math.PI * boundingRadius * boundingRadius;
     // TODO: make MAX_DOTS_AT_FULL_DENSITY a parameter
     const singleDotArea = (approximateStampArea / MAX_DOTS_AT_FULL_DENSITY) * 2;
     const dotRadius = Math.sqrt(singleDotArea / Math.PI);
-    const numDots = Math.floor(MAX_DOTS_AT_FULL_DENSITY * (this.density / 100));
+    const numDots = Math.floor(MAX_DOTS_AT_FULL_DENSITY * (density / 100));
 
     for (let i = 0; i < numDots; i++) {
       const angle = Math.random() * 2 * Math.PI;

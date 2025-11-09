@@ -326,3 +326,24 @@ body {
   flex-basis: 50px;
   flex-shrink: 0;
 }
+
+.brush-editor_title_wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brush-editor button {
+  border: none;
+  background-color: #ccc;
+  border-radius: 4px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.brush-editor button:hover {
+  opacity: 0.75;
+}

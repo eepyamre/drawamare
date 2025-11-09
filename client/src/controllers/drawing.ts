@@ -56,6 +56,7 @@ export class DrawingController {
       );
   }
 
+  // TODO: REDO
   execDrawCommand(
     pixiCtr: PixiController,
     brushCtr: BrushController,
@@ -214,7 +215,7 @@ export class DrawingController {
       : this.strokeStyle.alpha;
 
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
-    const step = Math.min(sw, ew) / 4 || 1;
+    const step = (Math.min(sw, ew) / 4 || 1) * brushCtr.brush.spacing;
 
     pixiCtr.setMouseSize(ew);
 

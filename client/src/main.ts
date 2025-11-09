@@ -41,8 +41,8 @@ const startApp = async () => {
   layerCtr.init(networkCtr, pixiCtr);
 
   const brushUI = new BrushSettingsUI();
-  const brushEngine = new BrushEngine('.brush-editor');
-  const brushCtr = new BrushController(brushEngine);
+  const brushCtr = new BrushController();
+  new BrushEngine('.brush-editor', brushCtr);
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -194,9 +194,9 @@ const startApp = async () => {
   brushUI.onPressureToggle((settings) => {
     drawingCtr.setPressureSettings(settings);
   });
-  brushUI.onBrushChange((brush) => {
-    brushCtr.setBrush(brush);
-  });
+  // brushUI.onBrushChange((brush) => {
+  //   brushCtr.setBrush(brush);
+  // });
 };
 
 startApp();

@@ -49,11 +49,20 @@ export enum BLEND_MODES {
   MAX = 'max',
 }
 
+// TODO: REmove
 export enum Brushes {
   ROUND = 'Round',
   SQUARE = 'Square',
   SPRAY = 'Spray',
 }
+
+export type Brush = {
+  ratio: number;
+  spikes: number;
+  density: number;
+  spacing: number;
+  angle: number;
+};
 
 export type StampFn = (
   pixiCtr: PixiController,
