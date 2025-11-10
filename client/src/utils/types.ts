@@ -55,6 +55,7 @@ export type Brush = {
   density: number;
   spacing: number;
   angle: number;
+  shape: 'circle' | 'square';
 };
 
 export type BrushExtended = Brush & { size?: number; color?: number };

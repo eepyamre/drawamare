@@ -1,3 +1,4 @@
+// TODO: FADE
 import { BrushExtended, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
 import { BrushController } from './brush';
 import {
@@ -18,6 +19,7 @@ export class BrushEngine {
   density: number = 100;
   spacing: number = 1;
   angle: number = 0;
+  shape: 'square' | 'circle' = 'circle';
   constructor(editorRoot: string, brushCtr: BrushController) {
     const rootEl = document.querySelector<HTMLDivElement>(editorRoot);
     if (!rootEl) {
@@ -30,12 +32,23 @@ export class BrushEngine {
     const densityEl = rootEl.querySelector<HTMLLabelElement>('#density');
     const spacingEl = rootEl.querySelector<HTMLLabelElement>('#spacing');
     const angleEl = rootEl.querySelector<HTMLLabelElement>('#angle');
+    const circleBtn = rootEl.querySelector<HTMLLabelElement>('#circle-btn');
+    const squareBtn = rootEl.querySelector<HTMLLabelElement>('#square-btn');
+
     const saveBtn =
       rootEl.querySelector<HTMLButtonElement>('#brush-editor_save');
     if (
-      [stampEl, saveBtn, ratioEl, spacingEl, spikesEl, densityEl, angleEl].some(
-        (item) => item === null
-      )
+      [
+        stampEl,
+        saveBtn,
+        ratioEl,
+        spacingEl,
+        spikesEl,
+        densityEl,
+        angleEl,
+        circleBtn,
+        squareBtn,
+      ].some((item) => item === null)
     ) {
       throw new Error('Invalid node layout');
     }
@@ -49,7 +62,17 @@ export class BrushEngine {
         ratio: this.ratio,
         spacing: this.spacing,
         spikes: this.spikes,
+        shape: this.shape,
       });
+    });
+
+    circleBtn?.addEventListener('click', () => {
+      this.shape = 'circle';
+      this.drawStampEditor();
+    });
+    squareBtn?.addEventListener('click', () => {
+      this.shape = 'square';
+      this.drawStampEditor();
     });
 
     this.pixiInit().then(() => {
@@ -142,21 +165,53 @@ export class BrushEngine {
     const globalRotation = ((brush.angle || 0) * Math.PI) / 180;
 
     for (let i = 0; i < spikeCount; i++) {
-      const theta = (2 * Math.PI * i) / spikeCount + globalRotation;
+      if (brush.shape === 'circle') {
+        const theta = (2 * Math.PI * i) / spikeCount + globalRotation;
 
-      const rP0 = rotatePoint(P0.x, P0.y, theta, cx, cy);
-      const rCP1 = rotatePoint(CP1.x, CP1.y, theta, cx, cy);
-      const rCP2 = rotatePoint(CP2.x, CP2.y, theta, cx, cy);
-      const rP1 = rotatePoint(P1.x, P1.y, theta, cx, cy);
-      const rCP3 = rotatePoint(CP3.x, CP3.y, theta, cx, cy);
-      const rCP4 = rotatePoint(CP4.x, CP4.y, theta, cx, cy);
-      const rP2 = rotatePoint(P2.x, P2.y, theta, cx, cy);
+        const rP0 = rotatePoint(P0.x, P0.y, theta, cx, cy);
+        const rCP1 = rotatePoint(CP1.x, CP1.y, theta, cx, cy);
+        const rCP2 = rotatePoint(CP2.x, CP2.y, theta, cx, cy);
+        const rP1 = rotatePoint(P1.x, P1.y, theta, cx, cy);
+        const rCP3 = rotatePoint(CP3.x, CP3.y, theta, cx, cy);
+        const rCP4 = rotatePoint(CP4.x, CP4.y, theta, cx, cy);
+        const rP2 = rotatePoint(P2.x, P2.y, theta, cx, cy);
 
-      stampShape.moveTo(cx, cy);
-      stampShape.lineTo(rP0.x, rP0.y);
-      stampShape.bezierCurveTo(rCP1.x, rCP1.y, rCP2.x, rCP2.y, rP1.x, rP1.y);
-      stampShape.bezierCurveTo(rCP3.x, rCP3.y, rCP4.x, rCP4.y, rP2.x, rP2.y);
-      stampShape.lineTo(cx, cy);
+        stampShape.moveTo(cx, cy);
+        stampShape.lineTo(rP0.x, rP0.y);
+        stampShape.bezierCurveTo(rCP1.x, rCP1.y, rCP2.x, rCP2.y, rP1.x, rP1.y);
+        stampShape.bezierCurveTo(rCP3.x, rCP3.y, rCP4.x, rCP4.y, rP2.x, rP2.y);
+        stampShape.lineTo(cx, cy);
+      } else {
+        const theta = (2 * Math.PI * i) / spikeCount + globalRotation;
+
+        const ux = Math.cos(theta);
+        const uy = Math.sin(theta);
+        const px = -uy;
+        const py = ux;
+
+        const innerR = 0;
+        const outerR = rx;
+
+        const halfWidth = Math.max(3, rx * 0.25) * ratio;
+
+        const p1x = cx + innerR * ux + halfWidth * px;
+        const p1y = cy + innerR * uy + halfWidth * py;
+
+        const p2x = cx + outerR * ux + halfWidth * px;
+        const p2y = cy + outerR * uy + halfWidth * py;
+
+        const p3x = cx + outerR * ux - halfWidth * px;
+        const p3y = cy + outerR * uy - halfWidth * py;
+
+        const p4x = cx + innerR * ux - halfWidth * px;
+        const p4y = cy + innerR * uy - halfWidth * py;
+
+        stampShape.moveTo(p1x, p1y);
+        stampShape.lineTo(p2x, p2y);
+        stampShape.lineTo(p3x, p3y);
+        stampShape.lineTo(p4x, p4y);
+        stampShape.lineTo(p1x, p1y);
+      }
     }
 
     if (density >= 100) {
