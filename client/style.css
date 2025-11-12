@@ -349,3 +349,11 @@ body {
 .brush-editor button:hover {
   opacity: 0.75;
 }
+
+.brush-add {
+  order: 1;
+}
+
+.brush-custom {
+  filter: invert(0.85);
+}

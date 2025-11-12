@@ -9,6 +9,7 @@ export class BrushController {
     ratio: 1,
     spikes: 12,
     spacing: 1,
+    shape: 'circle',
   };
 
   // string of <angle><density><ratio><spikes><spacing><size><color>

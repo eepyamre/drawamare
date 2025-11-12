@@ -1,8 +1,15 @@
 // TODO: FADE
-import { BrushExtended, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
+import {
+  BrushExtended,
+  BrushWithPreview,
+  MAX_DOTS_AT_FULL_DENSITY,
+  rotatePoint,
+} from '../utils';
 import { BrushController } from './brush';
+import { BrushSettingsUI } from './ui';
 import {
   Application,
+  Container,
   Graphics,
   Renderer,
   RenderTexture,
@@ -20,7 +27,11 @@ export class BrushEngine {
   spacing: number = 1;
   angle: number = 0;
   shape: 'square' | 'circle' = 'circle';
-  constructor(editorRoot: string, brushCtr: BrushController) {
+  constructor(
+    editorRoot: string,
+    brushCtr: BrushController,
+    brushUiCtr: BrushSettingsUI
+  ) {
     const rootEl = document.querySelector<HTMLDivElement>(editorRoot);
     if (!rootEl) {
       throw new Error('No editor node');
@@ -56,14 +67,7 @@ export class BrushEngine {
     this.saveBtn = saveBtn!;
 
     this.saveBtn.addEventListener('click', () => {
-      brushCtr.setBrush({
-        angle: this.angle,
-        density: this.density,
-        ratio: this.ratio,
-        spacing: this.spacing,
-        spikes: this.spikes,
-        shape: this.shape,
-      });
+      this.onSave(brushCtr, brushUiCtr);
     });
 
     circleBtn?.addEventListener('click', () => {
@@ -82,6 +86,33 @@ export class BrushEngine {
       this.initInput(densityEl!, 'density');
       this.initInput(angleEl!, 'angle');
     });
+  }
+
+  async onSave(brushCtr: BrushController, brushUiCtr: BrushSettingsUI) {
+    const localBrushes: BrushWithPreview[] = JSON.parse(
+      localStorage.getItem('brushes') ?? '[]'
+    );
+    const stamp = this.drawStampEditor();
+    if (!stamp) return;
+    const container = new Container();
+    container.addChild(stamp);
+    const preview = await this.app?.renderer.extract.base64(container);
+    if (!preview) return;
+    container.destroy(true);
+    const brush: BrushWithPreview = {
+      angle: this.angle,
+      density: this.density,
+      ratio: this.ratio,
+      spacing: this.spacing,
+      spikes: this.spikes,
+      shape: this.shape,
+      preview,
+    };
+    localStorage.setItem('brushes', JSON.stringify([...localBrushes, brush]));
+    brushCtr.setBrush(brush);
+    this.drawStampEditor();
+    const lastBrush = brushUiCtr.initBrushes();
+    if (lastBrush) brushUiCtr.setActiveBrush(lastBrush);
   }
 
   initInput(
@@ -125,8 +156,9 @@ export class BrushEngine {
       throw new Error('No stage!');
     }
     stage.removeChildren();
-    const stamp = BrushEngine.drawStamp(this.app?.renderer!, this);
+    const stamp = BrushEngine.drawStamp(this.app!.renderer!, this);
     if (stamp) stage.addChild(stamp);
+    return stamp;
   }
 
   static drawStamp(renderer: Renderer, brush: BrushExtended) {

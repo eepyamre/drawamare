@@ -58,6 +58,10 @@ export type Brush = {
   shape: 'circle' | 'square';
 };
 
+export type BrushWithPreview = Brush & {
+  preview: string;
+};
+
 export type BrushExtended = Brush & { size?: number; color?: number };
 
 export type StampFn = (

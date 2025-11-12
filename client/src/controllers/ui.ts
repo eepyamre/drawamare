@@ -1,4 +1,4 @@
-import { Brush, Layer } from '../utils';
+import { Brush, DEFAULT_BRUSH, getLocalBrushes, Layer } from '../utils';
 import { Identity } from 'spacetimedb';
 
 type LayerSelectCallback = (layerId: number) => void;
@@ -240,7 +240,7 @@ export class BrushSettingsUI {
   private opacitySlider: HTMLInputElement;
   private pressureSizeCheckbox: HTMLInputElement;
   private pressureOpacityCheckbox: HTMLInputElement;
-  private brushItems: NodeListOf<HTMLButtonElement>;
+  private brushList: HTMLDivElement;
   private activeBrush: string;
 
   private onSizeChangeCallback: ((size: number) => void) | null = null;
@@ -258,12 +258,33 @@ export class BrushSettingsUI {
       document.querySelector<HTMLInputElement>('#pressure-size')!;
     this.pressureOpacityCheckbox =
       document.querySelector<HTMLInputElement>('#pressure-opacity')!;
-    this.brushItems = document.querySelectorAll('.brush-item');
+    this.brushList = document.querySelector<HTMLDivElement>('.brush-list')!;
 
     const initialActiveBrush = document.querySelector('.brush-item.active');
     this.activeBrush = initialActiveBrush?.getAttribute('title') || 'Round';
 
+    this.initBrushes();
     this.initEventListeners();
+  }
+
+  public initBrushes() {
+    const brushes = getLocalBrushes();
+    let lastBrush = null;
+    if (!brushes) return;
+    brushes.forEach((brush, i) => {
+      if (document.querySelector(`button[data-index="${i}"]`)) return;
+      const btn = document.createElement('button');
+      btn.dataset.index = String(i);
+      btn.title = `Custom Brush ${i + 1}`;
+      btn.classList.add('brush-item');
+      const img = document.createElement('img');
+      img.src = brush.preview;
+      img.classList.add('brush-custom');
+      btn.append(img);
+      this.brushList.append(btn);
+      lastBrush = btn.title;
+    });
+    return lastBrush;
   }
 
   private initEventListeners() {
@@ -290,14 +311,21 @@ export class BrushSettingsUI {
       handlePressureChange
     );
 
-    this.brushItems.forEach((button) => {
-      button.addEventListener('click', () => {
-        const brushName = button.getAttribute('title');
-        if (brushName) {
+    this.brushList.addEventListener('click', (e) => {
+      const button = (e.target as HTMLElement).closest('button');
+      if (button?.tagName !== 'BUTTON') return;
+      const brushName = button.getAttribute('title');
+      const brushIndex = button.dataset.index;
+      if (brushName) {
+        const brushes = getLocalBrushes();
+        if (brushIndex && brushes[Number(brushIndex)]) {
+          this.onBrushChangeCallback?.(brushes[Number(brushIndex)]);
           this.setActiveBrush(brushName);
-          // this.onBrushChangeCallback?.(brushName);
+          return;
         }
-      });
+        this.onBrushChangeCallback?.(DEFAULT_BRUSH);
+        this.setActiveBrush(brushName);
+      }
     });
   }
 
@@ -318,7 +346,7 @@ export class BrushSettingsUI {
   }
 
   public setActiveBrush(brushName: string) {
-    this.brushItems.forEach((button) => {
+    Array.from(this.brushList.children).forEach((button) => {
       if (button.getAttribute('title') === brushName) {
         button.classList.add('active');
       } else {

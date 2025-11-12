@@ -1,3 +1,4 @@
+import { BrushWithPreview } from './types';
 import { Point } from 'pixi.js';
 
 export const distance = (a: Point, b: Point) => {
@@ -27,4 +28,11 @@ export const rotatePoint = (
     x: cx + dx * cosA - dy * sinA,
     y: cy + dx * sinA + dy * cosA,
   };
+};
+
+export const getLocalBrushes = () => {
+  const brushes: BrushWithPreview[] = JSON.parse(
+    localStorage.getItem('brushes') ?? '[]'
+  );
+  return brushes;
 };

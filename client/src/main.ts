@@ -9,6 +9,7 @@ import { BrushSettingsUI, LayerUI, ToolbarUI, Tools } from './controllers/ui';
 import { wait } from './utils';
 
 const startApp = async () => {
+  // eslint-disable-next-line
   if (!(window as any).chrome) {
     alert(
       'This app is currently supported only in Chrome. See the console for more details.'
@@ -19,13 +20,13 @@ const startApp = async () => {
 
     return;
   }
-
   const networkCtr = new NetworkController();
   let connected = false;
   while (!connected) {
     try {
       await networkCtr.connect();
       connected = true;
+      // eslint-disable-next-line
     } catch (e) {
       console.log('Trying to reconnect in 5 seconds...');
       await wait(5000);
@@ -42,7 +43,7 @@ const startApp = async () => {
 
   const brushUI = new BrushSettingsUI();
   const brushCtr = new BrushController();
-  new BrushEngine('.brush-editor', brushCtr);
+  new BrushEngine('.brush-editor', brushCtr, brushUI);
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -194,9 +195,9 @@ const startApp = async () => {
   brushUI.onPressureToggle((settings) => {
     drawingCtr.setPressureSettings(settings);
   });
-  // brushUI.onBrushChange((brush) => {
-  //   brushCtr.setBrush(brush);
-  // });
+  brushUI.onBrushChange((brush) => {
+    brushCtr.setBrush(brush);
+  });
 };
 
 startApp();
