@@ -56,6 +56,7 @@ export class DrawingController {
       );
   }
 
+  // TODO: REDO
   execDrawCommand(
     pixiCtr: PixiController,
     brushCtr: BrushController,
@@ -77,7 +78,8 @@ export class DrawingController {
           cmd.strokeStyle.width!,
           lastColor,
           cmd.strokeStyle.alpha!,
-          cmd.blendMode as BLEND_MODES
+          cmd.blendMode as BLEND_MODES,
+          true
         );
       } else if (
         cmd.commandType === 'line' &&
@@ -105,7 +107,8 @@ export class DrawingController {
             w,
             lastColor,
             cmd.strokeStyle.alpha,
-            cmd.blendMode as BLEND_MODES
+            cmd.blendMode as BLEND_MODES,
+            false
           );
         }
         brushCtr.drawStamp(
@@ -115,7 +118,8 @@ export class DrawingController {
           ew,
           lastColor,
           cmd.strokeStyle.alpha,
-          cmd.blendMode as BLEND_MODES
+          cmd.blendMode as BLEND_MODES,
+          false
         );
         lastPos = end;
       } else if (cmd.commandType === 'endLine') {
@@ -161,7 +165,16 @@ export class DrawingController {
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
 
-    brushCtr.drawStamp(pixiCtr, layer, pos, width, style.color, alpha, blend);
+    brushCtr.drawStamp(
+      pixiCtr,
+      layer,
+      pos,
+      width,
+      style.color,
+      alpha,
+      blend,
+      true
+    );
 
     this.accumulatedDrawCommands.push({
       commandType: 'initLine',
@@ -214,7 +227,7 @@ export class DrawingController {
       : this.strokeStyle.alpha;
 
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
-    const step = Math.min(sw, ew) / 4 || 1;
+    const step = (Math.min(sw, ew) / 4 || 1) * brushCtr.brush.spacing;
 
     pixiCtr.setMouseSize(ew);
 
@@ -231,7 +244,8 @@ export class DrawingController {
         w,
         this.strokeStyle.color,
         a,
-        blend
+        blend,
+        false
       );
     }
     brushCtr.drawStamp(
@@ -241,7 +255,8 @@ export class DrawingController {
       ew,
       this.strokeStyle.color,
       ea,
-      blend
+      blend,
+      false
     );
 
     const command: DrawCommand = {
