@@ -313,7 +313,7 @@ export class BrushSettingsUI {
 
     this.brushList.addEventListener('click', (e) => {
       const button = (e.target as HTMLElement).closest('button');
-      if (button?.tagName !== 'BUTTON') return;
+      if (button?.tagName !== 'BUTTON' || button.title === 'Add') return;
       const brushName = button.getAttribute('title');
       const brushIndex = button.dataset.index;
       if (brushName) {

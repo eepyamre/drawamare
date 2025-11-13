@@ -1,4 +1,4 @@
-// TODO: FADE
+// TODO MOVE UI OUTSIDE OF THIS COMPONENT
 import {
   BrushExtended,
   BrushWithPreview,
@@ -18,8 +18,8 @@ import {
 
 export class BrushEngine {
   app: Application | null = null;
+  root: HTMLDivElement;
   stampEl: HTMLDivElement;
-  saveBtn: HTMLButtonElement;
 
   ratio: number = 1;
   spikes: number = 12;
@@ -32,22 +32,27 @@ export class BrushEngine {
     brushCtr: BrushController,
     brushUiCtr: BrushSettingsUI
   ) {
-    const rootEl = document.querySelector<HTMLDivElement>(editorRoot);
-    if (!rootEl) {
+    this.root = document.querySelector<HTMLDivElement>(editorRoot)!;
+    if (!this.root) {
       throw new Error('No editor node');
     }
 
-    const stampEl = rootEl.querySelector<HTMLDivElement>('.brush-stamp');
-    const ratioEl = rootEl.querySelector<HTMLLabelElement>('#ratio');
-    const spikesEl = rootEl.querySelector<HTMLLabelElement>('#spikes');
-    const densityEl = rootEl.querySelector<HTMLLabelElement>('#density');
-    const spacingEl = rootEl.querySelector<HTMLLabelElement>('#spacing');
-    const angleEl = rootEl.querySelector<HTMLLabelElement>('#angle');
-    const circleBtn = rootEl.querySelector<HTMLLabelElement>('#circle-btn');
-    const squareBtn = rootEl.querySelector<HTMLLabelElement>('#square-btn');
-
+    const stampEl = this.root.querySelector<HTMLDivElement>('.brush-stamp');
+    const ratioEl = this.root.querySelector<HTMLLabelElement>('#ratio');
+    const spikesEl = this.root.querySelector<HTMLLabelElement>('#spikes');
+    const densityEl = this.root.querySelector<HTMLLabelElement>('#density');
+    const spacingEl = this.root.querySelector<HTMLLabelElement>('#spacing');
+    const angleEl = this.root.querySelector<HTMLLabelElement>('#angle');
+    const circleBtn = this.root.querySelector<HTMLLabelElement>('#circle-btn');
+    const squareBtn = this.root.querySelector<HTMLLabelElement>('#square-btn');
+    const closeBtn = this.root.querySelector<HTMLButtonElement>(
+      '#brush-editor_close'
+    );
     const saveBtn =
-      rootEl.querySelector<HTMLButtonElement>('#brush-editor_save');
+      this.root.querySelector<HTMLButtonElement>('#brush-editor_save');
+
+    const addBrushBtn = document.querySelector<HTMLButtonElement>('.brush-add');
+
     if (
       [
         stampEl,
@@ -59,15 +64,23 @@ export class BrushEngine {
         angleEl,
         circleBtn,
         squareBtn,
+        closeBtn,
+        addBrushBtn,
       ].some((item) => item === null)
     ) {
       throw new Error('Invalid node layout');
     }
     this.stampEl = stampEl!;
-    this.saveBtn = saveBtn!;
 
-    this.saveBtn.addEventListener('click', () => {
+    addBrushBtn!.addEventListener('click', this.toggle.bind(this));
+
+    saveBtn!.addEventListener('click', () => {
+      this.toggle();
       this.onSave(brushCtr, brushUiCtr);
+    });
+
+    closeBtn!.addEventListener('click', () => {
+      this.toggle();
     });
 
     circleBtn?.addEventListener('click', () => {
@@ -86,6 +99,14 @@ export class BrushEngine {
       this.initInput(densityEl!, 'density');
       this.initInput(angleEl!, 'angle');
     });
+  }
+
+  toggle() {
+    if (this.root.classList.contains('hidden')) {
+      this.root.classList.remove('hidden');
+      return;
+    }
+    this.root.classList.add('hidden');
   }
 
   async onSave(brushCtr: BrushController, brushUiCtr: BrushSettingsUI) {

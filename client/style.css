@@ -357,3 +357,9 @@ body {
 .brush-custom {
   filter: invert(0.85);
 }
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
