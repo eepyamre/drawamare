@@ -33,6 +33,9 @@ declare type __keep_Point = Point;
 import { StrokeStyle } from "./stroke_style_type";
 // Mark import as potentially unused
 declare type __keep_StrokeStyle = StrokeStyle;
+import { Brush } from "./brush_type";
+// Mark import as potentially unused
+declare type __keep_Brush = Brush;
 
 
 export type DrawCommand = {
@@ -42,6 +45,7 @@ export type DrawCommand = {
   strokeStyle: StrokeStyle | undefined,
   startWidth: number | undefined,
   endWidth: number | undefined,
+  brush: Brush,
 };
 let _cached_DrawCommand_type_value: __AlgebraicTypeType | null = null;
 
@@ -63,6 +67,7 @@ export const DrawCommand = {
       { name: "strokeStyle", algebraicType: __AlgebraicTypeValue.createOptionType(StrokeStyle.getTypeScriptAlgebraicType()) },
       { name: "startWidth", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.I32) },
       { name: "endWidth", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.I32) },
+      { name: "brush", algebraicType: Brush.getTypeScriptAlgebraicType() },
     );
     return _cached_DrawCommand_type_value;
   },

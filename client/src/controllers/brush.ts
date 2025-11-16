@@ -26,6 +26,7 @@ export class BrushController {
   drawStamp: StampFn = (
     pixiCtr,
     layer,
+    brush,
     position,
     size,
     color,
@@ -33,7 +34,7 @@ export class BrushController {
     blendMode,
     clearCache
   ) => {
-    const extendedBrush = { ...this.brush, size, color };
+    const extendedBrush = { ...brush, size, color };
     if (clearCache) {
       this.clearCache(extendedBrush);
     }
@@ -41,7 +42,7 @@ export class BrushController {
     const stamp =
       cached ??
       BrushEngine.drawStamp(pixiCtr.app.renderer, {
-        ...this.brush,
+        ...brush,
         size,
         color,
       });

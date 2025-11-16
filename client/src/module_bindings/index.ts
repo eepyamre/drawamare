@@ -57,6 +57,8 @@ import { UserTableHandle } from "./user_table.ts";
 export { UserTableHandle };
 
 // Import and reexport all types
+import { Brush } from "./brush_type.ts";
+export { Brush };
 import { Command } from "./command_type.ts";
 export { Command };
 import { DrawCommand } from "./draw_command_type.ts";

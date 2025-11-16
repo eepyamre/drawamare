@@ -67,6 +67,7 @@ export type BrushExtended = Brush & { size?: number; color?: number };
 export type StampFn = (
   pixiCtr: PixiController,
   layer: Layer,
+  brush: Brush,
   position: Point,
   diameter: number,
   color: number,

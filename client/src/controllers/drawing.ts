@@ -1,5 +1,5 @@
 import { DrawCommand, StrokeStyle } from '../module_bindings';
-import { Layer, BLEND_MODES } from '../utils';
+import { Layer, BLEND_MODES, Brush } from '../utils';
 import { BrushController } from './brush';
 import { HistoryController } from './history';
 import { LayerController } from './layer';
@@ -49,10 +49,10 @@ export class DrawingController {
         this.onPointerMove(e, pixiCtr, layerCtr, brushCtr)
       )
       .on('pointerup', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr)
+        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
       )
       .on('pointerupoutside', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr)
+        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
       );
   }
 
@@ -74,6 +74,7 @@ export class DrawingController {
         brushCtr.drawStamp(
           pixiCtr,
           layer,
+          cmd.brush as Brush,
           lastPos,
           cmd.strokeStyle.width!,
           lastColor,
@@ -93,7 +94,7 @@ export class DrawingController {
         const ew = cmd.endWidth!;
         const dist = Math.hypot(end.x - start.x, end.y - start.y);
         const ang = Math.atan2(end.y - start.y, end.x - start.x);
-        const step = Math.min(sw, ew) / 4 || 1;
+        const step = (Math.min(sw, ew) / 4 || 1) * cmd.brush.spacing;
 
         for (let i = 0; i <= dist; i += step) {
           const t = i / dist;
@@ -103,6 +104,7 @@ export class DrawingController {
           brushCtr.drawStamp(
             pixiCtr,
             layer,
+            cmd.brush as Brush,
             new Point(x, y),
             w,
             lastColor,
@@ -114,6 +116,7 @@ export class DrawingController {
         brushCtr.drawStamp(
           pixiCtr,
           layer,
+          cmd.brush as Brush,
           end,
           ew,
           lastColor,
@@ -168,6 +171,7 @@ export class DrawingController {
     brushCtr.drawStamp(
       pixiCtr,
       layer,
+      brushCtr.brush,
       pos,
       width,
       style.color,
@@ -183,6 +187,7 @@ export class DrawingController {
       strokeStyle: style,
       startWidth: undefined,
       endWidth: undefined,
+      brush: brushCtr.brush,
     });
   }
 
@@ -240,6 +245,7 @@ export class DrawingController {
       brushCtr.drawStamp(
         pixiCtr,
         layer,
+        brushCtr.brush,
         new Point(x, y),
         w,
         this.strokeStyle.color,
@@ -251,6 +257,7 @@ export class DrawingController {
     brushCtr.drawStamp(
       pixiCtr,
       layer,
+      brushCtr.brush,
       end,
       ew,
       this.strokeStyle.color,
@@ -269,6 +276,7 @@ export class DrawingController {
         ...this.strokeStyle,
         alpha: ea,
       },
+      brush: brushCtr.brush,
     };
 
     this.accumulatedDrawCommands.push(command);
@@ -282,7 +290,8 @@ export class DrawingController {
     pixiCtr: PixiController,
     layerCtr: LayerController,
     historyCtr: HistoryController,
-    networkCtr: NetworkController
+    networkCtr: NetworkController,
+    brushCtr: BrushController
   ) {
     if (!this.drawing) {
       this.pan = false;
@@ -303,6 +312,7 @@ export class DrawingController {
       pos: undefined,
       startWidth: undefined,
       endWidth: undefined,
+      brush: brushCtr.brush,
     });
 
     pixiCtr.extractBase64(layer.rt).then((data) => {
