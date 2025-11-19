@@ -43,7 +43,7 @@ const startApp = async () => {
 
   const brushUI = new BrushSettingsUI();
   const brushCtr = new BrushController();
-  new BrushEngine('.brush-editor', brushCtr, brushUI);
+  const brushEngine = new BrushEngine('.brush-editor', brushCtr, brushUI);
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -197,6 +197,9 @@ const startApp = async () => {
   });
   brushUI.onBrushChange((brush) => {
     brushCtr.setBrush(brush);
+  });
+  brushUI.onEditBrush((brush, index) => {
+    brushEngine.loadBrush(brush, index);
   });
 };
 

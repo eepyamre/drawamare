@@ -363,3 +363,26 @@ body {
   gap: 8px;
   align-items: center;
 }
+
+/* --- CONTEXT MENU --- */
+
+.context-menu {
+  position: absolute;
+  background-color: #3c3c3c;
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  min-width: 100px;
+}
+
+.context-menu-item {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.context-menu-item:hover {
+  background-color: #505050;
+}

@@ -2,6 +2,7 @@
 import {
   BrushExtended,
   BrushWithPreview,
+  DEFAULT_BRUSH,
   MAX_DOTS_AT_FULL_DENSITY,
   rotatePoint,
 } from '../utils';
@@ -30,6 +31,7 @@ export class BrushEngine {
   hFade: number = 0;
   vFade: number = 0;
   shape: 'square' | 'circle' = 'circle';
+  editingIndex: number | null = null;
 
   constructor(
     editorRoot: string,
@@ -80,7 +82,11 @@ export class BrushEngine {
     }
     this.stampEl = stampEl!;
 
-    addBrushBtn!.addEventListener('click', this.toggle.bind(this));
+    addBrushBtn!.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.reset();
+      this.toggle();
+    });
 
     saveBtn!.addEventListener('click', () => {
       this.toggle();
@@ -108,7 +114,52 @@ export class BrushEngine {
       this.initInput(angleEl!, 'angle');
       this.initInput(horizontalEl!, 'hFade');
       this.initInput(verticalEl!, 'vFade');
+      this.initInput(verticalEl!, 'vFade');
     });
+
+    document.addEventListener('click', (e) => {
+      if (
+        !this.root.classList.contains('hidden') &&
+        !this.root.contains(e.target as Node) &&
+        !addBrushBtn!.contains(e.target as Node)
+      ) {
+        this.root.classList.add('hidden');
+      }
+    });
+  }
+
+  reset() {
+    this.editingIndex = null;
+    this.ratio = DEFAULT_BRUSH.ratio;
+    this.spikes = DEFAULT_BRUSH.spikes;
+    this.density = DEFAULT_BRUSH.density;
+    this.spacing = DEFAULT_BRUSH.spacing;
+    this.angle = DEFAULT_BRUSH.angle;
+    this.hFade = DEFAULT_BRUSH.hFade || 0;
+    this.vFade = DEFAULT_BRUSH.vFade || 0;
+    this.shape = DEFAULT_BRUSH.shape || 'circle';
+
+    const updateInput = (id: string, value: number) => {
+      const el = this.root.querySelector<HTMLLabelElement>(`#${id}`);
+      if (el) {
+        const input = el.querySelector('input');
+        const span = el.querySelector('span');
+        if (input && span) {
+          input.value = String(value);
+          span.textContent = String(value);
+        }
+      }
+    };
+
+    updateInput('ratio', this.ratio);
+    updateInput('spikes', this.spikes);
+    updateInput('density', this.density);
+    updateInput('spacing', this.spacing);
+    updateInput('angle', this.angle);
+    updateInput('h-fade', this.hFade);
+    updateInput('v-fade', this.vFade);
+
+    this.drawStampEditor();
   }
 
   toggle() {
@@ -141,11 +192,61 @@ export class BrushEngine {
       vFade: this.vFade,
       preview,
     };
-    localStorage.setItem('brushes', JSON.stringify([...localBrushes, brush]));
+
     brushCtr.setBrush(brush);
     this.drawStampEditor();
     const lastBrush = brushUiCtr.initBrushes();
-    if (lastBrush) brushUiCtr.setActiveBrush(lastBrush);
+
+    if (this.editingIndex !== null) {
+      brushUiCtr.setActiveBrush(`Custom Brush ${this.editingIndex + 1}`);
+    } else if (lastBrush) {
+      brushUiCtr.setActiveBrush(lastBrush);
+    }
+
+    if (this.editingIndex !== null) {
+      localBrushes[this.editingIndex] = brush;
+      this.editingIndex = null;
+    } else {
+      localBrushes.push(brush);
+    }
+    localStorage.setItem('brushes', JSON.stringify(localBrushes));
+  }
+
+  loadBrush(brush: BrushWithPreview, index: number) {
+    this.editingIndex = index;
+    this.ratio = brush.ratio;
+    this.spikes = brush.spikes;
+    this.density = brush.density;
+    this.spacing = brush.spacing;
+    this.angle = brush.angle;
+    this.hFade = brush.hFade || 0;
+    this.vFade = brush.vFade || 0;
+    this.shape = brush.shape || 'circle';
+
+    const updateInput = (id: string, value: number) => {
+      const el = this.root.querySelector<HTMLLabelElement>(`#${id}`);
+      if (el) {
+        const input = el.querySelector('input');
+        const span = el.querySelector('span');
+        if (input && span) {
+          input.value = String(value);
+          span.textContent = String(value);
+        }
+      }
+    };
+
+    updateInput('ratio', this.ratio);
+    updateInput('spikes', this.spikes);
+    updateInput('density', this.density);
+    updateInput('spacing', this.spacing);
+    updateInput('angle', this.angle);
+    updateInput('h-fade', this.hFade);
+    updateInput('v-fade', this.vFade);
+
+    this.drawStampEditor();
+    if (this.root.classList.contains('hidden')) {
+      this.toggle();
+    }
   }
 
   initInput(

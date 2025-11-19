@@ -1,4 +1,10 @@
-import { Brush, DEFAULT_BRUSH, getLocalBrushes, Layer } from '../utils';
+import {
+  Brush,
+  BrushWithPreview,
+  DEFAULT_BRUSH,
+  getLocalBrushes,
+  Layer,
+} from '../utils';
 import { Identity } from 'spacetimedb';
 
 type LayerSelectCallback = (layerId: number) => void;
@@ -249,6 +255,14 @@ export class BrushSettingsUI {
     | ((settings: PressureSettings) => void)
     | null = null;
   private onBrushChangeCallback: ((brush: Brush) => void) | null = null;
+  private onEditBrushCallback:
+    | ((brush: BrushWithPreview, index: number) => void)
+    | null = null;
+
+  private contextMenu: HTMLElement;
+  private contextMenuEdit: HTMLElement;
+  private contextMenuDelete: HTMLElement;
+  private targetBrushIndex: number | null = null;
 
   constructor() {
     this.sizeSlider = document.querySelector<HTMLInputElement>('#brush-size')!;
@@ -260,19 +274,63 @@ export class BrushSettingsUI {
       document.querySelector<HTMLInputElement>('#pressure-opacity')!;
     this.brushList = document.querySelector<HTMLDivElement>('.brush-list')!;
 
+    this.contextMenu = document.getElementById('brush-context-menu')!;
+    this.contextMenuEdit = document.getElementById('context-menu-edit')!;
+    this.contextMenuDelete = document.getElementById('context-menu-delete')!;
+
     const initialActiveBrush = document.querySelector('.brush-item.active');
     this.activeBrush = initialActiveBrush?.getAttribute('title') || 'Round';
 
+    this.initContextMenu();
     this.initBrushes();
     this.initEventListeners();
   }
 
+  private initContextMenu() {
+    document.addEventListener('click', (e) => {
+      if (!this.contextMenu.contains(e.target as Node)) {
+        this.contextMenu.classList.add('hidden');
+      }
+    });
+
+    this.contextMenuEdit.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.targetBrushIndex !== null) {
+        const brushes = getLocalBrushes();
+        if (brushes[this.targetBrushIndex]) {
+          this.onEditBrushCallback?.(
+            brushes[this.targetBrushIndex],
+            this.targetBrushIndex
+          );
+        }
+        this.contextMenu.classList.add('hidden');
+      }
+    });
+
+    this.contextMenuDelete.addEventListener('click', () => {
+      if (this.targetBrushIndex !== null) {
+        const brushes = getLocalBrushes();
+        brushes.splice(this.targetBrushIndex, 1);
+        localStorage.setItem('brushes', JSON.stringify(brushes));
+        this.initBrushes();
+        this.contextMenu.classList.add('hidden');
+      }
+    });
+  }
+
   public initBrushes() {
+    const existingButtons = this.brushList.querySelectorAll(
+      '.brush-item[data-index]'
+    );
+    existingButtons.forEach((btn) => btn.remove());
+
     const brushes = getLocalBrushes();
-    let lastBrush = null;
+    let lastBrush: string | null = null;
     if (!brushes) return;
+
+    const addBtn = this.brushList.querySelector('.brush-add');
+
     brushes.forEach((brush, i) => {
-      if (document.querySelector(`button[data-index="${i}"]`)) return;
       const btn = document.createElement('button');
       btn.dataset.index = String(i);
       btn.title = `Custom Brush ${i + 1}`;
@@ -281,7 +339,20 @@ export class BrushSettingsUI {
       img.src = brush.preview;
       img.classList.add('brush-custom');
       btn.append(img);
-      this.brushList.append(btn);
+
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.targetBrushIndex = i;
+        this.contextMenu.style.top = `${e.clientY}px`;
+        this.contextMenu.style.left = `${e.clientX}px`;
+        this.contextMenu.classList.remove('hidden');
+      });
+
+      if (addBtn) {
+        this.brushList.insertBefore(btn, addBtn);
+      } else {
+        this.brushList.append(btn);
+      }
       lastBrush = btn.title;
     });
     return lastBrush;
@@ -343,6 +414,12 @@ export class BrushSettingsUI {
 
   public onBrushChange(callback: (brush: Brush) => void) {
     this.onBrushChangeCallback = callback;
+  }
+
+  public onEditBrush(
+    callback: (brush: BrushWithPreview, index: number) => void
+  ) {
+    this.onEditBrushCallback = callback;
   }
 
   public setActiveBrush(brushName: string) {
