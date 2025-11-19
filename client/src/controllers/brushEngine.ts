@@ -10,14 +10,11 @@ import { BrushSettingsUI } from './ui';
 import {
   Application,
   Container,
-  DEG_TO_RAD,
   FillGradient,
-  GradientOptions,
   Graphics,
   Renderer,
   RenderTexture,
   Sprite,
-  Texture,
 } from 'pixi.js';
 
 export class BrushEngine {
