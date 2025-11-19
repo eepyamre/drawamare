@@ -56,6 +56,8 @@ export type Brush = {
   spacing: number;
   angle: number;
   shape: 'circle' | 'square';
+  vFade: number;
+  hFade: number;
 };
 
 export type BrushWithPreview = Brush & {

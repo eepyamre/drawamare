@@ -19,4 +19,6 @@ export const DEFAULT_BRUSH: Brush = {
   spikes: 12,
   spacing: 1,
   shape: 'circle',
+  hFade: 0,
+  vFade: 0,
 };

@@ -10,10 +10,14 @@ import { BrushSettingsUI } from './ui';
 import {
   Application,
   Container,
+  DEG_TO_RAD,
+  FillGradient,
+  GradientOptions,
   Graphics,
   Renderer,
   RenderTexture,
   Sprite,
+  Texture,
 } from 'pixi.js';
 
 export class BrushEngine {
@@ -26,7 +30,10 @@ export class BrushEngine {
   density: number = 100;
   spacing: number = 1;
   angle: number = 0;
+  hFade: number = 0;
+  vFade: number = 0;
   shape: 'square' | 'circle' = 'circle';
+
   constructor(
     editorRoot: string,
     brushCtr: BrushController,
@@ -43,6 +50,8 @@ export class BrushEngine {
     const densityEl = this.root.querySelector<HTMLLabelElement>('#density');
     const spacingEl = this.root.querySelector<HTMLLabelElement>('#spacing');
     const angleEl = this.root.querySelector<HTMLLabelElement>('#angle');
+    const horizontalEl = this.root.querySelector<HTMLLabelElement>('#h-fade');
+    const verticalEl = this.root.querySelector<HTMLLabelElement>('#v-fade');
     const circleBtn = this.root.querySelector<HTMLLabelElement>('#circle-btn');
     const squareBtn = this.root.querySelector<HTMLLabelElement>('#square-btn');
     const closeBtn = this.root.querySelector<HTMLButtonElement>(
@@ -66,6 +75,8 @@ export class BrushEngine {
         squareBtn,
         closeBtn,
         addBrushBtn,
+        horizontalEl,
+        verticalEl,
       ].some((item) => item === null)
     ) {
       throw new Error('Invalid node layout');
@@ -98,6 +109,8 @@ export class BrushEngine {
       this.initInput(spikesEl!, 'spikes');
       this.initInput(densityEl!, 'density');
       this.initInput(angleEl!, 'angle');
+      this.initInput(horizontalEl!, 'hFade');
+      this.initInput(verticalEl!, 'vFade');
     });
   }
 
@@ -127,6 +140,8 @@ export class BrushEngine {
       spacing: this.spacing,
       spikes: this.spikes,
       shape: this.shape,
+      hFade: this.hFade,
+      vFade: this.vFade,
       preview,
     };
     localStorage.setItem('brushes', JSON.stringify([...localBrushes, brush]));
@@ -138,7 +153,14 @@ export class BrushEngine {
 
   initInput(
     element: HTMLLabelElement,
-    key: 'ratio' | 'spikes' | 'density' | 'spacing' | 'angle'
+    key:
+      | 'ratio'
+      | 'spikes'
+      | 'density'
+      | 'spacing'
+      | 'angle'
+      | 'hFade'
+      | 'vFade'
   ) {
     const input = element.querySelector('input');
     const span = element.querySelector('span');
@@ -199,6 +221,92 @@ export class BrushEngine {
     const spikeCount = brush?.spikes;
     const ratio = brush?.ratio;
     const density = brush?.density;
+    const vFade = brush?.vFade;
+    const hFade = brush?.hFade;
+    const angle = brush.angle || 0;
+
+    const generateTipMask = (sprite: Sprite | Graphics) => {
+      if (hFade || vFade) {
+        const getGradientMask = (offset: number, maskAngle?: number) => {
+          const combinedAngle = angle + (maskAngle || 0);
+          offset = offset / 100;
+          const gradient = new FillGradient({
+            start: { x: 0, y: 0 },
+            end: { x: 0, y: 1 },
+
+            textureSpace: 'local',
+            type: 'linear',
+          });
+          gradient.addColorStop(0, 0x000000);
+          gradient.addColorStop(offset / 4, 0x000000);
+          gradient.addColorStop(offset / 2, 0xffffff);
+          gradient.addColorStop(0.5, 0xffffff);
+          gradient.addColorStop(1 - offset / 2, 0xffffff);
+          gradient.addColorStop(1 - offset / 4, 0x000000);
+          gradient.addColorStop(1, 0x000000);
+          const rect = new Graphics().rect(0, 0, width, height).fill(gradient);
+
+          const gradientTexture = RenderTexture.create({
+            width,
+            height,
+          });
+          if (combinedAngle) {
+            rect.angle = combinedAngle;
+            rect.position.set(width / 2, height / 2);
+            rect.pivot.set(width / 2, height / 2);
+          }
+          renderer.render({
+            target: gradientTexture,
+            container: rect,
+          });
+
+          const mask = new Sprite({
+            width,
+            height,
+            texture: gradientTexture,
+          });
+          rect.destroy(true);
+          gradient.destroy();
+          return mask;
+        };
+
+        const vMask = getGradientMask(vFade);
+        const hMask = getGradientMask(hFade, 90);
+        const maskTexture = RenderTexture.create({
+          width,
+          height,
+        });
+        renderer.render({
+          target: maskTexture,
+          container: vMask,
+        });
+        const mask1 = new Sprite({
+          width,
+          height,
+          texture: maskTexture,
+        });
+        mask1.mask = hMask;
+        const mask2Texture = RenderTexture.create({
+          width,
+          height,
+        });
+        renderer.render({
+          target: mask2Texture,
+          container: mask1,
+        });
+        vMask.destroy(true);
+        hMask.destroy(true);
+        mask1.destroy(true);
+        maskTexture.destroy(true);
+        const mask = new Sprite({
+          width,
+          height,
+          texture: mask2Texture,
+        });
+        sprite.addChild(mask);
+        sprite.mask = mask;
+      }
+    };
 
     const cx = centerX;
     const cy = centerY;
@@ -215,7 +323,7 @@ export class BrushEngine {
     const CP4 = { x: cx + K * rx, y: cy - ry };
     const P2 = { x: cx, y: cy - ry };
 
-    const globalRotation = ((brush.angle || 0) * Math.PI) / 180;
+    const globalRotation = (angle * Math.PI) / 180;
 
     for (let i = 0; i < spikeCount; i++) {
       if (brush.shape === 'circle') {
@@ -269,7 +377,7 @@ export class BrushEngine {
 
     if (density >= 100) {
       stampShape.fill(color);
-
+      generateTipMask(stampShape);
       return stampShape;
     }
 
@@ -309,6 +417,7 @@ export class BrushEngine {
     const sprite = new Sprite({
       texture: rt,
     });
+    generateTipMask(sprite);
     dotsContainer.destroy(true);
     return sprite;
   }

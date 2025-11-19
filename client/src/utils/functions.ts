@@ -1,5 +1,5 @@
 import { BrushWithPreview } from './types';
-import { Point } from 'pixi.js';
+import { Point, Texture } from 'pixi.js';
 
 export const distance = (a: Point, b: Point) => {
   const dx = a.x - b.x;
