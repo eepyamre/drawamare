@@ -1,17 +1,13 @@
 import { Identity } from 'spacetimedb';
 
+import { AppEvents, EventBus } from '../events';
 import { ILayerController, Layer } from '../interfaces/ILayerController';
 import { NetworkController } from './NetworkController';
 import { PixiController } from './PixiController';
-import { LayerUI } from './UIController';
 
 export class LayerController implements ILayerController {
   layers = new Map<number, Layer>();
   activeLayer: Layer | null = null;
-  ui: LayerUI;
-  constructor(ui: LayerUI) {
-    this.ui = ui;
-  }
 
   init(networkCtr: NetworkController, pixiCtr: PixiController) {
     const identity = networkCtr.getIdentity();
@@ -60,8 +56,16 @@ export class LayerController implements ILayerController {
     };
 
     this.layers.set(l.id, l);
-    this.ui.renderLayers(Array.from(this.layers.values()));
-    if (this.activeLayer?.id) this.ui.setActiveLayer(this.activeLayer.id);
+    EventBus.getInstance().emit(
+      AppEvents.LAYERS_RERENDER,
+      Array.from(this.layers.values())
+    );
+    if (this.activeLayer?.id) {
+      EventBus.getInstance().emit(
+        AppEvents.LAYER_ACTIVATED,
+        this.activeLayer.id
+      );
+    }
     return l;
   }
 
@@ -98,7 +102,7 @@ export class LayerController implements ILayerController {
     if (!layer) return null;
 
     this.activeLayer = layer;
-    this.ui.setActiveLayer(layerId);
+    EventBus.getInstance().emit(AppEvents.LAYER_ACTIVATED, layerId);
 
     return layer;
   }
@@ -111,7 +115,7 @@ export class LayerController implements ILayerController {
     const l = this.layers.get(layerId);
     l?.container.destroy();
     this.layers.delete(layerId);
-    this.ui.renderLayers(this.getAllLayers());
+    EventBus.getInstance().emit(AppEvents.LAYERS_RERENDER, this.getAllLayers());
   }
 
   clearActiveLayerRenderTarget(pixiCtr: PixiController) {

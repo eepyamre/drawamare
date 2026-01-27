@@ -1,5 +1,6 @@
 import { Identity } from 'spacetimedb';
 
+import { AppEvents, EventBus } from '../events';
 import { Layer } from '../interfaces';
 import {
   Brush,
@@ -32,6 +33,14 @@ export class LayerUI {
         this.onAddLayerCallback();
       }
     });
+
+    this.setBusListeners();
+  }
+
+  setBusListeners() {
+    const bus = EventBus.getInstance();
+    bus.on(AppEvents.LAYERS_RERENDER, this.renderLayers.bind(this));
+    bus.on(AppEvents.LAYER_ACTIVATED, this.setActiveLayer.bind(this));
   }
 
   /**

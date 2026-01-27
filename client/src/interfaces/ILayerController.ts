@@ -1,7 +1,6 @@
 import { Container, RenderTexture } from 'pixi.js';
 import { Identity } from 'spacetimedb';
 
-import { LayerUI } from '../controllers/UIController';
 import { INetworkController, IPixiController } from './';
 
 export type Layer = {
@@ -16,7 +15,6 @@ export type Layer = {
 export interface ILayerController {
   layers: Map<number, Layer>;
   activeLayer: Layer | null;
-  ui: LayerUI;
 
   init(networkCtr: INetworkController, pixiCtr: IPixiController): void;
   createLayer(

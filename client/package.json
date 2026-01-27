@@ -8,7 +8,9 @@
     "build": "npm run lint && tsc && vite build",
     "dev": "vite --host",
     "lint": "eslint .",
-    "prettier:fix": "prettier src --write"
+    "prettier:fix": "prettier src --write",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@types/socket.io-client": "^3.0.0",
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@trivago/prettier-plugin-sort-imports": "^6.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.21.0",
     "typescript": "~5.7.3",
     "typescript-eslint": "^8.25.0",

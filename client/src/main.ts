@@ -43,7 +43,7 @@ const startApp = async () => {
   const pixiCtr = new PixiController();
   await pixiCtr.init();
   const layerUI = new LayerUI();
-  const layerCtr = new LayerController(layerUI);
+  const layerCtr = new LayerController();
   layerCtr.init(networkCtr, pixiCtr);
 
   const brushUI = new BrushSettingsUI();
