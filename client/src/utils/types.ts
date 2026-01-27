@@ -1,18 +1,3 @@
-import { PixiController } from '../controllers/pixi';
-import { Container, RenderTexture, Point } from 'pixi.js';
-import { Identity } from 'spacetimedb';
-
-export type History = RenderTexture[];
-
-export type Layer = {
-  id: number;
-  container: Container;
-  rt: RenderTexture;
-  ownerId: Identity;
-  ownerName: string;
-  title: string;
-};
-
 export enum BLEND_MODES {
   INHERIT = 'inherit',
   NORMAL = 'normal',
@@ -65,15 +50,3 @@ export type BrushWithPreview = Brush & {
 };
 
 export type BrushExtended = Brush & { size?: number; color?: number };
-
-export type StampFn = (
-  pixiCtr: PixiController,
-  layer: Layer,
-  brush: Brush,
-  position: Point,
-  diameter: number,
-  color: number,
-  alpha: number,
-  blendMode: BLEND_MODES,
-  clearCache: boolean
-) => void;

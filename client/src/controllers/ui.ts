@@ -1,11 +1,12 @@
+import { Identity } from 'spacetimedb';
+
+import { Layer } from '../interfaces';
 import {
   Brush,
   BrushWithPreview,
   DEFAULT_BRUSH,
   getLocalBrushes,
-  Layer,
 } from '../utils';
-import { Identity } from 'spacetimedb';
 
 type LayerSelectCallback = (layerId: number) => void;
 type AddLayerCallback = () => void;

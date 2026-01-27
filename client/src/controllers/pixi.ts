@@ -1,18 +1,20 @@
-import { boardSize, Layer, maxScale, minScale } from '../utils';
 import {
   Application,
-  Graphics,
-  extensions,
-  CullerPlugin,
   Container,
+  CullerPlugin,
+  Graphics,
   Point,
   RenderTexture,
   Sprite,
   Texture,
+  extensions,
 } from 'pixi.js';
 import 'pixi.js/math-extras';
 
-export class PixiController {
+import { IPixiController, Layer } from '../interfaces';
+import { boardSize, maxScale, minScale } from '../utils';
+
+export class PixiController implements IPixiController {
   app!: Application;
   board!: Container;
   mouse!: Graphics;
@@ -77,7 +79,7 @@ export class PixiController {
     });
   }
 
-  private _scale(delta: number) {
+  _scale(delta: number) {
     this.app.stage.scale = this.app.stage.scale.x + delta;
     if (this.app.stage.scale.x < minScale) this.app.stage.scale = minScale; // Prevent inverting or too small scale
     if (this.app.stage.scale.x > maxScale) this.app.stage.scale = maxScale; // Prevent too big scale

@@ -1,8 +1,10 @@
-import { BLEND_MODES, Brush, BrushExtended, StampFn } from '../utils';
-import { BrushEngine } from './brushEngine';
 import { Sprite } from 'pixi.js';
 
-export class BrushController {
+import { IBrushController, StampFn } from '../interfaces';
+import { BLEND_MODES, Brush, BrushExtended } from '../utils';
+import { BrushEngine } from './brushEngine';
+
+export class BrushController implements IBrushController {
   brush: Brush = {
     angle: 0,
     density: 100,
@@ -10,6 +12,8 @@ export class BrushController {
     spikes: 12,
     spacing: 1,
     shape: 'circle',
+    hFade: 1,
+    vFade: 1,
   };
 
   // string of <angle><density><ratio><spikes><spacing><size><color>

@@ -1,11 +1,12 @@
-import { History, Layer } from '../utils';
+import { Layer } from '../interfaces';
+import { History, IHistoryController } from '../interfaces/IHistoryController';
 import { LayerController } from './layer';
 import { NetworkController } from './network';
 import { PixiController } from './pixi';
 
 const maxHistoryLength = 48;
 
-export class HistoryController {
+export class HistoryController implements IHistoryController {
   historyStack: History = [];
   redoStack: History = [];
 

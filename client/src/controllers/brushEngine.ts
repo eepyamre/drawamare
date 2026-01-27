@@ -1,5 +1,15 @@
 // TODO MOVE UI OUTSIDE OF THIS COMPONENT
 import {
+  Application,
+  Container,
+  FillGradient,
+  Graphics,
+  RenderTexture,
+  Renderer,
+  Sprite,
+} from 'pixi.js';
+
+import {
   BrushExtended,
   BrushWithPreview,
   DEFAULT_BRUSH,
@@ -8,15 +18,6 @@ import {
 } from '../utils';
 import { BrushController } from './brush';
 import { BrushSettingsUI } from './ui';
-import {
-  Application,
-  Container,
-  FillGradient,
-  Graphics,
-  Renderer,
-  RenderTexture,
-  Sprite,
-} from 'pixi.js';
 
 export class BrushEngine {
   app: Application | null = null;

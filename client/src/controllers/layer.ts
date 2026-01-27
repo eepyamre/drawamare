@@ -1,13 +1,14 @@
-import { Layer } from '../utils';
+import { Identity } from 'spacetimedb';
+
+import { ILayerController, Layer } from '../interfaces/ILayerController';
 import { NetworkController } from './network';
 import { PixiController } from './pixi';
 import { LayerUI } from './ui';
-import { Identity } from 'spacetimedb';
 
-export class LayerController {
-  private layers = new Map<number, Layer>();
-  private activeLayer: Layer | null = null;
-  private ui: LayerUI;
+export class LayerController implements ILayerController {
+  layers = new Map<number, Layer>();
+  activeLayer: Layer | null = null;
+  ui: LayerUI;
   constructor(ui: LayerUI) {
     this.ui = ui;
   }

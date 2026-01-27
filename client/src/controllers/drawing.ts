@@ -1,14 +1,21 @@
-import { DrawCommand, StrokeStyle } from '../module_bindings';
-import { Layer, BLEND_MODES, Brush } from '../utils';
-import { BrushController } from './brush';
-import { HistoryController } from './history';
-import { LayerController } from './layer';
-import { NetworkController } from './network';
-import { PixiController } from './pixi';
-import { BrushSettingsUI, PressureSettings, Tools } from './ui';
 import { FederatedPointerEvent, Point } from 'pixi.js';
 
-export class DrawingController {
+import {
+  IBrushController,
+  IDrawingController,
+  IHistoryController,
+  ILayerController,
+  INetworkController,
+  IPixiController,
+  Layer,
+} from '../interfaces';
+import { DrawCommand, StrokeStyle } from '../module_bindings';
+import { BLEND_MODES, Brush } from '../utils';
+import { BrushController } from './brush';
+import { PixiController } from './pixi';
+import { BrushSettingsUI, PressureSettings, Tools } from './ui';
+
+export class DrawingController implements IDrawingController {
   strokeStyle: StrokeStyle = {
     width: 10,
     cap: 'round',
@@ -27,14 +34,14 @@ export class DrawingController {
     opacity: false,
     size: false,
   };
-
+  // FIXME: REFACTOR
   constructor(
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    historyCtr: HistoryController,
-    networkCtr: NetworkController,
+    pixiCtr: IPixiController,
+    layerCtr: ILayerController,
+    historyCtr: IHistoryController,
+    networkCtr: INetworkController,
     brushSettingsUI: BrushSettingsUI,
-    brushCtr: BrushController
+    brushCtr: IBrushController
   ) {
     const stage = pixiCtr.app.stage;
     this.strokeStyle.width = brushSettingsUI.getBrushSize();
@@ -133,10 +140,10 @@ export class DrawingController {
 
   onPointerDown(
     e: FederatedPointerEvent,
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    historyCtr: HistoryController,
-    brushCtr: BrushController
+    pixiCtr: IPixiController,
+    layerCtr: ILayerController,
+    historyCtr: IHistoryController,
+    brushCtr: IBrushController
   ) {
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
@@ -193,9 +200,9 @@ export class DrawingController {
 
   onPointerMove(
     e: FederatedPointerEvent,
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    brushCtr: BrushController
+    pixiCtr: IPixiController,
+    layerCtr: ILayerController,
+    brushCtr: IBrushController
   ) {
     const offsetPosition = pixiCtr.offsetPosition(e.clientX, e.clientY);
     pixiCtr.setMousePosition(offsetPosition);
@@ -287,11 +294,11 @@ export class DrawingController {
   }
 
   onPointerUp(
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    historyCtr: HistoryController,
-    networkCtr: NetworkController,
-    brushCtr: BrushController
+    pixiCtr: IPixiController,
+    layerCtr: ILayerController,
+    historyCtr: IHistoryController,
+    networkCtr: INetworkController,
+    brushCtr: IBrushController
   ) {
     if (!this.drawing) {
       this.pan = false;

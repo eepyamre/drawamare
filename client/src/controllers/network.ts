@@ -1,3 +1,12 @@
+import { Identity } from 'spacetimedb';
+
+import {
+  IBrushController,
+  IDrawingController,
+  ILayerController,
+  INetworkController,
+  IPixiController,
+} from '../interfaces';
 import {
   Command,
   DbConnection,
@@ -6,15 +15,10 @@ import {
   EventContext,
   Layer as ServerLayer,
 } from '../module_bindings';
-import { BrushController } from './brush';
-import { DrawingController } from './drawing';
-import { LayerController } from './layer';
-import { PixiController } from './pixi';
-import { Identity } from 'spacetimedb';
 
-export class NetworkController {
-  private conn: DbConnection | null = null;
-  private identity: Identity | null = null;
+export class NetworkController implements INetworkController {
+  conn: DbConnection | null = null;
+  identity: Identity | null = null;
 
   connect(): Promise<void> {
     return new Promise<void>((res, rej) => {
@@ -89,10 +93,10 @@ export class NetworkController {
   }
 
   initEventListeners(
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    drawingController: DrawingController,
-    brushCtr: BrushController
+    pixiCtr: IPixiController,
+    layerCtr: ILayerController,
+    drawingController: IDrawingController,
+    brushCtr: IBrushController
   ) {
     this.getClientDb()?.command.onInsert(
       (_ctx: EventContext, command: Command) => {
