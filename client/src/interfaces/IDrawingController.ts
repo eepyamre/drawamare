@@ -1,10 +1,10 @@
 import { Point } from 'pixi.js';
 import { FederatedPointerEvent } from 'pixi.js';
 
-import { PressureSettings } from '../controllers/UIController';
-import { Tools } from '../controllers/UIController';
 import { StrokeStyle } from '../module_bindings';
 import { DrawCommand } from '../module_bindings';
+import { PressureSettings } from '../ui';
+import { Tools } from '../utils';
 import {
   IBrushController,
   IHistoryController,

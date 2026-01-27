@@ -1,17 +1,13 @@
 import {
   BrushController,
-  BrushSettingsUI,
   DrawingController,
   HistoryController,
   LayerController,
-  LayerUI,
   NetworkController,
   PixiController,
-  ToolbarUI,
-  Tools,
 } from './controllers/';
-import { BrushEditorCallbacks, BrushEditorUI } from './ui/';
-import { BrushWithPreview, getLocalBrushes, wait } from './utils';
+import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
+import { Tools, wait } from './utils';
 
 const startApp = async () => {
   // eslint-disable-next-line
@@ -50,31 +46,7 @@ const startApp = async () => {
   const brushCtr = new BrushController();
   const toolbarUI = new ToolbarUI();
 
-  const brushEditorCallbacks: BrushEditorCallbacks = {
-    onSave: (brush: BrushWithPreview, editingIndex: number | null) => {
-      brushCtr.setBrush(brush);
-
-      const localBrushes = getLocalBrushes();
-      if (editingIndex !== null) {
-        localBrushes[editingIndex] = brush;
-        brushUI.setActiveBrush(`Custom Brush ${editingIndex + 1}`);
-      } else {
-        localBrushes.push(brush);
-        brushUI.initBrushes();
-        brushUI.setActiveBrush(`Custom Brush ${localBrushes.length}`);
-      }
-
-      localStorage.setItem('brushes', JSON.stringify(localBrushes));
-    },
-    onCancel: () => {
-      console.log('Brush editor cancelled');
-    },
-  };
-
-  const brushEditorUI = new BrushEditorUI(
-    '.brush-editor',
-    brushEditorCallbacks
-  );
+  const brushEditorUI = new BrushEditorUI('.brush-editor');
 
   await brushEditorUI.initPixi();
   const historyCtr = new HistoryController();

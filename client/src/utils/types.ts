@@ -50,3 +50,15 @@ export type BrushWithPreview = Brush & {
 };
 
 export type BrushExtended = Brush & { size?: number; color?: number };
+
+export enum Tools {
+  BRUSH = 'brush',
+  ERASER = 'eraser',
+  DELETE = 'delete',
+  ZOOMIN = 'zoomin',
+  ZOOMOUT = 'zoomout',
+  DOWNLOAD = 'download',
+  UNDO = 'undo',
+  REDO = 'redo',
+  COLOR = 'color',
+}

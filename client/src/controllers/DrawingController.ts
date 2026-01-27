@@ -10,10 +10,10 @@ import {
   Layer,
 } from '../interfaces';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
-import { BLEND_MODES, Brush } from '../utils';
+import { BrushSettingsUI, PressureSettings } from '../ui';
+import { BLEND_MODES, Brush, Tools } from '../utils';
 import { BrushController } from './BrushController';
 import { PixiController } from './PixiController';
-import { BrushSettingsUI, PressureSettings, Tools } from './UIController';
 
 export class DrawingController implements IDrawingController {
   strokeStyle: StrokeStyle = {

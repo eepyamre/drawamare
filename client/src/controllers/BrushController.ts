@@ -1,5 +1,6 @@
 import { Sprite } from 'pixi.js';
 
+import { AppEvents, EventBus } from '../events';
 import { IBrushController, StampFn } from '../interfaces';
 import { BLEND_MODES, Brush, BrushExtended } from '../utils';
 import { BrushEngine } from './BrushEngine';
@@ -18,6 +19,12 @@ export class BrushController implements IBrushController {
 
   // string of <angle><density><ratio><spikes><spacing><size><color>
   stampCache: Record<string, Sprite> = {};
+
+  constructor() {
+    EventBus.getInstance().on(AppEvents.BRUSH_EDITOR_SAVE, ({ brush }) => {
+      this.setBrush(brush);
+    });
+  }
 
   saveCache(brush: BrushExtended, sprite: Sprite) {
     this.stampCache[this.getCacheName(brush)] = sprite;

@@ -1,12 +1,8 @@
 import { Application, Container } from 'pixi.js';
 
 import { BrushEngine } from '../controllers/BrushEngine';
+import { AppEvents, EventBus } from '../events';
 import { Brush, BrushWithPreview, DEFAULT_BRUSH } from '../utils';
-
-export type BrushEditorCallbacks = {
-  onSave: (brush: BrushWithPreview, editingIndex: number | null) => void;
-  onCancel: () => void;
-};
 
 export class BrushEditorUI {
   private app: Application | null = null;
@@ -19,10 +15,7 @@ export class BrushEditorUI {
   private saveBtn: HTMLButtonElement | null = null;
   private closeBtn: HTMLButtonElement | null = null;
 
-  private callbacks: BrushEditorCallbacks;
-
-  constructor(editorRoot: string, callbacks: BrushEditorCallbacks) {
-    this.callbacks = callbacks;
+  constructor(editorRoot: string) {
     this.root = document.querySelector<HTMLDivElement>(editorRoot)!;
 
     if (!this.root) {
@@ -106,7 +99,7 @@ export class BrushEditorUI {
 
     this.closeBtn.addEventListener('click', () => {
       this.toggle();
-      this.callbacks.onCancel();
+      EventBus.getInstance().emit(AppEvents.BRUSH_EDITOR_CANCEL, null);
     });
 
     document.addEventListener('click', (e) => {
@@ -242,6 +235,7 @@ export class BrushEditorUI {
       color: 0x000000,
     });
 
+    stage.removeChildren();
     if (stamp) stage.addChild(stamp);
     return stage;
   }
@@ -258,14 +252,15 @@ export class BrushEditorUI {
 
     if (!preview) return;
 
-    container.destroy(true);
-
     const brushWithPreview: BrushWithPreview = {
       ...this.brush,
       preview,
     };
 
-    this.callbacks.onSave(brushWithPreview, this.editingIndex);
+    EventBus.getInstance().emit(AppEvents.BRUSH_EDITOR_SAVE, {
+      brush: brushWithPreview,
+      editingIndex: this.editingIndex,
+    });
 
     this.toggle();
   }
