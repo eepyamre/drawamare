@@ -1,12 +1,17 @@
-import { BrushController } from './controllers/brush';
-import { BrushEngine } from './controllers/brushEngine';
-import { DrawingController } from './controllers/drawing';
-import { HistoryController } from './controllers/history';
-import { LayerController } from './controllers/layer';
-import { NetworkController } from './controllers/network';
-import { PixiController } from './controllers/pixi';
-import { BrushSettingsUI, LayerUI, ToolbarUI, Tools } from './controllers/ui';
-import { wait } from './utils';
+import {
+  BrushController,
+  BrushSettingsUI,
+  DrawingController,
+  HistoryController,
+  LayerController,
+  LayerUI,
+  NetworkController,
+  PixiController,
+  ToolbarUI,
+  Tools,
+} from './controllers/';
+import { BrushEditorCallbacks, BrushEditorUI } from './ui/';
+import { BrushWithPreview, getLocalBrushes, wait } from './utils';
 
 const startApp = async () => {
   // eslint-disable-next-line
@@ -43,8 +48,35 @@ const startApp = async () => {
 
   const brushUI = new BrushSettingsUI();
   const brushCtr = new BrushController();
-  const brushEngine = new BrushEngine('.brush-editor', brushCtr, brushUI);
   const toolbarUI = new ToolbarUI();
+
+  const brushEditorCallbacks: BrushEditorCallbacks = {
+    onSave: (brush: BrushWithPreview, editingIndex: number | null) => {
+      brushCtr.setBrush(brush);
+
+      const localBrushes = getLocalBrushes();
+      if (editingIndex !== null) {
+        localBrushes[editingIndex] = brush;
+        brushUI.setActiveBrush(`Custom Brush ${editingIndex + 1}`);
+      } else {
+        localBrushes.push(brush);
+        brushUI.initBrushes();
+        brushUI.setActiveBrush(`Custom Brush ${localBrushes.length}`);
+      }
+
+      localStorage.setItem('brushes', JSON.stringify(localBrushes));
+    },
+    onCancel: () => {
+      console.log('Brush editor cancelled');
+    },
+  };
+
+  const brushEditorUI = new BrushEditorUI(
+    '.brush-editor',
+    brushEditorCallbacks
+  );
+
+  await brushEditorUI.initPixi();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
     pixiCtr,
@@ -199,7 +231,7 @@ const startApp = async () => {
     brushCtr.setBrush(brush);
   });
   brushUI.onEditBrush((brush, index) => {
-    brushEngine.loadBrush(brush, index);
+    brushEditorUI.loadBrush(brush, index);
   });
 };
 

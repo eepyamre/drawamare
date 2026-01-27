@@ -2,7 +2,7 @@ import { Sprite } from 'pixi.js';
 
 import { IBrushController, StampFn } from '../interfaces';
 import { BLEND_MODES, Brush, BrushExtended } from '../utils';
-import { BrushEngine } from './brushEngine';
+import { BrushEngine } from './BrushEngine';
 
 export class BrushController implements IBrushController {
   brush: Brush = {

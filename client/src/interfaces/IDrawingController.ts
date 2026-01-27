@@ -1,8 +1,8 @@
 import { Point } from 'pixi.js';
 import { FederatedPointerEvent } from 'pixi.js';
 
-import { PressureSettings } from '../controllers/ui';
-import { Tools } from '../controllers/ui';
+import { PressureSettings } from '../controllers/UIController';
+import { Tools } from '../controllers/UIController';
 import { StrokeStyle } from '../module_bindings';
 import { DrawCommand } from '../module_bindings';
 import {

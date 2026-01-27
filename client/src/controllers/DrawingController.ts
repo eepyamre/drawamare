@@ -11,9 +11,9 @@ import {
 } from '../interfaces';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
 import { BLEND_MODES, Brush } from '../utils';
-import { BrushController } from './brush';
-import { PixiController } from './pixi';
-import { BrushSettingsUI, PressureSettings, Tools } from './ui';
+import { BrushController } from './BrushController';
+import { PixiController } from './PixiController';
+import { BrushSettingsUI, PressureSettings, Tools } from './UIController';
 
 export class DrawingController implements IDrawingController {
   strokeStyle: StrokeStyle = {

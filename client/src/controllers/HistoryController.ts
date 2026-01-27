@@ -1,8 +1,8 @@
 import { Layer } from '../interfaces';
 import { History, IHistoryController } from '../interfaces/IHistoryController';
-import { LayerController } from './layer';
-import { NetworkController } from './network';
-import { PixiController } from './pixi';
+import { LayerController } from './LayerController';
+import { NetworkController } from './NetworkController';
+import { PixiController } from './PixiController';
 
 const maxHistoryLength = 48;
 

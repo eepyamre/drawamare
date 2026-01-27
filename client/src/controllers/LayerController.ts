@@ -1,9 +1,9 @@
 import { Identity } from 'spacetimedb';
 
 import { ILayerController, Layer } from '../interfaces/ILayerController';
-import { NetworkController } from './network';
-import { PixiController } from './pixi';
-import { LayerUI } from './ui';
+import { NetworkController } from './NetworkController';
+import { PixiController } from './PixiController';
+import { LayerUI } from './UIController';
 
 export class LayerController implements ILayerController {
   layers = new Map<number, Layer>();
