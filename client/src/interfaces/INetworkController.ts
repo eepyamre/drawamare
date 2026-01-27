@@ -22,13 +22,14 @@ export interface INetworkController {
     drawingController: IDrawingController,
     brushCtr: IBrushController
   ): void;
+  initBusListeners(): void;
   confirmLayerIdentity(layer: Layer): void;
-  emitDrawCommands(layerId: number, commands: DrawCommand[]): void;
-  emitCreateLayerRequest(): void;
-  emitDeleteLayerRequest(layerId: number): void;
-  emitSaveLayerRequest(
-    layerId: number,
-    base64: string,
-    forceUpdate: boolean
-  ): void;
+  _emitDrawCommands(data: { layerId: number; commands: DrawCommand[] }): void;
+  _emitCreateLayerRequest(): void;
+  _emitDeleteLayerRequest(layerId: number): void;
+  _emitSaveLayerRequest(data: {
+    layerId: number;
+    base64: string;
+    forceUpdate: boolean;
+  }): void;
 }

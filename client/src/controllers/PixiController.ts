@@ -241,7 +241,6 @@ export class PixiController implements IPixiController {
   }
 
   setMouseSize(radius: number) {
-    console.log(radius);
     this.mouse.width = this.mouse.height = radius > 4 ? radius + 8 : radius + 4;
   }
 }

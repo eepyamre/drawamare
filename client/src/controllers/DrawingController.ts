@@ -6,7 +6,6 @@ import {
   IDrawingController,
   IHistoryController,
   ILayerController,
-  INetworkController,
   IPixiController,
   Layer,
 } from '../interfaces';
@@ -40,7 +39,6 @@ export class DrawingController implements IDrawingController {
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
     historyCtr: IHistoryController,
-    networkCtr: INetworkController,
     brushSettingsUI: BrushSettingsUI,
     brushCtr: IBrushController
   ) {
@@ -57,10 +55,10 @@ export class DrawingController implements IDrawingController {
         this.onPointerMove(e, pixiCtr, layerCtr, brushCtr)
       )
       .on('pointerup', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
+        this.onPointerUp(pixiCtr, layerCtr, historyCtr, brushCtr)
       )
       .on('pointerupoutside', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
+        this.onPointerUp(pixiCtr, layerCtr, historyCtr, brushCtr)
       );
 
     this.initBusListeners();
@@ -314,7 +312,6 @@ export class DrawingController implements IDrawingController {
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
     historyCtr: IHistoryController,
-    networkCtr: INetworkController,
     brushCtr: IBrushController
   ) {
     if (!this.drawing) {
@@ -340,9 +337,16 @@ export class DrawingController implements IDrawingController {
     });
 
     pixiCtr.extractBase64(layer.rt).then((data) => {
-      networkCtr.emitSaveLayerRequest(layer.id, data, false);
+      EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+        layerId: layer.id,
+        base64: data,
+        forceUpdate: false,
+      });
     });
-    networkCtr.emitDrawCommands(layer.id, this.accumulatedDrawCommands);
+    EventBus.getInstance().emit(AppEvents.NETWORK_DRAW_COMMANDS, {
+      layerId: layer.id,
+      commands: this.accumulatedDrawCommands,
+    });
     this.accumulatedDrawCommands = [];
   }
 

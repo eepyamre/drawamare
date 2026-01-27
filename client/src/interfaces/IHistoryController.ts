@@ -1,11 +1,6 @@
 import { RenderTexture } from 'pixi.js';
 
-import {
-  ILayerController,
-  INetworkController,
-  IPixiController,
-  Layer,
-} from './';
+import { ILayerController, IPixiController, Layer } from './';
 
 export type History = RenderTexture[];
 
@@ -14,16 +9,8 @@ export interface IHistoryController {
   redoStack: History;
 
   saveState(pixiCtr: IPixiController, activeLayer: Layer): void;
-  undo(
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    networkCtr: INetworkController
-  ): void;
-  redo(
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    networkCtr: INetworkController
-  ): void;
+  undo(pixiCtr: IPixiController, layerCtr: ILayerController): void;
+  redo(pixiCtr: IPixiController, layerCtr: ILayerController): void;
   clearHistory(): void;
   clearRedo(): void;
 }

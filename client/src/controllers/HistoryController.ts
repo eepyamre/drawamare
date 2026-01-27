@@ -1,7 +1,7 @@
+import { AppEvents, EventBus } from '../events';
 import { Layer } from '../interfaces';
 import { History, IHistoryController } from '../interfaces/IHistoryController';
 import { LayerController } from './LayerController';
-import { NetworkController } from './NetworkController';
 import { PixiController } from './PixiController';
 
 const maxHistoryLength = 48;
@@ -20,11 +20,7 @@ export class HistoryController implements IHistoryController {
     }
   }
 
-  undo(
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    networkCtr: NetworkController
-  ) {
+  undo(pixiCtr: PixiController, layerCtr: LayerController) {
     if (this.historyStack.length <= 1) {
       console.log('No commands to undo');
       return;
@@ -38,16 +34,16 @@ export class HistoryController implements IHistoryController {
       const previousState = this.historyStack[this.historyStack.length - 1];
       pixiCtr.redrawLayer(layer, previousState);
       pixiCtr.extractBase64(layer.rt).then((data) => {
-        networkCtr.emitSaveLayerRequest(layer.id, data, true);
+        EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+          layerId: layer.id,
+          base64: data,
+          forceUpdate: true,
+        });
       });
     }
   }
 
-  redo(
-    pixiCtr: PixiController,
-    layerCtr: LayerController,
-    networkCtr: NetworkController
-  ) {
+  redo(pixiCtr: PixiController, layerCtr: LayerController) {
     if (this.redoStack.length <= 0) {
       console.log('No commands to redo');
       return;
@@ -61,7 +57,11 @@ export class HistoryController implements IHistoryController {
       this.historyStack.push(lastItem);
       pixiCtr.redrawLayer(layer, lastItem);
       pixiCtr.extractBase64(layer.rt).then((data) => {
-        networkCtr.emitSaveLayerRequest(layer.id, data, true);
+        EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+          layerId: layer.id,
+          base64: data,
+          forceUpdate: true,
+        });
       });
     }
   }

@@ -55,7 +55,6 @@ const startApp = async () => {
     pixiCtr,
     layerCtr,
     historyCtr,
-    networkCtr,
     brushUI,
     brushCtr
   );
@@ -69,19 +68,19 @@ const startApp = async () => {
     pixiCtr.clearRenderTarget(activeLayer.rt);
     historyCtr.saveState(pixiCtr, activeLayer);
     pixiCtr.extractBase64(activeLayer.rt).then((data) => {
-      networkCtr.emitSaveLayerRequest(activeLayer.id, data, true);
+      bus.emit(AppEvents.NETWORK_SAVE_LAYER, {
+        layerId: activeLayer.id,
+        base64: data,
+        forceUpdate: true,
+      });
     });
   };
 
   {
     // TODO: REFACTOR
     bus.on(AppEvents.LAYER_CLEAR_ACTIVE, clearLayer);
-    bus.on(AppEvents.HISTORY_UNDO, () =>
-      historyCtr.undo(pixiCtr, layerCtr, networkCtr)
-    );
-    bus.on(AppEvents.HISTORY_REDO, () =>
-      historyCtr.redo(pixiCtr, layerCtr, networkCtr)
-    );
+    bus.on(AppEvents.HISTORY_UNDO, () => historyCtr.undo(pixiCtr, layerCtr));
+    bus.on(AppEvents.HISTORY_REDO, () => historyCtr.redo(pixiCtr, layerCtr));
   }
 
   // TODO: move to keyboard/event controller
@@ -151,7 +150,7 @@ const startApp = async () => {
 
     layerUI.onAddLayer(() => {
       console.log('Add new layer');
-      networkCtr.emitCreateLayerRequest();
+      bus.emit(AppEvents.NETWORK_CREATE_LAYER, null);
     });
 
     layerUI.onDeleteLayer((layerId) => {
@@ -159,7 +158,7 @@ const startApp = async () => {
       layerCtr.deleteLayer(layerId);
       historyCtr.clearHistory();
       historyCtr.clearRedo();
-      networkCtr.emitDeleteLayerRequest(layerId);
+      bus.emit(AppEvents.NETWORK_DELETE_LAYER, layerId);
     });
   }
 };

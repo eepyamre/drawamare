@@ -1,4 +1,5 @@
 import { Layer } from '../interfaces';
+import { DrawCommand } from '../module_bindings';
 import { PressureSettings } from '../ui';
 import { Brush, BrushWithPreview, Tools } from '../utils';
 
@@ -21,6 +22,10 @@ export enum AppEvents {
   CANVAS_SET_PAN_MODE = 'canvas:setPanMode',
   HISTORY_UNDO = 'history:undo',
   HISTORY_REDO = 'history:redo',
+  NETWORK_DRAW_COMMANDS = 'network:drawCommandsRequest',
+  NETWORK_CREATE_LAYER = 'network:createLayerRequest',
+  NETWORK_DELETE_LAYER = 'network:deleteLayerRequest',
+  NETWORK_SAVE_LAYER = 'network:saveLayerRequest',
 }
 
 export type EventData = {
@@ -45,4 +50,15 @@ export type EventData = {
   [AppEvents.HISTORY_REDO]: null;
   [AppEvents.BRUSH_COLOR_CHANGE]: string;
   [AppEvents.CANVAS_SET_PAN_MODE]: boolean;
+  [AppEvents.NETWORK_CREATE_LAYER]: null;
+  [AppEvents.NETWORK_DRAW_COMMANDS]: {
+    layerId: number;
+    commands: DrawCommand[];
+  };
+  [AppEvents.NETWORK_DELETE_LAYER]: number;
+  [AppEvents.NETWORK_SAVE_LAYER]: {
+    layerId: number;
+    base64: string;
+    forceUpdate: boolean;
+  };
 };

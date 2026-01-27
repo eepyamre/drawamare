@@ -1,5 +1,6 @@
 import { Identity } from 'spacetimedb';
 
+import { AppEvents, EventBus } from '../events';
 import {
   IBrushController,
   IDrawingController,
@@ -19,6 +20,10 @@ import {
 export class NetworkController implements INetworkController {
   conn: DbConnection | null = null;
   identity: Identity | null = null;
+
+  constructor() {
+    this.initBusListeners();
+  }
 
   connect(): Promise<void> {
     return new Promise<void>((res, rej) => {
@@ -78,6 +83,21 @@ export class NetworkController implements INetworkController {
         .onDisconnect(onDisconnect)
         .build();
     });
+  }
+
+  initBusListeners(): void {
+    const bus = EventBus.getInstance();
+
+    bus.on(AppEvents.NETWORK_DRAW_COMMANDS, this._emitDrawCommands.bind(this));
+    bus.on(
+      AppEvents.NETWORK_CREATE_LAYER,
+      this._emitCreateLayerRequest.bind(this)
+    );
+    bus.on(
+      AppEvents.NETWORK_DELETE_LAYER,
+      this._emitDeleteLayerRequest.bind(this)
+    );
+    bus.on(AppEvents.NETWORK_SAVE_LAYER, this._emitSaveLayerRequest.bind(this));
   }
 
   getIdentity(): Identity | null {
@@ -175,19 +195,23 @@ export class NetworkController implements INetworkController {
     return this.identity && layer.owner.isEqual(this.identity);
   }
 
-  emitDrawCommands(layerId: number, commands: DrawCommand[]) {
-    this.getReducers()?.sendCommand(layerId, commands);
+  _emitDrawCommands(data: { layerId: number; commands: DrawCommand[] }) {
+    this.getReducers()?.sendCommand(data.layerId, data.commands);
   }
 
-  emitCreateLayerRequest() {
+  _emitCreateLayerRequest() {
     this.getReducers()?.createLayer();
   }
 
-  emitDeleteLayerRequest(layerId: number) {
+  _emitDeleteLayerRequest(layerId: number) {
     this.getReducers()?.deleteLayer(layerId);
   }
 
-  emitSaveLayerRequest(layerId: number, base64: string, forceUpdate: boolean) {
-    this.getReducers()?.saveLayer(layerId, base64, forceUpdate);
+  _emitSaveLayerRequest(data: {
+    layerId: number;
+    base64: string;
+    forceUpdate: boolean;
+  }) {
+    this.getReducers()?.saveLayer(data.layerId, data.base64, data.forceUpdate);
   }
 }

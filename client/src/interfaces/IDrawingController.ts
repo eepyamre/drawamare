@@ -9,7 +9,6 @@ import {
   IBrushController,
   IHistoryController,
   ILayerController,
-  INetworkController,
   IPixiController,
   Layer,
 } from './';
@@ -54,7 +53,6 @@ export interface IDrawingController {
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
     historyCtr: IHistoryController,
-    networkCtr: INetworkController,
     brushCtr: IBrushController
   ): void;
   setDrawingTool(tool: Tools): void;

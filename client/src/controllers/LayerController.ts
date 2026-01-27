@@ -36,7 +36,7 @@ export class LayerController implements ILayerController {
     if (existingLayer) {
       this.activeLayer = existingLayer[1];
     } else {
-      networkCtr.emitCreateLayerRequest();
+      EventBus.getInstance().emit(AppEvents.NETWORK_CREATE_LAYER, null);
     }
   }
 
