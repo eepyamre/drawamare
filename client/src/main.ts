@@ -94,7 +94,7 @@ const startApp = async () => {
 
       switch (key) {
         case 'e':
-          if (drawingCtr.toggleEraser()) {
+          if (!drawingCtr.isErasing) {
             bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.ERASER);
           } else {
             bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.BRUSH);

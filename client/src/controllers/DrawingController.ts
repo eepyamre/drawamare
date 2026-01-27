@@ -353,9 +353,6 @@ export class DrawingController implements IDrawingController {
   setDrawingTool(tool: Tools) {
     this.isErasing = tool === Tools.ERASER;
   }
-  toggleEraser() {
-    return (this.isErasing = !this.isErasing);
-  }
   setCurrentColor(hex: string) {
     this.strokeStyle.color = Number(hex.replace('#', '0x'));
   }

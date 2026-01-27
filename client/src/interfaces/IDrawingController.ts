@@ -56,7 +56,6 @@ export interface IDrawingController {
     brushCtr: IBrushController
   ): void;
   setDrawingTool(tool: Tools): void;
-  toggleEraser(): void;
   setCurrentColor(hex: string): void;
   setSize(size: number): void;
   setOpacity(opacity: number): void;
