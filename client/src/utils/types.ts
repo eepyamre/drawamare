@@ -49,18 +49,31 @@ export enum BLEND_MODES {
   MAX = 'max',
 }
 
-export enum Brushes {
-  ROUND = 'Round',
-  SQUARE = 'Square',
-  SPRAY = 'Spray',
-}
+export type Brush = {
+  ratio: number;
+  spikes: number;
+  density: number;
+  spacing: number;
+  angle: number;
+  shape: 'circle' | 'square';
+  vFade: number;
+  hFade: number;
+};
+
+export type BrushWithPreview = Brush & {
+  preview: string;
+};
+
+export type BrushExtended = Brush & { size?: number; color?: number };
 
 export type StampFn = (
   pixiCtr: PixiController,
   layer: Layer,
+  brush: Brush,
   position: Point,
   diameter: number,
   color: number,
   alpha: number,
-  blendMode: BLEND_MODES
+  blendMode: BLEND_MODES,
+  clearCache: boolean
 ) => void;

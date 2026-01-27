@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="./style.css" />
     <title>PixiJS - Collabrative Drawing</title>
   </head>
 
@@ -78,16 +78,117 @@
         </div>
         <h4 class="brush-list-title">Brushes</h4>
         <div class="brush-list">
-          <button class="brush-item active" title="Round">
+          <button class="brush-item active" title="Basic">
             <img src="/assets/icons/brush.svg" />
           </button>
-          <button class="brush-item" title="Square">
+          <!-- <button class="brush-item" title="Square">
             <img src="/assets/icons/brush-square.svg" />
-          </button>
-          <button class="brush-item" title="Spray">
-            <img src="/assets/icons/brush-spray.svg" />
+          </button> -->
+          <button class="brush-item brush-add" title="Add">
+            <img src="/assets/icons/add.svg" />
           </button>
         </div>
+      </div>
+
+      <div class="brush-editor hidden">
+        <div class="brush-editor_title_wrapper">
+          <h4 class="brush-editor_title">Brush Editor</h4>
+          <div class="row">
+            <button id="brush-editor_save">Save</button>
+            <button id="brush-editor_close">Close</button>
+          </div>
+        </div>
+
+        <!-- <div class="brush-editor_type">
+          <button class="brush-editor_button">Auto</button>
+          <button class="brush-editor_button">Predefined</button>
+        </div> -->
+        <!-- set of predefined textures *WITHOUT* the ability to upload -->
+
+        <div class="brush-editor_content">
+          <div>
+            <div class="brush-stamp"></div>
+            <div class="brush-editor_type brush-editor_tip">
+              <button class="brush-editor_button" id="circle-btn">
+                Circle
+              </button>
+              <button class="brush-editor_button" id="square-btn">
+                Square
+              </button>
+            </div>
+          </div>
+          <div class="brush-editor_settings">
+            <div class="brush-editor_settings__item">
+              <span>Ratio</span>
+              <label class="range-label" id="ratio">
+                <input
+                  min="0.05"
+                  max="1"
+                  step="0.01"
+                  type="range"
+                  class="range"
+                />
+                <span>0</span>
+              </label>
+            </div>
+            <div class="brush-editor_settings__item">
+              <span>Spikes</span>
+              <label class="range-label" id="spikes">
+                <input min="2" max="20" step="1" type="range" class="range" />
+                <span>0</span>
+              </label>
+            </div>
+
+            <div class="brush-editor_settings__item">
+              <span>Density</span>
+              <label class="range-label" id="density">
+                <input min="0" max="100" step="1" type="range" class="range" />
+                <span>0</span>
+              </label>
+            </div>
+
+            <div class="brush-editor_settings__item">
+              <span>Horizontal Fade</span>
+              <label class="range-label" id="h-fade">
+                <input min="0" max="100" step="1" type="range" class="range" />
+                <span>0</span>
+              </label>
+            </div>
+            <div class="brush-editor_settings__item">
+              <span>Vertical Fade</span>
+              <label class="range-label" id="v-fade">
+                <input min="0" max="100" step="1" type="range" class="range" />
+                <span>0</span>
+              </label>
+            </div>
+
+            <div class="brush-editor_settings__item">
+              <span>Spacing</span>
+              <label class="range-label" id="spacing">
+                <input
+                  min="0.1"
+                  max="50"
+                  step="0.05"
+                  type="range"
+                  class="range"
+                />
+                <span>0</span>
+              </label>
+            </div>
+
+            <div class="brush-editor_settings__item">
+              <span>Angle</span>
+              <label class="range-label" id="angle">
+                <input min="0" max="360" step="1" type="range" class="range" />
+                <span>0</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="brush-context-menu" class="context-menu hidden">
+        <div class="context-menu-item" id="context-menu-edit">Edit</div>
+        <div class="context-menu-item" id="context-menu-delete">Delete</div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

@@ -1,4 +1,5 @@
 import { BrushController } from './controllers/brush';
+import { BrushEngine } from './controllers/brushEngine';
 import { DrawingController } from './controllers/drawing';
 import { HistoryController } from './controllers/history';
 import { LayerController } from './controllers/layer';
@@ -8,12 +9,24 @@ import { BrushSettingsUI, LayerUI, ToolbarUI, Tools } from './controllers/ui';
 import { wait } from './utils';
 
 const startApp = async () => {
+  // eslint-disable-next-line
+  if (!(window as any).chrome) {
+    alert(
+      'This app is currently supported only in Chrome. See the console for more details.'
+    );
+    console.error(
+      'Due to a known issue in pixi.js(https://github.com/pixijs/pixijs/issues/11378), only Chrome is supported at this time.'
+    );
+
+    return;
+  }
   const networkCtr = new NetworkController();
   let connected = false;
   while (!connected) {
     try {
       await networkCtr.connect();
       connected = true;
+      // eslint-disable-next-line
     } catch (e) {
       console.log('Trying to reconnect in 5 seconds...');
       await wait(5000);
@@ -30,6 +43,7 @@ const startApp = async () => {
 
   const brushUI = new BrushSettingsUI();
   const brushCtr = new BrushController();
+  const brushEngine = new BrushEngine('.brush-editor', brushCtr, brushUI);
   const toolbarUI = new ToolbarUI();
   const historyCtr = new HistoryController();
   const drawingCtr = new DrawingController(
@@ -183,6 +197,9 @@ const startApp = async () => {
   });
   brushUI.onBrushChange((brush) => {
     brushCtr.setBrush(brush);
+  });
+  brushUI.onEditBrush((brush, index) => {
+    brushEngine.loadBrush(brush, index);
   });
 };
 

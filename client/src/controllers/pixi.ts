@@ -155,7 +155,7 @@ export class PixiController {
   ) {
     this.app.renderer.render({
       container: source,
-      target: target,
+      target,
       clear,
     });
   }

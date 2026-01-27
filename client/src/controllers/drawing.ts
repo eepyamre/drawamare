@@ -1,5 +1,5 @@
 import { DrawCommand, StrokeStyle } from '../module_bindings';
-import { Layer, BLEND_MODES } from '../utils';
+import { Layer, BLEND_MODES, Brush } from '../utils';
 import { BrushController } from './brush';
 import { HistoryController } from './history';
 import { LayerController } from './layer';
@@ -49,13 +49,14 @@ export class DrawingController {
         this.onPointerMove(e, pixiCtr, layerCtr, brushCtr)
       )
       .on('pointerup', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr)
+        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
       )
       .on('pointerupoutside', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr)
+        this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
       );
   }
 
+  // TODO: REDO
   execDrawCommand(
     pixiCtr: PixiController,
     brushCtr: BrushController,
@@ -73,11 +74,13 @@ export class DrawingController {
         brushCtr.drawStamp(
           pixiCtr,
           layer,
+          cmd.brush as Brush,
           lastPos,
           cmd.strokeStyle.width!,
           lastColor,
           cmd.strokeStyle.alpha!,
-          cmd.blendMode as BLEND_MODES
+          cmd.blendMode as BLEND_MODES,
+          true
         );
       } else if (
         cmd.commandType === 'line' &&
@@ -91,7 +94,7 @@ export class DrawingController {
         const ew = cmd.endWidth!;
         const dist = Math.hypot(end.x - start.x, end.y - start.y);
         const ang = Math.atan2(end.y - start.y, end.x - start.x);
-        const step = Math.min(sw, ew) / 4 || 1;
+        const step = (Math.min(sw, ew) / 4 || 1) * cmd.brush.spacing;
 
         for (let i = 0; i <= dist; i += step) {
           const t = i / dist;
@@ -101,21 +104,25 @@ export class DrawingController {
           brushCtr.drawStamp(
             pixiCtr,
             layer,
+            cmd.brush as Brush,
             new Point(x, y),
             w,
             lastColor,
             cmd.strokeStyle.alpha,
-            cmd.blendMode as BLEND_MODES
+            cmd.blendMode as BLEND_MODES,
+            false
           );
         }
         brushCtr.drawStamp(
           pixiCtr,
           layer,
+          cmd.brush as Brush,
           end,
           ew,
           lastColor,
           cmd.strokeStyle.alpha,
-          cmd.blendMode as BLEND_MODES
+          cmd.blendMode as BLEND_MODES,
+          false
         );
         lastPos = end;
       } else if (cmd.commandType === 'endLine') {
@@ -161,7 +168,17 @@ export class DrawingController {
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
 
-    brushCtr.drawStamp(pixiCtr, layer, pos, width, style.color, alpha, blend);
+    brushCtr.drawStamp(
+      pixiCtr,
+      layer,
+      brushCtr.brush,
+      pos,
+      width,
+      style.color,
+      alpha,
+      blend,
+      true
+    );
 
     this.accumulatedDrawCommands.push({
       commandType: 'initLine',
@@ -170,6 +187,7 @@ export class DrawingController {
       strokeStyle: style,
       startWidth: undefined,
       endWidth: undefined,
+      brush: brushCtr.brush,
     });
   }
 
@@ -214,7 +232,7 @@ export class DrawingController {
       : this.strokeStyle.alpha;
 
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
-    const step = Math.min(sw, ew) / 4 || 1;
+    const step = (Math.min(sw, ew) / 4 || 1) * brushCtr.brush.spacing;
 
     pixiCtr.setMouseSize(ew);
 
@@ -227,21 +245,25 @@ export class DrawingController {
       brushCtr.drawStamp(
         pixiCtr,
         layer,
+        brushCtr.brush,
         new Point(x, y),
         w,
         this.strokeStyle.color,
         a,
-        blend
+        blend,
+        false
       );
     }
     brushCtr.drawStamp(
       pixiCtr,
       layer,
+      brushCtr.brush,
       end,
       ew,
       this.strokeStyle.color,
       ea,
-      blend
+      blend,
+      false
     );
 
     const command: DrawCommand = {
@@ -254,6 +276,7 @@ export class DrawingController {
         ...this.strokeStyle,
         alpha: ea,
       },
+      brush: brushCtr.brush,
     };
 
     this.accumulatedDrawCommands.push(command);
@@ -267,7 +290,8 @@ export class DrawingController {
     pixiCtr: PixiController,
     layerCtr: LayerController,
     historyCtr: HistoryController,
-    networkCtr: NetworkController
+    networkCtr: NetworkController,
+    brushCtr: BrushController
   ) {
     if (!this.drawing) {
       this.pan = false;
@@ -288,6 +312,7 @@ export class DrawingController {
       pos: undefined,
       startWidth: undefined,
       endWidth: undefined,
+      brush: brushCtr.brush,
     });
 
     pixiCtr.extractBase64(layer.rt).then((data) => {
