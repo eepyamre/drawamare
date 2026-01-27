@@ -6,6 +6,7 @@ import {
   NetworkController,
   PixiController,
 } from './controllers/';
+import { AppEvents, EventBus } from './events';
 import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
 import { Tools, wait } from './utils';
 
@@ -44,9 +45,9 @@ const startApp = async () => {
 
   const brushUI = new BrushSettingsUI();
   const brushCtr = new BrushController();
-  const toolbarUI = new ToolbarUI();
+  new ToolbarUI();
 
-  const brushEditorUI = new BrushEditorUI('.brush-editor');
+  const brushEditorUI = new BrushEditorUI();
 
   await brushEditorUI.initPixi();
   const historyCtr = new HistoryController();
@@ -60,6 +61,8 @@ const startApp = async () => {
   );
   networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr, brushCtr);
 
+  const bus = EventBus.getInstance();
+
   const clearLayer = () => {
     const activeLayer = layerCtr.getActiveLayer();
     if (!activeLayer) return;
@@ -70,46 +73,19 @@ const startApp = async () => {
     });
   };
 
-  // TOOLBAR INIT
   {
-    toolbarUI.onToolClick((tool) => {
-      switch (tool) {
-        case Tools.BRUSH:
-        case Tools.ERASER: {
-          drawingCtr.setDrawingTool(tool);
-          break;
-        }
-        case Tools.DELETE: {
-          clearLayer();
-          break;
-        }
-        case Tools.ZOOMIN: {
-          pixiCtr.scale(-1);
-          break;
-        }
-        case Tools.ZOOMOUT: {
-          pixiCtr.scale(1);
-          break;
-        }
-        case Tools.DOWNLOAD: {
-          pixiCtr.download();
-          break;
-        }
-        case Tools.UNDO: {
-          historyCtr.undo(pixiCtr, layerCtr, networkCtr);
-          break;
-        }
-        case Tools.REDO: {
-          historyCtr.redo(pixiCtr, layerCtr, networkCtr);
-          break;
-        }
-      }
-    });
+    // TODO: REFACTOR
+    bus.on(AppEvents.LAYER_CLEAR_ACTIVE, clearLayer);
+    bus.on(AppEvents.HISTORY_UNDO, () =>
+      historyCtr.undo(pixiCtr, layerCtr, networkCtr)
+    );
+    bus.on(AppEvents.HISTORY_REDO, () =>
+      historyCtr.redo(pixiCtr, layerCtr, networkCtr)
+    );
+  }
 
-    toolbarUI.onColorChange((color) => {
-      drawingCtr.setCurrentColor(color);
-    });
-
+  // TODO: move to keyboard/event controller
+  {
     window.addEventListener('keydown', (e) => {
       const key = e.key.toLowerCase();
       const keys = ['e', 'z', 'delete', '+', '-', ' '];
@@ -120,31 +96,31 @@ const startApp = async () => {
       switch (key) {
         case 'e':
           if (drawingCtr.toggleEraser()) {
-            toolbarUI.setActiveTool(Tools.ERASER);
+            bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.ERASER);
           } else {
-            toolbarUI.setActiveTool(Tools.BRUSH);
+            bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.BRUSH);
           }
           break;
         case 'z':
           if (e.ctrlKey || e.metaKey) {
             if (e.shiftKey) {
-              historyCtr.redo(pixiCtr, layerCtr, networkCtr);
+              bus.emit(AppEvents.HISTORY_REDO, null);
             } else {
-              historyCtr.undo(pixiCtr, layerCtr, networkCtr);
+              bus.emit(AppEvents.HISTORY_UNDO, null);
             }
           }
           break;
         case 'delete':
-          clearLayer();
+          bus.emit(AppEvents.LAYER_CLEAR_ACTIVE, null);
           break;
         case '+':
-          pixiCtr.scale(-1);
+          bus.emit(AppEvents.CANVAS_ZOOM_IN, null);
           break;
         case '-':
-          pixiCtr.scale(+1);
+          bus.emit(AppEvents.CANVAS_ZOOM_OUT, null);
           break;
         case ' ':
-          drawingCtr.setPanMode(true);
+          bus.emit(AppEvents.CANVAS_SET_PAN_MODE, true);
           break;
       }
     });
@@ -158,7 +134,7 @@ const startApp = async () => {
 
       switch (key) {
         case ' ':
-          drawingCtr.setPanMode(false);
+          bus.emit(AppEvents.CANVAS_SET_PAN_MODE, false);
           break;
       }
     });
@@ -186,25 +162,6 @@ const startApp = async () => {
       networkCtr.emitDeleteLayerRequest(layerId);
     });
   }
-
-  // BRUSH SETTINGS
-
-  brushUI.onSizeChange((size) => {
-    drawingCtr.setSize(size);
-    pixiCtr.setMouseSize(size);
-  });
-  brushUI.onOpacityChange((opacity) => {
-    drawingCtr.setOpacity(opacity);
-  });
-  brushUI.onPressureToggle((settings) => {
-    drawingCtr.setPressureSettings(settings);
-  });
-  brushUI.onBrushChange((brush) => {
-    brushCtr.setBrush(brush);
-  });
-  brushUI.onEditBrush((brush, index) => {
-    brushEditorUI.loadBrush(brush, index);
-  });
 };
 
 startApp();

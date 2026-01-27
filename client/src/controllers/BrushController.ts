@@ -24,6 +24,7 @@ export class BrushController implements IBrushController {
     EventBus.getInstance().on(AppEvents.BRUSH_EDITOR_SAVE, ({ brush }) => {
       this.setBrush(brush);
     });
+    EventBus.getInstance().on(AppEvents.BRUSH_CHANGE, this.setBrush.bind(this));
   }
 
   saveCache(brush: BrushExtended, sprite: Sprite) {

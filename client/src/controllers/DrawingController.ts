@@ -1,5 +1,6 @@
 import { FederatedPointerEvent, Point } from 'pixi.js';
 
+import { AppEvents, EventBus } from '../events';
 import {
   IBrushController,
   IDrawingController,
@@ -61,6 +62,22 @@ export class DrawingController implements IDrawingController {
       .on('pointerupoutside', () =>
         this.onPointerUp(pixiCtr, layerCtr, historyCtr, networkCtr, brushCtr)
       );
+
+    this.initBusListeners();
+  }
+
+  initBusListeners(): void {
+    const bus = EventBus.getInstance();
+
+    bus.on(AppEvents.DRAWING_SET_TOOL, this.setDrawingTool.bind(this));
+    bus.on(AppEvents.BRUSH_COLOR_CHANGE, this.setCurrentColor.bind(this));
+    bus.on(AppEvents.CANVAS_SET_PAN_MODE, this.setPanMode.bind(this));
+    bus.on(AppEvents.BRUSH_SIZE_CHANGE, this.setSize.bind(this));
+    bus.on(AppEvents.BRUSH_OPACITY_CHANGE, this.setOpacity.bind(this));
+    bus.on(
+      AppEvents.BRUSH_PRESSUTE_TOGGLE,
+      this.setPressureSettings.bind(this)
+    );
   }
 
   // TODO: REDO

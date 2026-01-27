@@ -1,36 +1,39 @@
+import { AppEvents, EventBus } from '../events';
 import { Tools } from '../utils';
 
 export class ToolbarUI {
   private tools: NodeListOf<HTMLElement>;
   private activeTool: Tools = Tools.BRUSH;
   private colorInput: HTMLInputElement;
-  private onToolClickCallback: null | ((tool: Tools) => void);
-  private onColorChangeCallback: null | ((value: string) => void);
 
   constructor() {
     this.tools = document.querySelectorAll('.tool');
     this.colorInput = document.querySelector(
       '.tool-color input[type="color"]'
     )!;
-    this.onToolClickCallback = null;
-    this.onColorChangeCallback = null;
 
     this.initializeTools();
     this.initializeColorPicker();
+    this.initBusListeners();
+  }
+
+  private initBusListeners(): void {
+    const bus = EventBus.getInstance();
+
+    bus.on(AppEvents.DRAWING_SET_TOOL, this.setActiveTool.bind(this));
   }
 
   private initializeTools() {
     this.colorInput.value = '#000000';
     this.tools.forEach((tool) => {
       tool.addEventListener('click', () => {
-        if (!this.onToolClickCallback) return;
         const toolType = tool.dataset.tool as Tools;
         if (!toolType) return;
 
         if (toolType === Tools.COLOR) {
           return;
         }
-        this.onToolClickCallback(toolType);
+        this.onToolClick(toolType);
         this.setActiveTool(toolType);
       });
     });
@@ -40,9 +43,8 @@ export class ToolbarUI {
 
   private initializeColorPicker() {
     this.colorInput.addEventListener('input', (e) => {
-      if (!this.onColorChangeCallback) return;
       const newColor = (e.target as HTMLInputElement).value;
-      this.onColorChangeCallback(newColor);
+      this.onColorChange(newColor);
     });
   }
 
@@ -67,11 +69,42 @@ export class ToolbarUI {
     return this.colorInput.value;
   }
 
-  public onToolClick(callback: typeof this.onToolClickCallback) {
-    this.onToolClickCallback = callback;
+  public onToolClick(tool: Tools) {
+    const bus = EventBus.getInstance();
+    switch (tool) {
+      case Tools.BRUSH:
+      case Tools.ERASER: {
+        bus.emit(AppEvents.DRAWING_SET_TOOL, tool);
+        break;
+      }
+      case Tools.DELETE: {
+        bus.emit(AppEvents.LAYER_CLEAR_ACTIVE, null);
+        break;
+      }
+      case Tools.ZOOMIN: {
+        bus.emit(AppEvents.CANVAS_ZOOM_IN, null);
+        break;
+      }
+      case Tools.ZOOMOUT: {
+        bus.emit(AppEvents.CANVAS_ZOOM_OUT, null);
+        break;
+      }
+      case Tools.DOWNLOAD: {
+        bus.emit(AppEvents.CANVAS_DOWNLOAD, null);
+        break;
+      }
+      case Tools.UNDO: {
+        bus.emit(AppEvents.HISTORY_UNDO, null);
+        break;
+      }
+      case Tools.REDO: {
+        bus.emit(AppEvents.HISTORY_REDO, null);
+        break;
+      }
+    }
   }
 
-  public onColorChange(callback: typeof this.onColorChangeCallback) {
-    this.onColorChangeCallback = callback;
+  public onColorChange(color: string) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_COLOR_CHANGE, color);
   }
 }

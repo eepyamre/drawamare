@@ -15,8 +15,8 @@ export class BrushEditorUI {
   private saveBtn: HTMLButtonElement | null = null;
   private closeBtn: HTMLButtonElement | null = null;
 
-  constructor(editorRoot: string) {
-    this.root = document.querySelector<HTMLDivElement>(editorRoot)!;
+  constructor() {
+    this.root = document.querySelector<HTMLDivElement>('.brush-editor')!;
 
     if (!this.root) {
       throw new Error('No editor node found');
@@ -24,6 +24,10 @@ export class BrushEditorUI {
 
     this.initializeElements();
     this.attachEventListeners();
+  }
+
+  initBusListeners(): void {
+    EventBus.getInstance().on(AppEvents.BRUSH_EDIT, this.loadBrush.bind(this));
   }
 
   private initializeElements(): void {
@@ -193,9 +197,9 @@ export class BrushEditorUI {
     this.drawStampEditor();
   }
 
-  loadBrush(brush: BrushWithPreview, index: number): void {
-    this.editingIndex = index;
-    this.brush = { ...brush };
+  loadBrush(data: { brush: BrushWithPreview; index: number }): void {
+    this.editingIndex = data.index;
+    this.brush = { ...data.brush };
 
     const updateInput = (id: string, value: number) => {
       const el = this.root.querySelector<HTMLLabelElement>(`#${id}`);

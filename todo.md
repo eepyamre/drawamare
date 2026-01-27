@@ -1,4 +1,5 @@
 - FIX ERASING
+- FIX OPACITY
 - Undo layer deleting
 - Better Brush Stabilization
 - More Drawing Tools

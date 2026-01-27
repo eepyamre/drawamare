@@ -14,6 +14,7 @@ export interface IPixiController {
   mouse: Graphics;
 
   init(): Promise<void>;
+  initBusListeners(): void;
   _scale(delta: number): void;
   scale(delta: number): void;
   drawImageFromBase64(base64: string, rt: RenderTexture): Promise<void>;

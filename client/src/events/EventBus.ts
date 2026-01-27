@@ -15,6 +15,7 @@ export class EventBus {
   }
 
   on<K extends keyof EventData>(event: K, handler: EventHandler<EventData[K]>) {
+    console.log(`[EventBus] Subscribed to ${event}`);
     const set = this.listeners.get(event) ?? new Set([]);
     set.add(handler);
     this.listeners.set(event, set);
@@ -24,12 +25,14 @@ export class EventBus {
     event: K,
     handler: EventHandler<EventData[K]>
   ) {
+    console.log(`[EventBus] Unsubscribed from ${event}`);
     const set = this.listeners.get(event) ?? new Set([]);
     set.delete(handler);
     this.listeners.set(event, set);
   }
 
   emit<K extends keyof EventData>(event: K, data: EventData[K]) {
+    console.log(`[EventBus] Emitted ${event}`);
     this.listeners.get(event)?.forEach((fn) => fn(data));
   }
 }

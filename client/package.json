@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "npm run dev ",
-    "build": "npm run lint && tsc && vite build",
+    "build": "npm run lint && npm run prettier:fix && tsc && vite build",
     "dev": "vite --host",
     "lint": "eslint .",
     "prettier:fix": "prettier src --write",

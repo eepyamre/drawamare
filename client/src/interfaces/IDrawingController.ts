@@ -26,6 +26,8 @@ export interface IDrawingController {
   accumulatedDrawCommands: DrawCommand[];
   pressureSettings: PressureSettings;
 
+  initBusListeners(): void;
+
   execDrawCommand(
     pixiCtr: IPixiController,
     brushCtr: IBrushController,

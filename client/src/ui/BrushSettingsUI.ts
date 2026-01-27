@@ -18,17 +18,6 @@ export class BrushSettingsUI {
   private pressureOpacityCheckbox: HTMLInputElement;
   private brushList: HTMLDivElement;
   private activeBrush: string;
-
-  private onSizeChangeCallback: ((size: number) => void) | null = null;
-  private onOpacityChangeCallback: ((opacity: number) => void) | null = null;
-  private onPressureToggleCallback:
-    | ((settings: PressureSettings) => void)
-    | null = null;
-  private onBrushChangeCallback: ((brush: Brush) => void) | null = null;
-  private onEditBrushCallback:
-    | ((brush: BrushWithPreview, index: number) => void)
-    | null = null;
-
   private contextMenu: HTMLElement;
   private contextMenuEdit: HTMLElement;
   private contextMenuDelete: HTMLElement;
@@ -97,10 +86,10 @@ export class BrushSettingsUI {
       if (this.targetBrushIndex !== null) {
         const brushes = getLocalBrushes();
         if (brushes[this.targetBrushIndex]) {
-          this.onEditBrushCallback?.(
-            brushes[this.targetBrushIndex],
-            this.targetBrushIndex
-          );
+          this.onEditBrush?.({
+            brush: brushes[this.targetBrushIndex],
+            index: this.targetBrushIndex,
+          });
         }
         this.contextMenu.classList.add('hidden');
       }
@@ -159,16 +148,16 @@ export class BrushSettingsUI {
   private initEventListeners() {
     this.sizeSlider.addEventListener('input', (e) => {
       const value = parseFloat((e.target as HTMLInputElement).value);
-      this.onSizeChangeCallback?.(value);
+      this.onSizeChange?.(value);
     });
 
     this.opacitySlider.addEventListener('input', (e) => {
       const value = parseFloat((e.target as HTMLInputElement).value);
-      this.onOpacityChangeCallback?.(value);
+      this.onOpacityChange?.(value);
     });
 
     const handlePressureChange = () => {
-      this.onPressureToggleCallback?.({
+      this.onPressureToggle?.({
         size: this.pressureSizeCheckbox.checked,
         opacity: this.pressureOpacityCheckbox.checked,
       });
@@ -188,36 +177,34 @@ export class BrushSettingsUI {
       if (brushName) {
         const brushes = getLocalBrushes();
         if (brushIndex && brushes[Number(brushIndex)]) {
-          this.onBrushChangeCallback?.(brushes[Number(brushIndex)]);
+          this.onBrushChange?.(brushes[Number(brushIndex)]);
           this.setActiveBrush(brushName);
           return;
         }
-        this.onBrushChangeCallback?.(DEFAULT_BRUSH);
+        this.onBrushChange?.(DEFAULT_BRUSH);
         this.setActiveBrush(brushName);
       }
     });
   }
 
-  public onSizeChange(callback: (size: number) => void) {
-    this.onSizeChangeCallback = callback;
+  public onSizeChange(size: number) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_SIZE_CHANGE, size);
   }
 
-  public onOpacityChange(callback: (opacity: number) => void) {
-    this.onOpacityChangeCallback = callback;
+  public onOpacityChange(opacity: number) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_OPACITY_CHANGE, opacity);
   }
 
-  public onPressureToggle(callback: (settings: PressureSettings) => void) {
-    this.onPressureToggleCallback = callback;
+  public onPressureToggle(settings: PressureSettings) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_PRESSUTE_TOGGLE, settings);
   }
 
-  public onBrushChange(callback: (brush: Brush) => void) {
-    this.onBrushChangeCallback = callback;
+  public onBrushChange(brush: Brush) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_CHANGE, brush);
   }
 
-  public onEditBrush(
-    callback: (brush: BrushWithPreview, index: number) => void
-  ) {
-    this.onEditBrushCallback = callback;
+  public onEditBrush(data: { brush: BrushWithPreview; index: number }) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_EDIT, data);
   }
 
   public setActiveBrush(brushName: string) {

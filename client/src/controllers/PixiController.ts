@@ -11,6 +11,7 @@ import {
 } from 'pixi.js';
 import 'pixi.js/math-extras';
 
+import { AppEvents, EventBus } from '../events';
 import { IPixiController, Layer } from '../interfaces';
 import { boardSize, maxScale, minScale } from '../utils';
 
@@ -18,6 +19,10 @@ export class PixiController implements IPixiController {
   app!: Application;
   board!: Container;
   mouse!: Graphics;
+
+  constructor() {
+    this.initBusListeners();
+  }
 
   async init() {
     this.app = new Application();
@@ -77,6 +82,15 @@ export class PixiController implements IPixiController {
     window.addEventListener('pointermove', (e) => {
       if (scaleMode && e.buttons !== 0) this._scale(-e.movementY / 500);
     });
+  }
+
+  initBusListeners(): void {
+    const bus = EventBus.getInstance();
+
+    bus.on(AppEvents.CANVAS_ZOOM_IN, this.scale.bind(this, -1));
+    bus.on(AppEvents.CANVAS_ZOOM_OUT, this.scale.bind(this, 1));
+    bus.on(AppEvents.CANVAS_DOWNLOAD, this.download.bind(this));
+    bus.on(AppEvents.BRUSH_SIZE_CHANGE, this.setMouseSize.bind(this));
   }
 
   _scale(delta: number) {
@@ -227,6 +241,7 @@ export class PixiController implements IPixiController {
   }
 
   setMouseSize(radius: number) {
+    console.log(radius);
     this.mouse.width = this.mouse.height = radius > 4 ? radius + 8 : radius + 4;
   }
 }
