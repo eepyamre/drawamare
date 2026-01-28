@@ -6,6 +6,7 @@ export type History = RenderTexture[];
 
 export interface IHistoryController {
   pixiCtr: IPixiController;
+  layerCtr: ILayerController;
   historyStack: History;
   redoStack: History;
 

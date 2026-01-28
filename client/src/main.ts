@@ -50,7 +50,7 @@ const startApp = async () => {
   const brushEditorUI = new BrushEditorUI();
 
   await brushEditorUI.initPixi();
-  const historyCtr = new HistoryController(pixiCtr);
+  new HistoryController(pixiCtr, layerCtr);
   const drawingCtr = new DrawingController(
     pixiCtr,
     layerCtr,
@@ -65,7 +65,7 @@ const startApp = async () => {
     const activeLayer = layerCtr.getActiveLayer();
     if (!activeLayer) return;
     pixiCtr.clearRenderTarget(activeLayer.rt);
-    historyCtr.saveState(activeLayer);
+    bus.emit(AppEvents.HISTORY_SAVE_STATE, activeLayer);
     pixiCtr.extractBase64(activeLayer.rt).then((data) => {
       bus.emit(AppEvents.NETWORK_SAVE_LAYER, {
         layerId: activeLayer.id,
@@ -78,8 +78,6 @@ const startApp = async () => {
   {
     // TODO: REFACTOR
     bus.on(AppEvents.LAYER_CLEAR_ACTIVE, clearLayer);
-    bus.on(AppEvents.HISTORY_UNDO, () => historyCtr.undo(layerCtr));
-    bus.on(AppEvents.HISTORY_REDO, () => historyCtr.redo(layerCtr));
   }
 
   // TODO: move to keyboard/event controller
