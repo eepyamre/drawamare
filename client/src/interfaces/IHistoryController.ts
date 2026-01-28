@@ -5,12 +5,14 @@ import { ILayerController, IPixiController, Layer } from './';
 export type History = RenderTexture[];
 
 export interface IHistoryController {
+  pixiCtr: IPixiController;
   historyStack: History;
   redoStack: History;
 
-  saveState(pixiCtr: IPixiController, activeLayer: Layer): void;
-  undo(pixiCtr: IPixiController, layerCtr: ILayerController): void;
-  redo(pixiCtr: IPixiController, layerCtr: ILayerController): void;
+  initBusListeners(): void;
+  saveState(activeLayer: Layer): void;
+  undo(layerCtr: ILayerController): void;
+  redo(layerCtr: ILayerController): void;
   clearHistory(): void;
   clearRedo(): void;
 }

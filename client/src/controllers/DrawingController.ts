@@ -4,7 +4,6 @@ import { AppEvents, EventBus } from '../events';
 import {
   IBrushController,
   IDrawingController,
-  IHistoryController,
   ILayerController,
   IPixiController,
   Layer,
@@ -38,7 +37,6 @@ export class DrawingController implements IDrawingController {
   constructor(
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
-    historyCtr: IHistoryController,
     brushSettingsUI: BrushSettingsUI,
     brushCtr: IBrushController
   ) {
@@ -49,16 +47,14 @@ export class DrawingController implements IDrawingController {
 
     stage
       .on('pointerdown', (e: FederatedPointerEvent) =>
-        this.onPointerDown(e, pixiCtr, layerCtr, historyCtr, brushCtr)
+        this.onPointerDown(e, pixiCtr, layerCtr, brushCtr)
       )
       .on('pointermove', (e: FederatedPointerEvent) =>
         this.onPointerMove(e, pixiCtr, layerCtr, brushCtr)
       )
-      .on('pointerup', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, brushCtr)
-      )
+      .on('pointerup', () => this.onPointerUp(pixiCtr, layerCtr, brushCtr))
       .on('pointerupoutside', () =>
-        this.onPointerUp(pixiCtr, layerCtr, historyCtr, brushCtr)
+        this.onPointerUp(pixiCtr, layerCtr, brushCtr)
       );
 
     this.initBusListeners();
@@ -157,7 +153,6 @@ export class DrawingController implements IDrawingController {
     e: FederatedPointerEvent,
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
-    historyCtr: IHistoryController,
     brushCtr: IBrushController
   ) {
     const layer = layerCtr.getActiveLayer();
@@ -169,7 +164,7 @@ export class DrawingController implements IDrawingController {
     if (e.button !== 0) return;
 
     this.drawing = true;
-    historyCtr.clearRedo();
+    EventBus.getInstance().emit(AppEvents.HISTORY_CLEAR_REDO, null);
     const pos = pixiCtr.offsetPosition(e.clientX, e.clientY);
     this.lastDrawingPosition = pos;
 
@@ -311,7 +306,6 @@ export class DrawingController implements IDrawingController {
   onPointerUp(
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
-    historyCtr: IHistoryController,
     brushCtr: IBrushController
   ) {
     if (!this.drawing) {
@@ -324,7 +318,8 @@ export class DrawingController implements IDrawingController {
 
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
-    historyCtr.saveState(pixiCtr, layer);
+
+    EventBus.getInstance().emit(AppEvents.HISTORY_SAVE_STATE, layer);
 
     this.accumulatedDrawCommands.push({
       commandType: 'endLine',

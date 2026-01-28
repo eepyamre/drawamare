@@ -5,13 +5,7 @@ import { StrokeStyle } from '../module_bindings';
 import { DrawCommand } from '../module_bindings';
 import { PressureSettings } from '../ui';
 import { Tools } from '../utils';
-import {
-  IBrushController,
-  IHistoryController,
-  ILayerController,
-  IPixiController,
-  Layer,
-} from './';
+import { IBrushController, ILayerController, IPixiController, Layer } from './';
 
 export interface IDrawingController {
   strokeStyle: StrokeStyle;
@@ -38,7 +32,6 @@ export interface IDrawingController {
     e: FederatedPointerEvent,
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
-    historyCtr: IHistoryController,
     brushCtr: IBrushController
   ): void;
 
@@ -52,7 +45,6 @@ export interface IDrawingController {
   onPointerUp(
     pixiCtr: IPixiController,
     layerCtr: ILayerController,
-    historyCtr: IHistoryController,
     brushCtr: IBrushController
   ): void;
   setDrawingTool(tool: Tools): void;

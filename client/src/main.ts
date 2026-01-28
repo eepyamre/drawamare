@@ -50,11 +50,10 @@ const startApp = async () => {
   const brushEditorUI = new BrushEditorUI();
 
   await brushEditorUI.initPixi();
-  const historyCtr = new HistoryController();
+  const historyCtr = new HistoryController(pixiCtr);
   const drawingCtr = new DrawingController(
     pixiCtr,
     layerCtr,
-    historyCtr,
     brushUI,
     brushCtr
   );
@@ -66,7 +65,7 @@ const startApp = async () => {
     const activeLayer = layerCtr.getActiveLayer();
     if (!activeLayer) return;
     pixiCtr.clearRenderTarget(activeLayer.rt);
-    historyCtr.saveState(pixiCtr, activeLayer);
+    historyCtr.saveState(activeLayer);
     pixiCtr.extractBase64(activeLayer.rt).then((data) => {
       bus.emit(AppEvents.NETWORK_SAVE_LAYER, {
         layerId: activeLayer.id,
@@ -79,8 +78,8 @@ const startApp = async () => {
   {
     // TODO: REFACTOR
     bus.on(AppEvents.LAYER_CLEAR_ACTIVE, clearLayer);
-    bus.on(AppEvents.HISTORY_UNDO, () => historyCtr.undo(pixiCtr, layerCtr));
-    bus.on(AppEvents.HISTORY_REDO, () => historyCtr.redo(pixiCtr, layerCtr));
+    bus.on(AppEvents.HISTORY_UNDO, () => historyCtr.undo(layerCtr));
+    bus.on(AppEvents.HISTORY_REDO, () => historyCtr.redo(layerCtr));
   }
 
   // TODO: move to keyboard/event controller
@@ -156,8 +155,8 @@ const startApp = async () => {
     layerUI.onDeleteLayer((layerId) => {
       console.log(`Delete layer ${layerId}`);
       layerCtr.deleteLayer(layerId);
-      historyCtr.clearHistory();
-      historyCtr.clearRedo();
+      bus.emit(AppEvents.HISTORY_CLEAR_REDO, null);
+      bus.emit(AppEvents.HISTORY_CLEAR_UNDO, null);
       bus.emit(AppEvents.NETWORK_DELETE_LAYER, layerId);
     });
   }

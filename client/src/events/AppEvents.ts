@@ -22,6 +22,9 @@ export enum AppEvents {
   CANVAS_SET_PAN_MODE = 'canvas:setPanMode',
   HISTORY_UNDO = 'history:undo',
   HISTORY_REDO = 'history:redo',
+  HISTORY_SAVE_STATE = 'history:saveState',
+  HISTORY_CLEAR_REDO = 'history:clearRedo',
+  HISTORY_CLEAR_UNDO = 'history:clearUndo',
   NETWORK_DRAW_COMMANDS = 'network:drawCommandsRequest',
   NETWORK_CREATE_LAYER = 'network:createLayerRequest',
   NETWORK_DELETE_LAYER = 'network:deleteLayerRequest',
@@ -48,6 +51,9 @@ export type EventData = {
   [AppEvents.CANVAS_DOWNLOAD]: null;
   [AppEvents.HISTORY_UNDO]: null;
   [AppEvents.HISTORY_REDO]: null;
+  [AppEvents.HISTORY_SAVE_STATE]: Layer;
+  [AppEvents.HISTORY_CLEAR_REDO]: null;
+  [AppEvents.HISTORY_CLEAR_UNDO]: null;
   [AppEvents.BRUSH_COLOR_CHANGE]: string;
   [AppEvents.CANVAS_SET_PAN_MODE]: boolean;
   [AppEvents.NETWORK_CREATE_LAYER]: null;
