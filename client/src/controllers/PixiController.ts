@@ -16,54 +16,61 @@ import { IPixiController, Layer } from '../interfaces';
 import { boardSize, maxScale, minScale } from '../utils';
 
 export class PixiController implements IPixiController {
-  app!: Application;
-  board!: Container;
-  mouse!: Graphics;
+  private static instance: IPixiController;
+  static app: Application;
+  static board: Container;
+  static mouse: Graphics;
 
-  constructor() {
-    this.initBusListeners();
+  static getInstance(): IPixiController {
+    if (!this.instance) {
+      this.instance = new PixiController();
+    }
+
+    return this.instance;
   }
 
   async init() {
-    this.app = new Application();
+    PixiController.app = new Application();
     extensions.add(CullerPlugin);
 
-    await this.app.init({
+    await PixiController.app.init({
       background: '#2b2b2b',
       resizeTo: window,
       antialias: true,
       multiView: true,
     });
 
-    this.app.stage.eventMode = 'static';
+    PixiController.app.stage.eventMode = 'static';
 
-    document.getElementById('pixi-container')!.appendChild(this.app.canvas);
+    document
+      .getElementById('pixi-container')!
+      .appendChild(PixiController.app.canvas);
 
-    this.board = new Container({
-      x: this.app.canvas.width / 2 - boardSize.width / 2,
-      y: this.app.canvas.height / 2 - boardSize.height / 2,
+    PixiController.board = new Container({
+      x: PixiController.app.canvas.width / 2 - boardSize.width / 2,
+      y: PixiController.app.canvas.height / 2 - boardSize.height / 2,
     });
 
-    this.app.stage.addChild(this.board);
+    PixiController.app.stage.addChild(PixiController.board);
 
     const canvasMask = new Graphics()
       .rect(0, 0, boardSize.width, boardSize.height)
       .fill(0xffffff);
-    this.board.mask = canvasMask;
+    PixiController.board.mask = canvasMask;
 
     const canvasBg = new Graphics()
       .rect(0, 0, boardSize.width, boardSize.height)
       .fill(0xffffff);
 
-    this.mouse = new Graphics().circle(0, 0, 10);
-    this.mouse.zIndex = 10;
-    this.mouse.stroke(0x2b2b2b);
-    this.board.addChild(canvasMask);
-    this.board.addChild(canvasBg);
-    this.board.addChild(this.mouse);
+    PixiController.mouse = new Graphics().circle(0, 0, 10);
+    PixiController.mouse.zIndex = 10;
+    PixiController.mouse.stroke(0x2b2b2b);
+    PixiController.board.addChild(canvasMask);
+    PixiController.board.addChild(canvasBg);
+    PixiController.board.addChild(PixiController.mouse);
 
     window.addEventListener('resize', () => {
-      this.app.resize();
+      PixiController.app.resize();
     });
 
     window.addEventListener('wheel', (e) => {
@@ -82,6 +89,8 @@ export class PixiController implements IPixiController {
     window.addEventListener('pointermove', (e) => {
       if (scaleMode && e.buttons !== 0) this._scale(-e.movementY / 500);
     });
+
+    this.initBusListeners();
   }
 
   initBusListeners(): void {
@@ -94,9 +103,11 @@ export class PixiController implements IPixiController {
   }
 
   _scale(delta: number) {
-    this.app.stage.scale = this.app.stage.scale.x + delta;
-    if (this.app.stage.scale.x < minScale) this.app.stage.scale = minScale; // Prevent inverting or too small scale
-    if (this.app.stage.scale.x > maxScale) this.app.stage.scale = maxScale; // Prevent too big scale
+    PixiController.app.stage.scale = PixiController.app.stage.scale.x + delta;
+    if (PixiController.app.stage.scale.x < minScale)
+      PixiController.app.stage.scale = minScale; // Prevent inverting or too small scale
+    if (PixiController.app.stage.scale.x > maxScale)
+      PixiController.app.stage.scale = maxScale; // Prevent too big scale
   }
 
   scale(delta: number) {
@@ -113,7 +124,7 @@ export class PixiController implements IPixiController {
         try {
           const texture = Texture.from(img);
           const s = new Sprite(texture);
-          this.app.renderer.render({
+          PixiController.app.renderer.render({
             container: s,
             target: rt,
           });
@@ -134,21 +145,21 @@ export class PixiController implements IPixiController {
   }
 
   offsetPosition(x: number, y: number): Point {
-    const stageScale = this.app.stage.scale.x;
+    const stageScale = PixiController.app.stage.scale.x;
     const pos = new Point(x / stageScale, y / stageScale);
 
-    return pos.subtract(this.board.position);
+    return pos.subtract(PixiController.board.position);
   }
 
   download() {
-    const mask = this.board.mask;
-    this.board.mask = null;
-    this.app.renderer.extract.download(this.app.stage);
-    this.board.mask = mask;
+    const mask = PixiController.board.mask;
+    PixiController.board.mask = null;
+    PixiController.app.renderer.extract.download(PixiController.app.stage);
+    PixiController.board.mask = mask;
   }
 
   extractBase64(target: RenderTexture | Container): Promise<string> {
-    return this.app.renderer.extract.base64({
+    return PixiController.app.renderer.extract.base64({
       format: 'png',
       target: target,
     });
@@ -156,7 +167,7 @@ export class PixiController implements IPixiController {
 
   clearRenderTarget(rt: RenderTexture) {
     const stroke = new Graphics();
-    this.app.renderer.render({
+    PixiController.app.renderer.render({
       container: stroke,
       target: rt,
       clear: true,
@@ -169,7 +180,7 @@ export class PixiController implements IPixiController {
     target: RenderTexture,
     clear: boolean = false
   ) {
-    this.app.renderer.render({
+    PixiController.app.renderer.render({
       container: source,
       target,
       clear,
@@ -181,13 +192,13 @@ export class PixiController implements IPixiController {
       label: title,
     });
     const rt = RenderTexture.create({
-      width: this.board.width,
-      height: this.board.height,
+      width: PixiController.board.width,
+      height: PixiController.board.height,
     });
 
     const sprite = new Sprite(rt);
     container.addChild(sprite);
-    this.board.addChild(container);
+    PixiController.board.addChild(container);
 
     return { container, rt };
   }
@@ -199,7 +210,7 @@ export class PixiController implements IPixiController {
     });
 
     const s = new Sprite(layer.rt);
-    this.app.renderer.render({
+    PixiController.app.renderer.render({
       container: s,
       target: newTexture,
     });
@@ -210,7 +221,7 @@ export class PixiController implements IPixiController {
 
   redrawLayer(layer: Layer, texture: RenderTexture) {
     const stroke = new Graphics();
-    this.app.renderer.render({
+    PixiController.app.renderer.render({
       container: stroke,
       target: layer.rt,
       clear: true,
@@ -219,7 +230,7 @@ export class PixiController implements IPixiController {
 
     const s = new Sprite(texture);
 
-    this.app.renderer.render({
+    PixiController.app.renderer.render({
       container: s,
       target: layer.rt,
     });
@@ -228,19 +239,20 @@ export class PixiController implements IPixiController {
   }
 
   getScale() {
-    return this.app.stage.scale.x;
+    return PixiController.app.stage.scale.x;
   }
 
   moveBoardBy(x: number, y: number) {
-    this.board.x += x;
-    this.board.y += y;
+    PixiController.board.x += x;
+    PixiController.board.y += y;
   }
 
   setMousePosition(point: Point) {
-    this.mouse.position = point;
+    PixiController.mouse.position = point;
   }
 
   setMouseSize(radius: number) {
-    this.mouse.width = this.mouse.height = radius > 4 ? radius + 8 : radius + 4;
+    PixiController.mouse.width = PixiController.mouse.height =
+      radius > 4 ? radius + 8 : radius + 4;
   }
 }

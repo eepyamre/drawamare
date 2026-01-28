@@ -5,7 +5,7 @@ import { StrokeStyle } from '../module_bindings';
 import { DrawCommand } from '../module_bindings';
 import { PressureSettings } from '../ui';
 import { Tools } from '../utils';
-import { IBrushController, ILayerController, IPixiController, Layer } from './';
+import { Layer } from './';
 
 export interface IDrawingController {
   strokeStyle: StrokeStyle;
@@ -21,32 +21,13 @@ export interface IDrawingController {
 
   initBusListeners(): void;
 
-  execDrawCommand(
-    pixiCtr: IPixiController,
-    brushCtr: IBrushController,
-    layer: Layer,
-    commands: DrawCommand[]
-  ): void;
+  execDrawCommand(layer: Layer, commands: DrawCommand[]): void;
 
-  onPointerDown(
-    e: FederatedPointerEvent,
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushCtr: IBrushController
-  ): void;
+  onPointerDown(e: FederatedPointerEvent): void;
 
-  onPointerMove(
-    e: FederatedPointerEvent,
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushCtr: IBrushController
-  ): void;
+  onPointerMove(e: FederatedPointerEvent): void;
 
-  onPointerUp(
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushCtr: IBrushController
-  ): void;
+  onPointerUp(): void;
   setDrawingTool(tool: Tools): void;
   setCurrentColor(hex: string): void;
   setSize(size: number): void;

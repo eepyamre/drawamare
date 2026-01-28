@@ -4,8 +4,10 @@ import { AppEvents, EventBus } from '../events';
 import { IBrushController, StampFn } from '../interfaces';
 import { BLEND_MODES, Brush, BrushExtended } from '../utils';
 import { BrushEngine } from './BrushEngine';
+import { PixiController } from './PixiController';
 
 export class BrushController implements IBrushController {
+  private static instance: IBrushController;
   brush: Brush = {
     angle: 0,
     density: 100,
@@ -27,6 +29,14 @@ export class BrushController implements IBrushController {
     EventBus.getInstance().on(AppEvents.BRUSH_CHANGE, this.setBrush.bind(this));
   }
 
+  static getInstance(): IBrushController {
+    if (!this.instance) {
+      this.instance = new BrushController();
+    }
+
+    return this.instance;
+  }
+
   saveCache(brush: BrushExtended, sprite: Sprite) {
     this.stampCache[this.getCacheName(brush)] = sprite;
   }
@@ -36,7 +46,6 @@ export class BrushController implements IBrushController {
   }
 
   drawStamp: StampFn = (
-    pixiCtr,
     layer,
     brush,
     position,
@@ -46,6 +55,7 @@ export class BrushController implements IBrushController {
     blendMode,
     clearCache
   ) => {
+    const pixiCtr = PixiController.getInstance();
     const extendedBrush = { ...brush, size, color };
     if (clearCache) {
       this.clearCache(extendedBrush);
@@ -53,7 +63,7 @@ export class BrushController implements IBrushController {
     const cached = this.stampCache[this.getCacheName(extendedBrush)];
     const stamp =
       cached ??
-      BrushEngine.drawStamp(pixiCtr.app.renderer, {
+      BrushEngine.drawStamp(PixiController.app.renderer, {
         ...brush,
         size,
         color,

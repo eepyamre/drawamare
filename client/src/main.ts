@@ -22,7 +22,7 @@ const startApp = async () => {
 
     return;
   }
-  const networkCtr = new NetworkController();
+  const networkCtr = NetworkController.getInstance();
   let connected = false;
   while (!connected) {
     try {
@@ -34,30 +34,25 @@ const startApp = async () => {
       await wait(5000);
     }
   }
-  if (!networkCtr.getIdentity())
+  if (!networkCtr.getIdentity()) {
     throw new Error('User identity is not defined');
+  }
 
-  const pixiCtr = new PixiController();
+  const pixiCtr = PixiController.getInstance();
   await pixiCtr.init();
+  const layerCtr = LayerController.getInstance();
   const layerUI = new LayerUI();
-  const layerCtr = new LayerController();
-  layerCtr.init(networkCtr, pixiCtr);
 
-  const brushUI = new BrushSettingsUI();
-  const brushCtr = new BrushController();
+  BrushSettingsUI.getInstance();
+  BrushController.getInstance();
   new ToolbarUI();
 
   const brushEditorUI = new BrushEditorUI();
 
   await brushEditorUI.initPixi();
-  new HistoryController(pixiCtr, layerCtr);
-  const drawingCtr = new DrawingController(
-    pixiCtr,
-    layerCtr,
-    brushUI,
-    brushCtr
-  );
-  networkCtr.initEventListeners(pixiCtr, layerCtr, drawingCtr, brushCtr);
+  HistoryController.getInstance();
+  const drawingCtr = DrawingController.getInstance();
+  networkCtr.initEventListeners();
 
   const bus = EventBus.getInstance();
 

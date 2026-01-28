@@ -1,13 +1,7 @@
 import { Identity } from 'spacetimedb';
 
 import { AppEvents, EventBus } from '../events';
-import {
-  IBrushController,
-  IDrawingController,
-  ILayerController,
-  INetworkController,
-  IPixiController,
-} from '../interfaces';
+import { INetworkController } from '../interfaces';
 import {
   Command,
   DbConnection,
@@ -16,13 +10,25 @@ import {
   EventContext,
   Layer as ServerLayer,
 } from '../module_bindings';
+import { DrawingController } from './DrawingController';
+import { LayerController } from './LayerController';
+import { PixiController } from './PixiController';
 
 export class NetworkController implements INetworkController {
-  conn: DbConnection | null = null;
-  identity: Identity | null = null;
+  private static instance: INetworkController;
+  static conn: DbConnection | null = null;
+  static identity: Identity | null = null;
 
   constructor() {
     this.initBusListeners();
+  }
+
+  static getInstance(): INetworkController {
+    if (!this.instance) {
+      this.instance = new NetworkController();
+    }
+
+    return this.instance;
   }
 
   connect(): Promise<void> {
@@ -47,11 +53,11 @@ export class NetworkController implements INetworkController {
         userIdentity: Identity,
         token: string
       ) => {
-        this.identity = userIdentity;
+        NetworkController.identity = userIdentity;
         localStorage.setItem('auth_token', token);
         console.log(
           'Connected to SpacetimeDB with identity:',
-          this.identity.toHexString()
+          NetworkController.identity.toHexString()
         );
 
         subscribeToQueries(conn, [
@@ -59,7 +65,7 @@ export class NetworkController implements INetworkController {
           'SELECT * FROM user',
           'SELECT * FROM command',
         ]);
-        this.conn = conn;
+        NetworkController.conn = conn;
         res();
       };
 
@@ -101,40 +107,39 @@ export class NetworkController implements INetworkController {
   }
 
   getIdentity(): Identity | null {
-    return this.identity;
+    return NetworkController.identity;
   }
 
   getClientDb(): DbConnection['db'] | null {
-    return this.conn?.db || null;
+    return NetworkController.conn?.db || null;
   }
 
   getReducers(): DbConnection['reducers'] | null {
-    return this.conn?.reducers || null;
+    return NetworkController.conn?.reducers || null;
   }
 
-  initEventListeners(
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    drawingController: IDrawingController,
-    brushCtr: IBrushController
-  ) {
+  initEventListeners() {
+    const layerCtr = LayerController.getInstance();
+    const pixiCtr = PixiController.getInstance();
+    const drawingCtr = DrawingController.getInstance();
+
     this.getClientDb()?.command.onInsert(
       (_ctx: EventContext, command: Command) => {
-        if (!this.identity || command.owner.isEqual(this.identity)) return;
+        if (
+          !NetworkController.identity ||
+          command.owner.isEqual(NetworkController.identity)
+        )
+          return;
         console.log(
           `Received draw command from ${command.owner
             .toHexString()
             .slice(0, 8)}`
         );
 
-        const layer = layerCtr.getOrCreateLayer(
-          command.layer,
-          command.owner,
-          pixiCtr
-        );
+        const layer = layerCtr.getOrCreateLayer(command.layer, command.owner);
         const commands = command.commands;
 
-        drawingController.execDrawCommand(pixiCtr, brushCtr, layer, commands);
+        drawingCtr.execDrawCommand(layer, commands);
       }
     );
 
@@ -148,11 +153,7 @@ export class NetworkController implements INetworkController {
         )
           return;
         console.log(`Received update layer command`);
-        const l = layerCtr.getOrCreateLayer(
-          newLayer.id,
-          newLayer.owner,
-          pixiCtr
-        );
+        const l = layerCtr.getOrCreateLayer(newLayer.id, newLayer.owner);
 
         pixiCtr.clearRenderTarget(l.rt);
         pixiCtr.drawImageFromBase64(newLayer.base64, l.rt);
@@ -162,15 +163,12 @@ export class NetworkController implements INetworkController {
     this.getClientDb()?.layer.onInsert(
       (_ctx: EventContext, layer: ServerLayer) => {
         console.log(`Received create layer command`);
-        const l = layerCtr.createLayer(
-          {
-            id: layer.id,
-            ownerId: layer.owner,
-            ownerName: layer.owner.toHexString().slice(0, 8),
-            title: layer.name || layer.owner.toHexString().slice(0, 8),
-          },
-          pixiCtr
-        );
+        const l = layerCtr.createLayer({
+          id: layer.id,
+          ownerId: layer.owner,
+          ownerName: layer.owner.toHexString().slice(0, 8),
+          title: layer.name || layer.owner.toHexString().slice(0, 8),
+        });
 
         if (layer.base64) {
           pixiCtr.drawImageFromBase64(layer.base64, l.rt);
@@ -192,7 +190,10 @@ export class NetworkController implements INetworkController {
   }
 
   confirmLayerIdentity(layer: ServerLayer) {
-    return this.identity && layer.owner.isEqual(this.identity);
+    return (
+      NetworkController.identity &&
+      layer.owner.isEqual(NetworkController.identity)
+    );
   }
 
   _emitDrawCommands(data: { layerId: number; commands: DrawCommand[] }) {

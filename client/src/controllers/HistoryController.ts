@@ -1,18 +1,26 @@
 import { AppEvents, EventBus } from '../events';
-import { ILayerController, IPixiController, Layer } from '../interfaces';
+import { Layer } from '../interfaces';
 import { History, IHistoryController } from '../interfaces/IHistoryController';
+import { LayerController } from './LayerController';
+import { PixiController } from './PixiController';
 
 const maxHistoryLength = 48;
 
 export class HistoryController implements IHistoryController {
-  historyStack: History = [];
-  redoStack: History = [];
-  pixiCtr: IPixiController;
-  layerCtr: ILayerController;
-  constructor(pixiCtr: IPixiController, layerCtr: ILayerController) {
-    this.pixiCtr = pixiCtr;
-    this.layerCtr = layerCtr;
+  private static instance: IHistoryController;
+  private static historyStack: History = [];
+  private static redoStack: History = [];
+
+  constructor() {
     this.initBusListeners();
+  }
+
+  static getInstance(): IHistoryController {
+    if (!this.instance) {
+      this.instance = new HistoryController();
+    }
+
+    return this.instance;
   }
 
   initBusListeners(): void {
@@ -21,71 +29,81 @@ export class HistoryController implements IHistoryController {
     bus.on(AppEvents.HISTORY_SAVE_STATE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_REDO, this.clearRedo.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_UNDO, this.clearHistory.bind(this));
-    bus.on(AppEvents.HISTORY_UNDO, () => this.undo.bind(this));
-    bus.on(AppEvents.HISTORY_REDO, () => this.redo.bind(this));
+    bus.on(AppEvents.HISTORY_UNDO, this.undo.bind(this));
+    bus.on(AppEvents.HISTORY_REDO, this.redo.bind(this));
   }
 
   saveState(activeLayer: Layer) {
     if (!activeLayer) return;
 
-    this.historyStack.push(this.pixiCtr.extractTexture(activeLayer));
+    HistoryController.historyStack.push(
+      PixiController.getInstance().extractTexture(activeLayer)
+    );
 
-    if (this.historyStack.length > maxHistoryLength) {
-      this.historyStack = this.historyStack.slice(-maxHistoryLength);
+    if (HistoryController.historyStack.length > maxHistoryLength) {
+      HistoryController.historyStack =
+        HistoryController.historyStack.slice(-maxHistoryLength);
     }
   }
 
   undo() {
-    if (this.historyStack.length <= 1) {
+    if (HistoryController.historyStack.length <= 1) {
       console.log('No commands to undo');
       return;
     }
-    const layer = this.layerCtr.getActiveLayer();
+    const layer = LayerController.getInstance().getActiveLayer();
     if (!layer) return;
 
-    const lastItem = this.historyStack.pop();
+    const lastItem = HistoryController.historyStack.pop();
     if (lastItem) {
-      this.redoStack.push(lastItem);
-      const previousState = this.historyStack[this.historyStack.length - 1];
-      this.pixiCtr.redrawLayer(layer, previousState);
-      this.pixiCtr.extractBase64(layer.rt).then((data) => {
-        EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
-          layerId: layer.id,
-          base64: data,
-          forceUpdate: true,
+      HistoryController.redoStack.push(lastItem);
+      const previousState =
+        HistoryController.historyStack[
+          HistoryController.historyStack.length - 1
+        ];
+      PixiController.getInstance().redrawLayer(layer, previousState);
+      PixiController.getInstance()
+        .extractBase64(layer.rt)
+        .then((data) => {
+          EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+            layerId: layer.id,
+            base64: data,
+            forceUpdate: true,
+          });
         });
-      });
     }
   }
 
   redo() {
-    if (this.redoStack.length <= 0) {
+    if (HistoryController.redoStack.length <= 0) {
       console.log('No commands to redo');
       return;
     }
 
-    const layer = this.layerCtr.getActiveLayer();
+    const layer = LayerController.getInstance().getActiveLayer();
     if (!layer) return;
 
-    const lastItem = this.redoStack.pop();
+    const lastItem = HistoryController.redoStack.pop();
     if (lastItem) {
-      this.historyStack.push(lastItem);
-      this.pixiCtr.redrawLayer(layer, lastItem);
-      this.pixiCtr.extractBase64(layer.rt).then((data) => {
-        EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
-          layerId: layer.id,
-          base64: data,
-          forceUpdate: true,
+      HistoryController.historyStack.push(lastItem);
+      PixiController.getInstance().redrawLayer(layer, lastItem);
+      PixiController.getInstance()
+        .extractBase64(layer.rt)
+        .then((data) => {
+          EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+            layerId: layer.id,
+            base64: data,
+            forceUpdate: true,
+          });
         });
-      });
     }
   }
 
   clearHistory() {
-    this.historyStack = [];
+    HistoryController.historyStack = [];
   }
 
   clearRedo() {
-    this.redoStack = [];
+    HistoryController.redoStack = [];
   }
 }

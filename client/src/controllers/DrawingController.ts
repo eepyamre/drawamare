@@ -1,20 +1,17 @@
 import { FederatedPointerEvent, Point } from 'pixi.js';
 
 import { AppEvents, EventBus } from '../events';
-import {
-  IBrushController,
-  IDrawingController,
-  ILayerController,
-  IPixiController,
-  Layer,
-} from '../interfaces';
+import { IDrawingController, Layer } from '../interfaces';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
 import { BrushSettingsUI, PressureSettings } from '../ui';
 import { BLEND_MODES, Brush, Tools } from '../utils';
 import { BrushController } from './BrushController';
+import { LayerController } from './LayerController';
 import { PixiController } from './PixiController';
 
 export class DrawingController implements IDrawingController {
+  private static instance: IDrawingController;
+
   strokeStyle: StrokeStyle = {
     width: 10,
     cap: 'round',
@@ -33,31 +30,28 @@ export class DrawingController implements IDrawingController {
     opacity: false,
     size: false,
   };
-  // FIXME: REFACTOR
-  constructor(
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushSettingsUI: BrushSettingsUI,
-    brushCtr: IBrushController
-  ) {
-    const stage = pixiCtr.app.stage;
-    this.strokeStyle.width = brushSettingsUI.getBrushSize();
-    this.strokeStyle.alpha = brushSettingsUI.getBrushOpacity();
-    this.pressureSettings = brushSettingsUI.getPressureSettings();
+
+  constructor() {
+    const stage = PixiController.app.stage;
+    this.strokeStyle.width = BrushSettingsUI.getInstance().getBrushSize();
+    this.strokeStyle.alpha = BrushSettingsUI.getInstance().getBrushOpacity();
+    this.pressureSettings = BrushSettingsUI.getInstance().getPressureSettings();
 
     stage
-      .on('pointerdown', (e: FederatedPointerEvent) =>
-        this.onPointerDown(e, pixiCtr, layerCtr, brushCtr)
-      )
-      .on('pointermove', (e: FederatedPointerEvent) =>
-        this.onPointerMove(e, pixiCtr, layerCtr, brushCtr)
-      )
-      .on('pointerup', () => this.onPointerUp(pixiCtr, layerCtr, brushCtr))
-      .on('pointerupoutside', () =>
-        this.onPointerUp(pixiCtr, layerCtr, brushCtr)
-      );
+      .on('pointerdown', this.onPointerDown.bind(this))
+      .on('pointermove', this.onPointerMove.bind(this))
+      .on('pointerup', this.onPointerUp.bind(this))
+      .on('pointerupoutside', this.onPointerUp.bind(this));
 
     this.initBusListeners();
+  }
+
+  static getInstance(): IDrawingController {
+    if (!this.instance) {
+      this.instance = new DrawingController();
+    }
+
+    return this.instance;
   }
 
   initBusListeners(): void {
@@ -74,13 +68,8 @@ export class DrawingController implements IDrawingController {
     );
   }
 
-  // TODO: REDO
-  execDrawCommand(
-    pixiCtr: PixiController,
-    brushCtr: BrushController,
-    layer: Layer,
-    commands: DrawCommand[]
-  ) {
+  execDrawCommand(layer: Layer, commands: DrawCommand[]) {
+    const brushCtr = BrushController.getInstance();
     let lastPos: Point | null = null;
     let lastColor = 0x000000;
 
@@ -90,7 +79,6 @@ export class DrawingController implements IDrawingController {
         lastColor = cmd.strokeStyle.color!;
 
         brushCtr.drawStamp(
-          pixiCtr,
           layer,
           cmd.brush as Brush,
           lastPos,
@@ -120,7 +108,6 @@ export class DrawingController implements IDrawingController {
           const y = start.y + Math.sin(ang) * i;
           const w = sw + (ew - sw) * t;
           brushCtr.drawStamp(
-            pixiCtr,
             layer,
             cmd.brush as Brush,
             new Point(x, y),
@@ -132,7 +119,6 @@ export class DrawingController implements IDrawingController {
           );
         }
         brushCtr.drawStamp(
-          pixiCtr,
           layer,
           cmd.brush as Brush,
           end,
@@ -149,14 +135,17 @@ export class DrawingController implements IDrawingController {
     }
   }
 
-  onPointerDown(
-    e: FederatedPointerEvent,
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushCtr: IBrushController
-  ) {
-    const layer = layerCtr.getActiveLayer();
-    if (!layer) return;
+  onPointerDown(e: FederatedPointerEvent) {
+    const layerCtr = LayerController.getInstance();
+    const pixiCtr = PixiController.getInstance();
+    const brushCtr = BrushController.getInstance();
+
+    let layer = layerCtr.getActiveLayer();
+
+    if (!layer) {
+      EventBus.getInstance().emit(AppEvents.NETWORK_CREATE_LAYER, null);
+      return;
+    }
     if (e.button === 1 || this.pan) {
       this.pan = true;
       return;
@@ -186,7 +175,6 @@ export class DrawingController implements IDrawingController {
     const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
 
     brushCtr.drawStamp(
-      pixiCtr,
       layer,
       brushCtr.brush,
       pos,
@@ -208,12 +196,11 @@ export class DrawingController implements IDrawingController {
     });
   }
 
-  onPointerMove(
-    e: FederatedPointerEvent,
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushCtr: IBrushController
-  ) {
+  onPointerMove(e: FederatedPointerEvent) {
+    const layerCtr = LayerController.getInstance();
+    const pixiCtr = PixiController.getInstance();
+    const brushCtr = BrushController.getInstance();
+
     const offsetPosition = pixiCtr.offsetPosition(e.clientX, e.clientY);
     pixiCtr.setMousePosition(offsetPosition);
 
@@ -260,7 +247,6 @@ export class DrawingController implements IDrawingController {
       const w = sw + (ew - sw) * t;
       const a = sa + (ea - sa) * t;
       brushCtr.drawStamp(
-        pixiCtr,
         layer,
         brushCtr.brush,
         new Point(x, y),
@@ -272,7 +258,6 @@ export class DrawingController implements IDrawingController {
       );
     }
     brushCtr.drawStamp(
-      pixiCtr,
       layer,
       brushCtr.brush,
       end,
@@ -303,15 +288,15 @@ export class DrawingController implements IDrawingController {
     this.lastAlpha = ea;
   }
 
-  onPointerUp(
-    pixiCtr: IPixiController,
-    layerCtr: ILayerController,
-    brushCtr: IBrushController
-  ) {
+  onPointerUp() {
     if (!this.drawing) {
       this.pan = false;
       return;
     }
+    const layerCtr = LayerController.getInstance();
+    const pixiCtr = PixiController.getInstance();
+    const brushCtr = BrushController.getInstance();
+
     this.drawing = false;
     this.pan = false;
     this.lastDrawingPosition = null;

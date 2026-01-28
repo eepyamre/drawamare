@@ -12,6 +12,8 @@ export type PressureSettings = {
 };
 
 export class BrushSettingsUI {
+  private static instance: BrushSettingsUI;
+
   private sizeSlider: HTMLInputElement;
   private opacitySlider: HTMLInputElement;
   private pressureSizeCheckbox: HTMLInputElement;
@@ -44,6 +46,14 @@ export class BrushSettingsUI {
     this.initContextMenu();
     this.initBrushes();
     this.initEventListeners();
+  }
+
+  static getInstance(): BrushSettingsUI {
+    if (!this.instance) {
+      this.instance = new BrushSettingsUI();
+    }
+
+    return this.instance;
   }
 
   initBusListeners() {

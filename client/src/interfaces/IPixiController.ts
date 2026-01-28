@@ -1,20 +1,9 @@
-import {
-  Application,
-  Container,
-  Graphics,
-  Point,
-  RenderTexture,
-} from 'pixi.js';
+import { Container, Point, RenderTexture } from 'pixi.js';
 
 import { Layer } from './ILayerController';
 
 export interface IPixiController {
-  app: Application;
-  board: Container;
-  mouse: Graphics;
-
   init(): Promise<void>;
-  initBusListeners(): void;
   _scale(delta: number): void;
   scale(delta: number): void;
   drawImageFromBase64(base64: string, rt: RenderTexture): Promise<void>;

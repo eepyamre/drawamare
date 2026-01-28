@@ -1,10 +1,9 @@
 import { Point, Sprite } from 'pixi.js';
 
 import { BLEND_MODES, Brush, BrushExtended } from '../utils';
-import { IPixiController, Layer } from './';
+import { Layer } from './';
 
 export type StampFn = (
-  pixiCtr: IPixiController,
   layer: Layer,
   brush: Brush,
   position: Point,

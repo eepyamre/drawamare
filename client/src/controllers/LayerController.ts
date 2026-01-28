@@ -6,11 +6,21 @@ import { NetworkController } from './NetworkController';
 import { PixiController } from './PixiController';
 
 export class LayerController implements ILayerController {
+  private static instance: ILayerController;
   layers = new Map<number, Layer>();
   activeLayer: Layer | null = null;
 
   constructor() {
     this.initBusListeners();
+    this.init();
+  }
+
+  static getInstance(): ILayerController {
+    if (!this.instance) {
+      this.instance = new LayerController();
+    }
+
+    return this.instance;
   }
 
   initBusListeners(): void {
@@ -20,7 +30,8 @@ export class LayerController implements ILayerController {
     bus.on(AppEvents.LAYER_SELECT, this.setActiveLayer.bind(this));
   }
 
-  init(networkCtr: NetworkController, pixiCtr: PixiController) {
+  init() {
+    const networkCtr = NetworkController.getInstance();
     const identity = networkCtr.getIdentity();
     for (const layer of networkCtr.getClientDb()!.layer.iter()) {
       const { base64, id, owner, name } = layer;
@@ -28,17 +39,15 @@ export class LayerController implements ILayerController {
       let l = this.getLayer(id);
 
       if (!l) {
-        l = this.createLayer(
-          {
-            id,
-            ownerId: owner,
-            ownerName: owner.toHexString().slice(0, 8),
-            title: name || owner.toHexString().slice(0, 8),
-          },
-          pixiCtr
-        );
+        l = this.createLayer({
+          id,
+          ownerId: owner,
+          ownerName: owner.toHexString().slice(0, 8),
+          title: name || owner.toHexString().slice(0, 8),
+        });
       }
-      if (base64) pixiCtr.drawImageFromBase64(base64, l!.rt);
+      if (base64)
+        PixiController.getInstance().drawImageFromBase64(base64, l!.rt);
     }
 
     const existingLayer = Array.from(this.layers.entries()).find(
@@ -46,16 +55,12 @@ export class LayerController implements ILayerController {
     );
     if (existingLayer) {
       this.activeLayer = existingLayer[1];
-    } else {
-      EventBus.getInstance().emit(AppEvents.NETWORK_CREATE_LAYER, null);
     }
   }
 
-  createLayer(
-    layerData: Omit<Layer, 'rt' | 'container'>,
-    pixiCtr: PixiController
-  ): Layer {
-    const { container, rt } = pixiCtr.createNewLayerTextures(layerData.title);
+  createLayer(layerData: Omit<Layer, 'rt' | 'container'>): Layer {
+    const { container, rt } =
+      PixiController.getInstance().createNewLayerTextures(layerData.title);
 
     const l = {
       id: layerData.id,
@@ -84,22 +89,15 @@ export class LayerController implements ILayerController {
     return this.layers.get(layerId);
   }
 
-  getOrCreateLayer(
-    layerId: number,
-    ownerId: Identity,
-    pixiCtr: PixiController
-  ): Layer {
+  getOrCreateLayer(layerId: number, ownerId: Identity): Layer {
     let layer = this.getLayer(layerId);
     if (!layer) {
-      layer = this.createLayer(
-        {
-          id: layerId,
-          ownerId: ownerId,
-          ownerName: ownerId.toHexString().slice(0, 8),
-          title: `Layer ${ownerId}`,
-        },
-        pixiCtr
-      );
+      layer = this.createLayer({
+        id: layerId,
+        ownerId: ownerId,
+        ownerName: ownerId.toHexString().slice(0, 8),
+        title: `Layer ${ownerId}`,
+      });
     }
     return layer;
   }
@@ -127,9 +125,5 @@ export class LayerController implements ILayerController {
     l?.container.destroy();
     this.layers.delete(layerId);
     EventBus.getInstance().emit(AppEvents.LAYERS_RERENDER, this.getAllLayers());
-  }
-
-  clearActiveLayerRenderTarget(pixiCtr: PixiController) {
-    if (this.activeLayer?.rt) pixiCtr.clearRenderTarget(this.activeLayer?.rt);
   }
 }

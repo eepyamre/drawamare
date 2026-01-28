@@ -1,8 +1,6 @@
 import { Container, RenderTexture } from 'pixi.js';
 import { Identity } from 'spacetimedb';
 
-import { INetworkController, IPixiController } from './';
-
 export type Layer = {
   id: number;
   container: Container;
@@ -16,21 +14,13 @@ export interface ILayerController {
   layers: Map<number, Layer>;
   activeLayer: Layer | null;
 
-  init(networkCtr: INetworkController, pixiCtr: IPixiController): void;
+  init(): void;
   initBusListeners(): void;
-  createLayer(
-    layerData: Omit<Layer, 'rt' | 'container'>,
-    pixiCtr: IPixiController
-  ): Layer;
+  createLayer(layerData: Omit<Layer, 'rt' | 'container'>): Layer;
   getLayer(layerId: number): Layer | undefined;
-  getOrCreateLayer(
-    layerId: number,
-    ownerId: Identity,
-    pixiCtr: IPixiController
-  ): Layer;
+  getOrCreateLayer(layerId: number, ownerId: Identity): Layer;
   getAllLayers(): Layer[];
   setActiveLayer(layerId: number): Layer | null;
   getActiveLayer(): Layer | null;
   deleteLayer(layerId: number): void;
-  clearActiveLayerRenderTarget(pixiCtr: IPixiController): void;
 }
