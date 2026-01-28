@@ -29,8 +29,8 @@ export class HistoryController implements IHistoryController {
     bus.on(AppEvents.HISTORY_SAVE_STATE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_REDO, this.clearRedo.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_UNDO, this.clearHistory.bind(this));
-    bus.on(AppEvents.HISTORY_UNDO, this.undo.bind(this));
-    bus.on(AppEvents.HISTORY_REDO, this.redo.bind(this));
+    bus.on(AppEvents.HISTORY_UNDO, () => this.undo.bind(this));
+    bus.on(AppEvents.HISTORY_REDO, () => this.redo.bind(this));
   }
 
   saveState(activeLayer: Layer) {

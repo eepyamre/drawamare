@@ -140,7 +140,7 @@ export class DrawingController implements IDrawingController {
     const pixiCtr = PixiController.getInstance();
     const brushCtr = BrushController.getInstance();
 
-    let layer = layerCtr.getActiveLayer();
+    const layer = layerCtr.getActiveLayer();
 
     if (!layer) {
       EventBus.getInstance().emit(AppEvents.NETWORK_CREATE_LAYER, null);
