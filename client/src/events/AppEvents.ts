@@ -7,6 +7,8 @@ export enum AppEvents {
   LAYERS_RERENDER = 'layers:rerender',
   LAYER_ACTIVATED = 'layer:activated',
   LAYER_CLEAR_ACTIVE = 'layer:clearActive',
+  LAYER_DELETE = 'layer:delete',
+  LAYER_SELECT = 'layer:select',
   BRUSH_EDITOR_SAVE = 'brushEditor:save',
   BRUSH_EDITOR_CANCEL = 'brushEditor:cancel',
   BRUSH_COLOR_CHANGE = 'brush:colorChange',
@@ -67,4 +69,6 @@ export type EventData = {
     base64: string;
     forceUpdate: boolean;
   };
+  [AppEvents.LAYER_DELETE]: number;
+  [AppEvents.LAYER_SELECT]: number;
 };

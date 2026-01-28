@@ -9,6 +9,17 @@ export class LayerController implements ILayerController {
   layers = new Map<number, Layer>();
   activeLayer: Layer | null = null;
 
+  constructor() {
+    this.initBusListeners();
+  }
+
+  initBusListeners(): void {
+    const bus = EventBus.getInstance();
+
+    bus.on(AppEvents.LAYER_DELETE, this.deleteLayer.bind(this));
+    bus.on(AppEvents.LAYER_SELECT, this.setActiveLayer.bind(this));
+  }
+
   init(networkCtr: NetworkController, pixiCtr: PixiController) {
     const identity = networkCtr.getIdentity();
     for (const layer of networkCtr.getClientDb()!.layer.iter()) {

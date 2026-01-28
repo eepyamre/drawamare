@@ -17,6 +17,7 @@ export interface ILayerController {
   activeLayer: Layer | null;
 
   init(networkCtr: INetworkController, pixiCtr: IPixiController): void;
+  initBusListeners(): void;
   createLayer(
     layerData: Omit<Layer, 'rt' | 'container'>,
     pixiCtr: IPixiController

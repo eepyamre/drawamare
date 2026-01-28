@@ -143,7 +143,7 @@ const startApp = async () => {
     layerUI.renderLayers(layerCtr.getAllLayers());
     layerUI.onSelectLayer((layerId) => {
       console.log(`Select layer ID: ${layerId}`);
-      layerCtr.setActiveLayer(layerId);
+      bus.emit(AppEvents.LAYER_SELECT, layerId);
       layerUI.setActiveLayer(layerId);
     });
 
@@ -154,7 +154,7 @@ const startApp = async () => {
 
     layerUI.onDeleteLayer((layerId) => {
       console.log(`Delete layer ${layerId}`);
-      layerCtr.deleteLayer(layerId);
+      bus.emit(AppEvents.LAYER_DELETE, layerId);
       bus.emit(AppEvents.HISTORY_CLEAR_REDO, null);
       bus.emit(AppEvents.HISTORY_CLEAR_UNDO, null);
       bus.emit(AppEvents.NETWORK_DELETE_LAYER, layerId);

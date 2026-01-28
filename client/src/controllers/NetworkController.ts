@@ -177,7 +177,7 @@ export class NetworkController implements INetworkController {
         }
 
         if (this.confirmLayerIdentity(layer)) {
-          layerCtr.setActiveLayer(l.id);
+          EventBus.getInstance().emit(AppEvents.LAYER_SELECT, l.id);
         }
       }
     );
