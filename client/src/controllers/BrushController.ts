@@ -2,23 +2,13 @@ import { Sprite } from 'pixi.js';
 
 import { AppEvents, EventBus } from '../events';
 import { IBrushController, StampFn } from '../interfaces';
-import { BLEND_MODES, Brush, BrushExtended } from '../utils';
+import { BLEND_MODES, Brush, BrushExtended, DEFAULT_BRUSH } from '../utils';
 import { BrushEngine } from './BrushEngine';
 import { PixiController } from './PixiController';
 
 export class BrushController implements IBrushController {
   private static instance: IBrushController;
-  brush: Brush = {
-    angle: 0,
-    density: 100,
-    ratio: 1,
-    spikes: 12,
-    spacing: 1,
-    shape: 'circle',
-    hFade: 1,
-    vFade: 1,
-  };
-
+  brush: Brush = DEFAULT_BRUSH;
   // string of <angle><density><ratio><spikes><spacing><size><color>
   stampCache: Record<string, Sprite> = {};
 
