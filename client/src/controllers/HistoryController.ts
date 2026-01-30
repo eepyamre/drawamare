@@ -29,8 +29,8 @@ export class HistoryController implements IHistoryController {
     bus.on(AppEvents.HISTORY_SAVE_STATE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_REDO, this.clearRedo.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_UNDO, this.clearHistory.bind(this));
-    bus.on(AppEvents.HISTORY_UNDO, () => this.undo.bind(this));
-    bus.on(AppEvents.HISTORY_REDO, () => this.redo.bind(this));
+    bus.on(AppEvents.HISTORY_UNDO, this.undo.bind(this));
+    bus.on(AppEvents.HISTORY_REDO, this.redo.bind(this));
   }
 
   saveState(activeLayer: Layer) {
@@ -47,31 +47,35 @@ export class HistoryController implements IHistoryController {
   }
 
   undo() {
-    if (HistoryController.historyStack.length <= 1) {
+    if (HistoryController.historyStack.length <= 0) {
       console.log('No commands to undo');
       return;
     }
     const layer = LayerController.getInstance().getActiveLayer();
-    if (!layer) return;
+    if (!layer) {
+      console.log('No layer selected');
+      return;
+    }
 
     const lastItem = HistoryController.historyStack.pop();
-    if (lastItem) {
-      HistoryController.redoStack.push(lastItem);
-      const previousState =
-        HistoryController.historyStack[
-          HistoryController.historyStack.length - 1
-        ];
-      PixiController.getInstance().redrawLayer(layer, previousState);
-      PixiController.getInstance()
-        .extractBase64(layer.rt)
-        .then((data) => {
-          EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
-            layerId: layer.id,
-            base64: data,
-            forceUpdate: true,
-          });
-        });
+
+    if (!lastItem) {
+      console.log('Stack is empty');
+      return;
     }
+    HistoryController.redoStack.push(lastItem);
+    const previousState =
+      HistoryController.historyStack[HistoryController.historyStack.length - 1];
+    PixiController.getInstance().redrawLayer(layer, previousState);
+    PixiController.getInstance()
+      .extractBase64(layer.rt)
+      .then((data) => {
+        EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+          layerId: layer.id,
+          base64: data,
+          forceUpdate: true,
+        });
+      });
   }
 
   redo() {
