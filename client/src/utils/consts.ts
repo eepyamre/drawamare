@@ -21,4 +21,5 @@ export const DEFAULT_BRUSH: Brush = {
   shape: 'circle',
   hFade: 0,
   vFade: 0,
+  type: 'auto',
 };

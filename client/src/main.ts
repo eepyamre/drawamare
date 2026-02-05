@@ -8,6 +8,7 @@ import {
 } from './controllers/';
 import { DomEventsController } from './controllers/DomEventsController';
 import { AppEvents, EventBus } from './events';
+import { BrushLoader } from './loaders/BrushLoader';
 import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
 import { wait } from './utils';
 
@@ -43,6 +44,7 @@ const startApp = async () => {
   const layerCtr = LayerController.getInstance();
   const layerUI = new LayerUI();
 
+  await BrushLoader.loadAll();
   BrushSettingsUI.getInstance();
   BrushController.getInstance();
   new ToolbarUI();

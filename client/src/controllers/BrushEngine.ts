@@ -6,9 +6,31 @@ import {
   Sprite,
 } from 'pixi.js';
 
+import { BrushLoader } from '../loaders/BrushLoader';
 import { BrushExtended, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
 
 export class BrushEngine {
+  static drawTextureStamp(
+    _renderer: Renderer,
+    brush: BrushExtended & { texture: string }
+  ): Sprite | undefined {
+    const texture = BrushLoader.getBrushTip(brush.texture);
+    if (!texture) return;
+
+    const sprite = Sprite.from(texture);
+    const height = brush?.size ? brush?.size * 2 : 150;
+    sprite.height = height;
+    sprite.width = height * (texture.width / texture.height);
+    sprite.x = (brush?.size || 150) - sprite.width / 2;
+
+    // grayscale image
+    // 255 became transparent
+    // 0 became opaque
+    // draw the opaque part
+
+    return sprite;
+  }
+
   static drawStamp(
     renderer: Renderer,
     brush: BrushExtended

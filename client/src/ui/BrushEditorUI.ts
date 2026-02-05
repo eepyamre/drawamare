@@ -1,7 +1,8 @@
-import { Application, Container } from 'pixi.js';
+import { Application, Container, Graphics, Sprite } from 'pixi.js';
 
 import { BrushEngine } from '../controllers/BrushEngine';
 import { AppEvents, EventBus } from '../events';
+import { PREDEFINED_BRUSHES } from '../loaders/BrushLoader';
 import { Brush, BrushWithPreview, DEFAULT_BRUSH } from '../utils';
 
 export class BrushEditorUI {
@@ -14,6 +15,7 @@ export class BrushEditorUI {
   private addBrushBtn: HTMLButtonElement | null = null;
   private saveBtn: HTMLButtonElement | null = null;
   private closeBtn: HTMLButtonElement | null = null;
+  private texturesWrapper: HTMLDivElement | null = null;
 
   constructor() {
     this.root = document.querySelector<HTMLDivElement>('.brush-editor')!;
@@ -39,6 +41,8 @@ export class BrushEditorUI {
       '#brush-editor_close'
     );
 
+    this.texturesWrapper = this.root.querySelector<HTMLDivElement>('#textures');
+
     const ratioEl = this.root.querySelector<HTMLLabelElement>('#ratio');
     const spikesEl = this.root.querySelector<HTMLLabelElement>('#spikes');
     const densityEl = this.root.querySelector<HTMLLabelElement>('#density');
@@ -48,9 +52,14 @@ export class BrushEditorUI {
     const verticalEl = this.root.querySelector<HTMLLabelElement>('#v-fade');
     const circleBtn = this.root.querySelector<HTMLLabelElement>('#circle-btn');
     const squareBtn = this.root.querySelector<HTMLLabelElement>('#square-btn');
+    //
+    const autoBtn = this.root.querySelector<HTMLButtonElement>('#auto-brush');
+    const textureBtn =
+      this.root.querySelector<HTMLButtonElement>('#texture-brush');
 
     if (
       [
+        this.texturesWrapper,
         this.stampEl,
         this.saveBtn,
         ratioEl,
@@ -64,10 +73,14 @@ export class BrushEditorUI {
         this.addBrushBtn,
         horizontalEl,
         verticalEl,
+        autoBtn,
+        textureBtn,
       ].some((item) => item === null)
     ) {
       throw new Error('Invalid node layout - missing required elements');
     }
+
+    this.renderBrushTips();
 
     this.initInput(ratioEl!, 'ratio');
     this.initInput(spacingEl!, 'spacing');
@@ -78,11 +91,13 @@ export class BrushEditorUI {
     this.initInput(verticalEl!, 'vFade');
 
     circleBtn!.addEventListener('click', () => {
+      if (this.brush.type === 'texture') return;
       this.brush.shape = 'circle';
       this.drawStampEditor();
     });
 
     squareBtn!.addEventListener('click', () => {
+      if (this.brush.type === 'texture') return;
       this.brush.shape = 'square';
       this.drawStampEditor();
     });
@@ -91,6 +106,30 @@ export class BrushEditorUI {
       e.stopPropagation();
       this.reset();
       this.toggle();
+    });
+
+    autoBtn?.addEventListener('click', () => {
+      this.texturesWrapper?.classList.add('hidden');
+      this.brush.type = 'auto';
+      this.drawStampEditor();
+    });
+
+    textureBtn?.addEventListener('click', () => {
+      this.texturesWrapper?.classList.remove('hidden');
+      this.brush.type = 'texture';
+      this.drawStampEditor();
+    });
+  }
+
+  private renderBrushTips(): void {
+    PREDEFINED_BRUSHES.forEach((brushTip) => {
+      const img = document.createElement('img');
+      img.classList.add('brush-editor_textures_tip');
+      img.src = brushTip.path;
+      img.title = brushTip.name;
+      img.dataset.id = brushTip.id;
+
+      this.texturesWrapper?.append(img);
     });
   }
 
@@ -104,6 +143,18 @@ export class BrushEditorUI {
     this.closeBtn.addEventListener('click', () => {
       this.toggle();
       EventBus.getInstance().emit(AppEvents.BRUSH_EDITOR_CANCEL, null);
+    });
+
+    this.texturesWrapper?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (typeof target.dataset.id === 'string') {
+        Array.from(this.texturesWrapper?.children ?? []).forEach((child) =>
+          child.classList.remove('active')
+        );
+        target.classList.add('active');
+        this.brush.texture = target.dataset.id;
+        this.drawStampEditor();
+      }
     });
 
     document.addEventListener('click', (e) => {
@@ -151,7 +202,7 @@ export class BrushEditorUI {
     this.app = new Application();
 
     await this.app.init({
-      background: '#ccc',
+      background: '#fff',
       antialias: true,
       width: 150,
       height: 150,
@@ -187,10 +238,10 @@ export class BrushEditorUI {
     };
 
     updateInput('ratio', this.brush.ratio);
-    updateInput('spikes', this.brush.spikes);
-    updateInput('density', this.brush.density);
     updateInput('spacing', this.brush.spacing);
     updateInput('angle', this.brush.angle);
+    updateInput('spikes', this.brush.spikes);
+    updateInput('density', this.brush.density);
     updateInput('h-fade', this.brush.hFade);
     updateInput('v-fade', this.brush.vFade);
 
@@ -214,10 +265,10 @@ export class BrushEditorUI {
     };
 
     updateInput('ratio', this.brush.ratio);
-    updateInput('spikes', this.brush.spikes);
-    updateInput('density', this.brush.density);
     updateInput('spacing', this.brush.spacing);
     updateInput('angle', this.brush.angle);
+    updateInput('spikes', this.brush.spikes);
+    updateInput('density', this.brush.density);
     updateInput('h-fade', this.brush.hFade);
     updateInput('v-fade', this.brush.vFade);
 
@@ -233,11 +284,21 @@ export class BrushEditorUI {
     const stage = this.app.stage;
     stage.removeChildren();
 
-    const stamp = BrushEngine.drawStamp(this.app.renderer!, {
+    const brush = {
       ...this.brush,
       size: 75, // Preview size
       color: 0x000000,
-    });
+    };
+
+    let stamp: Sprite | Graphics | undefined;
+    if (brush.type === 'texture' && brush.texture) {
+      stamp = BrushEngine.drawTextureStamp(this.app.renderer!, {
+        ...brush,
+        texture: brush.texture,
+      });
+    } else {
+      stamp = BrushEngine.drawStamp(this.app.renderer!, brush);
+    }
 
     stage.removeChildren();
     if (stamp) stage.addChild(stamp);
