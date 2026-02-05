@@ -6,13 +6,13 @@ import {
   NetworkController,
   PixiController,
 } from './controllers/';
+import { DomEventsController } from './controllers/DomEventsController';
 import { AppEvents, EventBus } from './events';
 import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
-import { Tools, wait } from './utils';
+import { wait } from './utils';
 
 const startApp = async () => {
-  // eslint-disable-next-line
-  if (!(window as any).chrome) {
+  if (!('chrome' in window)) {
     alert(
       'This app is currently supported only in Chrome. See the console for more details.'
     );
@@ -24,14 +24,14 @@ const startApp = async () => {
   }
   const networkCtr = NetworkController.getInstance();
   let connected = false;
+  let waitTime = 5000;
   while (!connected) {
     try {
       await networkCtr.connect();
       connected = true;
-      // eslint-disable-next-line
-    } catch (e) {
+    } catch (_e) {
       console.log('Trying to reconnect in 5 seconds...');
-      await wait(5000);
+      await wait((waitTime = waitTime + 5000));
     }
   }
   if (!networkCtr.getIdentity()) {
@@ -51,7 +51,8 @@ const startApp = async () => {
 
   await brushEditorUI.initPixi();
   HistoryController.getInstance();
-  const drawingCtr = DrawingController.getInstance();
+  DrawingController.getInstance();
+  DomEventsController.getInstance();
   networkCtr.initEventListeners();
 
   const bus = EventBus.getInstance();
@@ -75,63 +76,8 @@ const startApp = async () => {
     bus.on(AppEvents.LAYER_CLEAR_ACTIVE, clearLayer);
   }
 
-  // TODO: move to keyboard/event controller
   {
-    window.addEventListener('keydown', (e) => {
-      const key = e.key.toLowerCase();
-      const keys = ['e', 'z', 'delete', '+', '-', ' '];
-      if (keys.includes(key)) {
-        e.preventDefault();
-      }
-
-      switch (key) {
-        case 'e':
-          if (!drawingCtr.isErasing) {
-            bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.ERASER);
-          } else {
-            bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.BRUSH);
-          }
-          break;
-        case 'z':
-          if (e.ctrlKey || e.metaKey) {
-            if (e.shiftKey) {
-              bus.emit(AppEvents.HISTORY_REDO, null);
-            } else {
-              bus.emit(AppEvents.HISTORY_UNDO, null);
-            }
-          }
-          break;
-        case 'delete':
-          bus.emit(AppEvents.LAYER_CLEAR_ACTIVE, null);
-          break;
-        case '+':
-          bus.emit(AppEvents.CANVAS_ZOOM_IN, null);
-          break;
-        case '-':
-          bus.emit(AppEvents.CANVAS_ZOOM_OUT, null);
-          break;
-        case ' ':
-          bus.emit(AppEvents.CANVAS_SET_PAN_MODE, true);
-          break;
-      }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      const key = e.key.toLowerCase();
-      const keys = ['e', 'z', 'delete', '+', '-', ' '];
-      if (keys.includes(key)) {
-        e.preventDefault();
-      }
-
-      switch (key) {
-        case ' ':
-          bus.emit(AppEvents.CANVAS_SET_PAN_MODE, false);
-          break;
-      }
-    });
-  }
-
-  {
+    // TODO: REFACTOR
     layerUI.userId = networkCtr.getIdentity()!;
     layerUI.renderLayers(layerCtr.getAllLayers());
     layerUI.onSelectLayer((layerId) => {

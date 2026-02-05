@@ -21,7 +21,7 @@ describe('EventBus', () => {
 
     bus.on(event, handler);
 
-    expect(bus['listeners'].get(event)).toHaveLength(1);
+    expect(bus['listeners'][event]).toHaveLength(1);
   });
 
   test('on should remove listener', () => {
@@ -31,11 +31,11 @@ describe('EventBus', () => {
 
     bus.on(event, handler);
 
-    expect(bus['listeners'].get(event)).toHaveLength(1);
+    expect(bus['listeners'][event]).toHaveLength(1);
 
     bus.off(event, handler);
 
-    expect(bus['listeners'].get(event)).toHaveLength(0);
+    expect(bus['listeners'][event]).toHaveLength(0);
   });
 
   test('data is passed', () => {
@@ -46,13 +46,13 @@ describe('EventBus', () => {
 
     bus.on(event, handler);
 
-    expect(bus['listeners'].get(event)).toHaveLength(1);
+    expect(bus['listeners'][event]).toHaveLength(1);
     bus.emit(event, data);
     expect(handler).toHaveBeenCalledWith(data);
 
     bus.off(event, handler);
 
-    expect(bus['listeners'].get(event)).toHaveLength(0);
+    expect(bus['listeners'][event]).toHaveLength(0);
   });
 
   test('should support multiple listeners', () => {
@@ -67,7 +67,7 @@ describe('EventBus', () => {
     expect(handler1).toHaveBeenCalledTimes(0);
     expect(handler2).toHaveBeenCalledTimes(0);
 
-    expect(bus['listeners'].get(event)).toHaveLength(2);
+    expect(bus['listeners'][event]).toHaveLength(2);
 
     bus.emit(event, 1);
 
@@ -88,8 +88,8 @@ describe('EventBus', () => {
     expect(handler1).toHaveBeenCalledTimes(0);
     expect(handler2).toHaveBeenCalledTimes(0);
 
-    expect(bus['listeners'].get(event1)).toHaveLength(1);
-    expect(bus['listeners'].get(event2)).toHaveLength(1);
+    expect(bus['listeners'][event1]).toHaveLength(1);
+    expect(bus['listeners'][event2]).toHaveLength(1);
 
     bus.emit(AppEvents.LAYER_ACTIVATED, 1);
 

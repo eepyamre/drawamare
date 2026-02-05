@@ -2,37 +2,44 @@ import { AppEvents, EventData } from './AppEvents';
 
 export type EventHandler<T> = (data: T) => void;
 
+type Listeners = {
+  [K in AppEvents]?: Set<EventHandler<EventData[K]>>;
+};
+
 export class EventBus {
   private static instance: EventBus;
-  private listeners = new Map<AppEvents, Set<EventHandler<any>>>();
+  private listeners: Listeners = {};
 
   static getInstance(): EventBus {
     if (!this.instance) {
       this.instance = new EventBus();
     }
-
     return this.instance;
   }
 
-  on<K extends keyof EventData>(event: K, handler: EventHandler<EventData[K]>) {
+  on<K extends AppEvents>(event: K, handler: EventHandler<EventData[K]>) {
     console.log(`[EventBus] Subscribed to ${event}`);
-    const set = this.listeners.get(event) ?? new Set([]);
+
+    const set = this.listeners[event] ?? new Set<EventHandler<EventData[K]>>();
     set.add(handler);
-    this.listeners.set(event, set);
+
+    this.listeners[event] = set as Listeners[K];
   }
 
-  off<K extends keyof EventData>(
-    event: K,
-    handler: EventHandler<EventData[K]>
-  ) {
+  off<K extends AppEvents>(event: K, handler: EventHandler<EventData[K]>) {
     console.log(`[EventBus] Unsubscribed from ${event}`);
-    const set = this.listeners.get(event) ?? new Set([]);
+
+    const set = this.listeners[event] ?? new Set<EventHandler<EventData[K]>>();
     set.delete(handler);
-    this.listeners.set(event, set);
+
+    this.listeners[event] = set as Listeners[K];
   }
 
-  emit<K extends keyof EventData>(event: K, data: EventData[K]) {
+  emit<K extends AppEvents>(event: K, data: EventData[K]) {
     console.log(`[EventBus] Emitted ${event}`);
-    this.listeners.get(event)?.forEach((fn) => fn(data));
+
+    const listeners = this.listeners[event];
+
+    listeners?.forEach((fn) => fn(data));
   }
 }

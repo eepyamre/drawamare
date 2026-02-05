@@ -4,3 +4,4 @@ export * from './IPixiController';
 export * from './ILayerController';
 export * from './IBrushController';
 export * from './IDrawingController';
+export * from './IDomEventsController';
