@@ -202,7 +202,7 @@ export class BrushEditorUI {
     this.app = new Application();
 
     await this.app.init({
-      background: '#fff',
+      background: '#ccc',
       antialias: true,
       width: 150,
       height: 150,

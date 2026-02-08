@@ -32,7 +32,7 @@ export class BrushController implements IBrushController {
   }
 
   getCacheName(brush: BrushExtended) {
-    return `${brush.angle}${brush.density}${brush.ratio}${brush.spikes}${brush.spacing}${brush.size}${brush.color}`;
+    return `${brush.type}${brush.angle}${brush.density}${brush.ratio}${brush.spikes}${brush.spacing}${brush.size}${brush.color}`;
   }
 
   drawStamp: StampFn = (
@@ -53,7 +53,9 @@ export class BrushController implements IBrushController {
     const cached = this.stampCache[this.getCacheName(extendedBrush)];
     const stamp =
       cached ??
-      BrushEngine.drawStamp(PixiController.app.renderer, {
+      (extendedBrush.type === 'auto'
+        ? BrushEngine.drawStamp
+        : BrushEngine.drawTextureStamp)(PixiController.app.renderer, {
         ...brush,
         size,
         color,

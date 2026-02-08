@@ -1,4 +1,5 @@
 import {
+  Container,
   FillGradient,
   Graphics,
   RenderTexture,
@@ -11,7 +12,7 @@ import { BrushExtended, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
 
 export class BrushEngine {
   static drawTextureStamp(
-    _renderer: Renderer,
+    renderer: Renderer,
     brush: BrushExtended & { texture: string }
   ): Sprite | undefined {
     const texture = BrushLoader.getBrushTip(brush.texture);
@@ -19,16 +20,41 @@ export class BrushEngine {
 
     const sprite = Sprite.from(texture);
     const height = brush?.size ? brush?.size * 2 : 150;
+    const width = height * (texture.width / texture.height);
     sprite.height = height;
-    sprite.width = height * (texture.width / texture.height);
-    sprite.x = (brush?.size || 150) - sprite.width / 2;
+    sprite.width = width;
 
-    // grayscale image
-    // 255 became transparent
-    // 0 became opaque
-    // draw the opaque part
+    const rect = new Graphics().rect(0, 0, width, height);
 
-    return sprite;
+    rect.fill(brush.color);
+    rect.setMask({
+      mask: sprite,
+      inverse: true,
+    });
+
+    const container = new Container();
+    container.addChild(rect, sprite);
+    container.x = (brush?.size || 150) - width / 2;
+
+    const rt = RenderTexture.create({
+      width,
+      height,
+    });
+    renderer.render({
+      container: container,
+      target: rt,
+    });
+
+    const tip = new Sprite({
+      texture: rt,
+    });
+
+    container.destroy({
+      children: true,
+      context: true,
+      style: true,
+    });
+    return tip;
   }
 
   static drawStamp(
