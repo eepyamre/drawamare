@@ -1,6 +1,7 @@
 import { Point } from 'pixi.js';
 
-import { BrushWithPreview } from './types';
+import { Brush as BrushSpacetime } from '../module_bindings';
+import { Brush, BrushWithPreview } from './types';
 
 export const distance = (a: Point, b: Point) => {
   const dx = a.x - b.x;
@@ -36,4 +37,21 @@ export const getLocalBrushes = () => {
     localStorage.getItem('brushes') ?? '[]'
   );
   return brushes;
+};
+
+export const brushToSpacetime = (brush: Brush): BrushSpacetime => {
+  return {
+    ...brush,
+    brushType: brush.type,
+    texture: brush.texture,
+  };
+};
+
+export const spacetimeToBrush = (brush: BrushSpacetime): Brush => {
+  return {
+    ...brush,
+    type: brush.brushType === 'texture' ? 'texture' : 'auto',
+    texture: brush.texture,
+    shape: brush.shape === 'circle' ? 'circle' : 'square',
+  };
 };

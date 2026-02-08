@@ -52,9 +52,9 @@ export class BrushController implements IBrushController {
     const cached = this.stampCache[this.getCacheName(extendedBrush)];
     const stamp =
       cached ??
-      (extendedBrush.type === 'auto'
-        ? BrushEngine.drawStamp
-        : BrushEngine.drawTextureStamp)(PixiController.app.renderer, {
+      (extendedBrush.type === 'texture'
+        ? BrushEngine.drawTextureStamp
+        : BrushEngine.drawStamp)(PixiController.app.renderer, {
         ...brush,
         size,
         color,

@@ -41,8 +41,10 @@ pub struct Brush {
     spacing: f32,
     angle: i32,
     shape: String,
-    type: String,
-    texture: Option<String>
+    brush_type: String,
+    v_fade: i32,
+    h_fade: i32,
+    texture: Option<String>,
 }
 
 #[derive(SpacetimeType)]
@@ -53,7 +55,7 @@ pub struct DrawCommand {
     stroke_style: Option<StrokeStyle>,
     start_width: Option<i32>,
     end_width: Option<i32>,
-    brush: Brush
+    brush: Brush,
 }
 
 #[table(name = command, public)]
