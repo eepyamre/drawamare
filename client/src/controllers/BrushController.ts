@@ -9,7 +9,6 @@ import { PixiController } from './PixiController';
 export class BrushController implements IBrushController {
   private static instance: IBrushController;
   brush: Brush = DEFAULT_BRUSH;
-  // string of <angle><density><ratio><spikes><spacing><size><color>
   stampCache: Record<string, Sprite> = {};
 
   constructor() {
@@ -32,7 +31,7 @@ export class BrushController implements IBrushController {
   }
 
   getCacheName(brush: BrushExtended) {
-    return `${brush.type}${brush.angle}${brush.density}${brush.ratio}${brush.spikes}${brush.spacing}${brush.size}${brush.color}`;
+    return `${brush.type}${brush.texture}${brush.angle}${brush.density}${brush.ratio}${brush.spikes}${brush.spacing}${brush.size}${brush.color}`;
   }
 
   drawStamp: StampFn = (
