@@ -41,6 +41,8 @@ pub struct Brush {
     spacing: f32,
     angle: i32,
     shape: String,
+    type: String,
+    texture: Option<String>
 }
 
 #[derive(SpacetimeType)]
