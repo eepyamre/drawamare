@@ -7,6 +7,7 @@ import {
   PixiController,
 } from './controllers/';
 import { DomEventsController } from './controllers/DomEventsController';
+import { BrushLoader } from './loaders/BrushLoader';
 import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
 import { wait } from './utils';
 import { Logger } from './utils/logger';
@@ -46,6 +47,7 @@ const startApp = async () => {
   new LayerUI(NetworkController.identity);
   LayerController.getInstance();
 
+  await BrushLoader.loadAll();
   BrushSettingsUI.getInstance();
   BrushController.getInstance();
   new ToolbarUI();

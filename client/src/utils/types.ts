@@ -1,3 +1,5 @@
+import { TextureId } from '../loaders/BrushLoader';
+
 export enum BLEND_MODES {
   INHERIT = 'inherit',
   NORMAL = 'normal',
@@ -36,13 +38,15 @@ export enum BLEND_MODES {
 
 export type Brush = {
   ratio: number;
-  spikes: number;
-  density: number;
   spacing: number;
   angle: number;
+  spikes: number;
+  density: number;
   shape: 'circle' | 'square';
   vFade: number;
   hFade: number;
+  type: 'auto' | 'texture';
+  texture?: TextureId;
 };
 
 export type BrushWithPreview = Brush & {

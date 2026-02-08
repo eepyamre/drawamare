@@ -35,6 +35,10 @@ export type Brush = {
   spacing: number,
   angle: number,
   shape: string,
+  brushType: string,
+  vFade: number,
+  hFade: number,
+  texture: string | undefined,
 };
 let _cached_Brush_type_value: __AlgebraicTypeType | null = null;
 
@@ -56,6 +60,10 @@ export const Brush = {
       { name: "spacing", algebraicType: __AlgebraicTypeValue.F32 },
       { name: "angle", algebraicType: __AlgebraicTypeValue.I32 },
       { name: "shape", algebraicType: __AlgebraicTypeValue.String },
+      { name: "brushType", algebraicType: __AlgebraicTypeValue.String },
+      { name: "vFade", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "hFade", algebraicType: __AlgebraicTypeValue.I32 },
+      { name: "texture", algebraicType: __AlgebraicTypeValue.createOptionType(__AlgebraicTypeValue.String) },
     );
     return _cached_Brush_type_value;
   },

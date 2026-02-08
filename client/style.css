@@ -180,7 +180,7 @@ body {
 /* --- BRUSH SETTINGS --- */
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 #brush-settings {
@@ -281,7 +281,7 @@ body {
 
 .brush-editor_content {
   display: flex;
-  margin-top: 12px;
+  margin-top: 8px;
   gap: 24px;
   align-items: center;
 }
@@ -362,6 +362,25 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.brush-editor_textures {
+  display: flex;
+  gap: 4px;
+  height: 44px;
+  margin-top: 8px;
+}
+
+.brush-editor_textures_tip {
+  border-radius: 4px;
+  cursor: pointer;
+  width: 44px;
+  object-fit: contain;
+  background-color: #fff;
+}
+
+.brush-editor_textures_tip.active {
+  border: 2px solid #ccc;
 }
 
 /* --- CONTEXT MENU --- */

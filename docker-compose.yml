@@ -8,12 +8,12 @@ services:
       - ./server:/app/server
       - ./client:/app/client
     working_dir: /app
-    entrypoint: [ "sh", "-c" ]
+    entrypoint: ["sh", "-c"]
     command: >
       "
         spacetime start & sleep 3 &&
         spacetime generate --lang typescript --out-dir ./client/src/module_bindings --project-path ./server  &&
-        spacetime publish  -y --anonymous --project-path ./server drawamare &&
+        spacetime publish  -y --anonymous --server local --project-path ./server drawamare &&
         wait
       "
     ports:
@@ -24,7 +24,7 @@ services:
     build:
       context: ./client
       dockerfile: ../Dockerfile.client
-    command:  sh -c "npm install && npm run start"
+    command: sh -c "npm install && npm run start"
     volumes:
       - ./client:/app
     working_dir: /app

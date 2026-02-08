@@ -4,7 +4,12 @@ import { AppEvents, EventBus } from '../events';
 import { IDrawingController, Layer } from '../interfaces';
 import { DrawCommand, StrokeStyle } from '../module_bindings';
 import { BrushSettingsUI, PressureSettings } from '../ui';
-import { BLEND_MODES, Brush, Tools } from '../utils';
+import {
+  BLEND_MODES,
+  Tools,
+  brushToSpacetime,
+  spacetimeToBrush,
+} from '../utils';
 import { BrushController } from './BrushController';
 import { LayerController } from './LayerController';
 import { PixiController } from './PixiController';
@@ -80,7 +85,7 @@ export class DrawingController implements IDrawingController {
 
         brushCtr.drawStamp(
           layer,
-          cmd.brush as Brush,
+          spacetimeToBrush(cmd.brush),
           lastPos,
           cmd.strokeStyle.width!,
           lastColor,
@@ -109,7 +114,7 @@ export class DrawingController implements IDrawingController {
           const w = sw + (ew - sw) * t;
           brushCtr.drawStamp(
             layer,
-            cmd.brush as Brush,
+            spacetimeToBrush(cmd.brush),
             new Point(x, y),
             w,
             lastColor,
@@ -120,7 +125,7 @@ export class DrawingController implements IDrawingController {
         }
         brushCtr.drawStamp(
           layer,
-          cmd.brush as Brush,
+          spacetimeToBrush(cmd.brush),
           end,
           ew,
           lastColor,
@@ -192,7 +197,7 @@ export class DrawingController implements IDrawingController {
       strokeStyle: style,
       startWidth: undefined,
       endWidth: undefined,
-      brush: brushCtr.brush,
+      brush: brushToSpacetime(brushCtr.brush),
     });
   }
 
@@ -278,7 +283,7 @@ export class DrawingController implements IDrawingController {
         ...this.strokeStyle,
         alpha: ea,
       },
-      brush: brushCtr.brush,
+      brush: brushToSpacetime(brushCtr.brush),
     };
 
     this.accumulatedDrawCommands.push(command);
@@ -313,7 +318,7 @@ export class DrawingController implements IDrawingController {
       pos: undefined,
       startWidth: undefined,
       endWidth: undefined,
-      brush: brushCtr.brush,
+      brush: brushToSpacetime(brushCtr.brush),
     });
 
     pixiCtr.extractBase64(layer.rt).then((data) => {

@@ -1,4 +1,5 @@
 import {
+  Container,
   FillGradient,
   Graphics,
   RenderTexture,
@@ -6,9 +7,61 @@ import {
   Sprite,
 } from 'pixi.js';
 
+import { BrushLoader } from '../loaders/BrushLoader';
 import { BrushExtended, MAX_DOTS_AT_FULL_DENSITY, rotatePoint } from '../utils';
 
 export class BrushEngine {
+  static drawTextureStamp(
+    renderer: Renderer,
+    brush: BrushExtended & { texture: string }
+  ): Sprite | undefined {
+    const texture = BrushLoader.getBrushTip(brush.texture);
+    if (!texture) return;
+
+    const sprite = Sprite.from(texture);
+    const height = brush?.size ? brush?.size * 2 : 150;
+    const width = height * (texture.width / texture.height);
+    const angle = brush.angle || 0;
+
+    sprite.height = height;
+    sprite.width = width;
+
+    const rect = new Graphics().rect(0, 0, width, height);
+
+    rect.fill(brush.color);
+    rect.setMask({
+      mask: sprite,
+      inverse: true,
+    });
+
+    const container = new Container();
+    container.addChild(rect, sprite);
+    container.pivot.set(width / 2, height / 2);
+    container.position.set(width / 2, height / 2);
+    container.angle = angle;
+    container.scale.set(brush.ratio, 1);
+
+    const rt = RenderTexture.create({
+      width,
+      height,
+    });
+    renderer.render({
+      container: container,
+      target: rt,
+    });
+
+    const tip = new Sprite({
+      texture: rt,
+    });
+
+    container.destroy({
+      children: true,
+      context: true,
+      style: true,
+    });
+    return tip;
+  }
+
   static drawStamp(
     renderer: Renderer,
     brush: BrushExtended

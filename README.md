@@ -8,6 +8,7 @@
 # Start the spacetime server
 $ spacetime start
 ```
+
 ```sh
 # Generate TypeScript bindings and publish the project
 $ spacetime generate --lang typescript --out-dir ./client/src/module_bindings --project-path ./server
@@ -27,10 +28,10 @@ $ docker-compose up --build
 
 ## Hotkeys
 
-- **Ctrl + Z** — Undo  
-- **Ctrl + Shift + Z** — Redo  
-- **E** — Toggle Eraser  
-- **Delete** — Clear Current Layer  
-- **+ / Mouse Wheel Up / Ctrl + Space + Vertical Mouse Move Up** — Zoom In  
-- **– / Mouse Wheel Down / Ctrl + Space + Vertical Mouse Move Down** — Zoom Out  
+- **Ctrl + Z** — Undo
+- **Ctrl + Shift + Z** — Redo
+- **E** — Toggle Eraser
+- **Delete** — Clear Current Layer
+- **+ / Mouse Wheel Up / Ctrl + Space + Vertical Mouse Move Up** — Zoom In
+- **– / Mouse Wheel Down / Ctrl + Space + Vertical Mouse Move Down** — Zoom Out
 - **Space + Mouse Drag** — Move Canvas
