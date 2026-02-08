@@ -72,6 +72,7 @@ export class BrushSettingsUI {
     const localBrushes = getLocalBrushes();
     if (editingIndex !== null) {
       localBrushes[editingIndex] = brush;
+      // TODO: redraw the brush preview
       this.setActiveBrush(`Custom Brush ${editingIndex + 1}`);
     } else {
       localBrushes.push(brush);

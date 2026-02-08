@@ -21,6 +21,8 @@ export class BrushEngine {
     const sprite = Sprite.from(texture);
     const height = brush?.size ? brush?.size * 2 : 150;
     const width = height * (texture.width / texture.height);
+    const angle = brush.angle || 0;
+
     sprite.height = height;
     sprite.width = width;
 
@@ -34,7 +36,10 @@ export class BrushEngine {
 
     const container = new Container();
     container.addChild(rect, sprite);
-    container.x = (brush?.size || 150) - width / 2;
+    container.pivot.set(width / 2, height / 2);
+    container.position.set(width / 2, height / 2);
+    container.angle = angle;
+    container.scale.set(brush.ratio, 1);
 
     const rt = RenderTexture.create({
       width,

@@ -16,6 +16,7 @@ export class BrushEditorUI {
   private saveBtn: HTMLButtonElement | null = null;
   private closeBtn: HTMLButtonElement | null = null;
   private texturesWrapper: HTMLDivElement | null = null;
+  private autoBrushSettings: HTMLElement[] = [];
 
   constructor() {
     this.root = document.querySelector<HTMLDivElement>('.brush-editor')!;
@@ -81,6 +82,14 @@ export class BrushEditorUI {
       throw new Error('Invalid node layout - missing required elements');
     }
 
+    const autoBrushSettings = [
+      spikesEl?.parentElement,
+      densityEl?.parentElement,
+      verticalEl?.parentElement,
+      horizontalEl?.parentElement,
+    ].filter((item) => !!item);
+    this.autoBrushSettings.push(...autoBrushSettings);
+
     this.renderBrushTips();
 
     this.initInput(ratioEl!, 'ratio');
@@ -109,17 +118,26 @@ export class BrushEditorUI {
       this.toggle();
     });
 
-    autoBtn?.addEventListener('click', () => {
+    autoBtn?.addEventListener('click', this.updateEditorTabs.bind(this, false));
+
+    textureBtn?.addEventListener(
+      'click',
+      this.updateEditorTabs.bind(this, true)
+    );
+  }
+
+  private updateEditorTabs(showTextureTab: boolean): void {
+    if (!showTextureTab) {
       this.texturesWrapper?.classList.add('hidden');
       this.brush.type = 'auto';
+      this.autoBrushSettings.forEach((item) => item.classList.remove('hidden'));
       this.drawStampEditor();
-    });
-
-    textureBtn?.addEventListener('click', () => {
+    } else {
       this.texturesWrapper?.classList.remove('hidden');
       this.brush.type = 'texture';
+      this.autoBrushSettings.forEach((item) => item.classList.add('hidden'));
       this.drawStampEditor();
-    });
+    }
   }
 
   private renderBrushTips(): void {
@@ -278,11 +296,7 @@ export class BrushEditorUI {
       this.toggle();
     }
 
-    if (this.brush.type === 'auto') {
-      this.texturesWrapper?.classList.add('hidden');
-    } else {
-      this.texturesWrapper?.classList.remove('hidden');
-    }
+    this.updateEditorTabs(this.brush.type === 'texture');
   }
 
   private drawStampEditor() {
