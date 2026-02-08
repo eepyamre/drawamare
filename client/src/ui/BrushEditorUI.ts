@@ -277,6 +277,12 @@ export class BrushEditorUI {
     if (this.root.classList.contains('hidden')) {
       this.toggle();
     }
+
+    if (this.brush.type === 'auto') {
+      this.texturesWrapper?.classList.add('hidden');
+    } else {
+      this.texturesWrapper?.classList.remove('hidden');
+    }
   }
 
   private drawStampEditor() {

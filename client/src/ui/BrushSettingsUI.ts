@@ -72,16 +72,17 @@ export class BrushSettingsUI {
     const localBrushes = getLocalBrushes();
     if (editingIndex !== null) {
       localBrushes[editingIndex] = brush;
+      this.setActiveBrush(`Custom Brush ${editingIndex + 1}`);
     } else {
       localBrushes.push(brush);
+      this.setActiveBrush(`Custom Brush ${localBrushes.length}`);
     }
 
     localStorage.setItem('brushes', JSON.stringify(localBrushes));
 
-    if (!editingIndex) {
+    if (editingIndex === null) {
       this.initBrushes();
     }
-    this.setActiveBrush(`Custom Brush ${localBrushes.length}`);
   }
 
   private initContextMenu() {
