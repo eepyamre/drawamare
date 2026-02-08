@@ -100,6 +100,21 @@ export class PixiController implements IPixiController {
     bus.on(AppEvents.CANVAS_ZOOM_OUT, this.scale.bind(this, 1));
     bus.on(AppEvents.CANVAS_DOWNLOAD, this.download.bind(this));
     bus.on(AppEvents.BRUSH_SIZE_CHANGE, this.setMouseSize.bind(this));
+    bus.on(AppEvents.LAYER_CLEAR_ACTIVE, this._clearLayer.bind(this));
+  }
+
+  _clearLayer(activeLayer: Layer | null) {
+    if (!activeLayer) return;
+    const bus = EventBus.getInstance();
+
+    this.clearRenderTarget(activeLayer.rt);
+    this.extractBase64(activeLayer.rt).then((data) => {
+      bus.emit(AppEvents.NETWORK_SAVE_LAYER, {
+        layerId: activeLayer.id,
+        base64: data,
+        forceUpdate: true,
+      });
+    });
   }
 
   _scale(delta: number) {

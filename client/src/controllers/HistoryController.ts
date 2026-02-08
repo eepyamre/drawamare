@@ -27,6 +27,7 @@ export class HistoryController implements IHistoryController {
   initBusListeners(): void {
     const bus = EventBus.getInstance();
 
+    bus.on(AppEvents.LAYER_CLEAR_ACTIVE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_SAVE_STATE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_REDO, this.clearRedo.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_UNDO, this.clearHistory.bind(this));
@@ -34,7 +35,7 @@ export class HistoryController implements IHistoryController {
     bus.on(AppEvents.HISTORY_REDO, this.redo.bind(this));
   }
 
-  saveState(activeLayer: Layer) {
+  saveState(activeLayer: Layer | null) {
     if (!activeLayer) return;
 
     HistoryController.historyStack.push(

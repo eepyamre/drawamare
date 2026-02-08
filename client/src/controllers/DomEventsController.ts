@@ -3,6 +3,7 @@ import { IDomEventsController } from '../interfaces';
 import { Tools } from '../utils';
 import { Logger } from '../utils/logger';
 import { DrawingController } from './DrawingController';
+import { LayerController } from './LayerController';
 
 export class DomEventsController implements IDomEventsController {
   static instance: DomEventsController;
@@ -54,7 +55,10 @@ export class DomEventsController implements IDomEventsController {
         }
         break;
       case 'delete':
-        bus.emit(AppEvents.LAYER_CLEAR_ACTIVE, null);
+        bus.emit(
+          AppEvents.LAYER_CLEAR_ACTIVE,
+          LayerController.getInstance().activeLayer
+        );
         break;
       case '+':
         bus.emit(AppEvents.CANVAS_ZOOM_IN, null);

@@ -7,7 +7,6 @@ import {
   PixiController,
 } from './controllers/';
 import { DomEventsController } from './controllers/DomEventsController';
-import { AppEvents, EventBus } from './events';
 import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
 import { wait } from './utils';
 import { Logger } from './utils/logger';
@@ -38,14 +37,14 @@ const startApp = async () => {
       await wait(waitTime);
     }
   }
-  if (!networkCtr.getIdentity()) {
+  if (!NetworkController.identity) {
     throw new Error('User identity is not defined');
   }
 
   const pixiCtr = PixiController.getInstance();
   await pixiCtr.init();
-  const layerCtr = LayerController.getInstance();
-  const layerUI = new LayerUI();
+  new LayerUI(NetworkController.identity);
+  LayerController.getInstance();
 
   BrushSettingsUI.getInstance();
   BrushController.getInstance();
@@ -58,51 +57,6 @@ const startApp = async () => {
   DrawingController.getInstance();
   DomEventsController.getInstance();
   networkCtr.initEventListeners();
-
-  const bus = EventBus.getInstance();
-
-  const clearLayer = () => {
-    const activeLayer = layerCtr.getActiveLayer();
-    if (!activeLayer) return;
-    pixiCtr.clearRenderTarget(activeLayer.rt);
-    bus.emit(AppEvents.HISTORY_SAVE_STATE, activeLayer);
-    pixiCtr.extractBase64(activeLayer.rt).then((data) => {
-      bus.emit(AppEvents.NETWORK_SAVE_LAYER, {
-        layerId: activeLayer.id,
-        base64: data,
-        forceUpdate: true,
-      });
-    });
-  };
-
-  {
-    // TODO: REFACTOR
-    bus.on(AppEvents.LAYER_CLEAR_ACTIVE, clearLayer);
-  }
-
-  {
-    // TODO: REFACTOR
-    layerUI.userId = networkCtr.getIdentity()!;
-    layerUI.renderLayers(layerCtr.getAllLayers());
-    layerUI.onSelectLayer((layerId) => {
-      Logger.debug(`[Layer UI] Select layer ID: ${layerId}`);
-      bus.emit(AppEvents.LAYER_SELECT, layerId);
-      layerUI.setActiveLayer(layerId);
-    });
-
-    layerUI.onAddLayer(() => {
-      Logger.debug('[Layer UI] Add new layer');
-      bus.emit(AppEvents.NETWORK_CREATE_LAYER, null);
-    });
-
-    layerUI.onDeleteLayer((layerId) => {
-      Logger.debug(`[Layer UI] Delete layer ${layerId}`);
-      bus.emit(AppEvents.LAYER_DELETE, layerId);
-      bus.emit(AppEvents.HISTORY_CLEAR_REDO, null);
-      bus.emit(AppEvents.HISTORY_CLEAR_UNDO, null);
-      bus.emit(AppEvents.NETWORK_DELETE_LAYER, layerId);
-    });
-  }
 };
 
 startApp();

@@ -67,6 +67,7 @@ export class NetworkController implements INetworkController {
           'SELECT * FROM command',
         ]);
         NetworkController.conn = conn;
+
         res();
       };
 

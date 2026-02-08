@@ -2,27 +2,21 @@ import { Identity } from 'spacetimedb';
 
 import { AppEvents, EventBus } from '../events';
 import { Layer } from '../interfaces';
-
-type LayerSelectCallback = (layerId: number) => void;
-type AddLayerCallback = () => void;
-type DeleteLayerCallback = (layerId: number) => void;
+import { Logger } from '../utils/logger';
 
 export class LayerUI {
   private layerListElement: HTMLElement;
   private addLayerButton: HTMLElement;
-  private onSelectLayerCallback: LayerSelectCallback | null = null;
-  private onAddLayerCallback: AddLayerCallback | null = null;
-  private onDeleteLayerCallback: DeleteLayerCallback | null = null;
   private _userId: Identity | undefined;
 
-  constructor() {
+  constructor(userId: Identity) {
+    this._userId = userId;
     this.layerListElement = document.querySelector('.layer-list')!;
     this.addLayerButton = document.querySelector('.add-layer-button')!;
 
     this.addLayerButton.addEventListener('click', () => {
-      if (this.onAddLayerCallback) {
-        this.onAddLayerCallback();
-      }
+      Logger.debug('[Layer UI] Add new layer');
+      EventBus.getInstance().emit(AppEvents.NETWORK_CREATE_LAYER, null);
     });
 
     this.initBusListeners();
@@ -32,18 +26,6 @@ export class LayerUI {
     const bus = EventBus.getInstance();
     bus.on(AppEvents.LAYERS_RERENDER, this.renderLayers.bind(this));
     bus.on(AppEvents.LAYER_ACTIVATED, this.setActiveLayer.bind(this));
-  }
-
-  public onSelectLayer(callback: LayerSelectCallback) {
-    this.onSelectLayerCallback = callback;
-  }
-
-  public onAddLayer(callback: AddLayerCallback) {
-    this.onAddLayerCallback = callback;
-  }
-
-  public onDeleteLayer(callback: DeleteLayerCallback) {
-    this.onDeleteLayerCallback = callback;
   }
 
   public renderLayers(layers: Layer[]) {
@@ -86,15 +68,18 @@ export class LayerUI {
 
         layerDeleteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (this.onDeleteLayerCallback) {
-            this.onDeleteLayerCallback(layer.id);
-          }
+          Logger.debug(`[Layer UI] Delete layer ${layer.id}`);
+          const bus = EventBus.getInstance();
+          bus.emit(AppEvents.HISTORY_CLEAR_REDO, null);
+          bus.emit(AppEvents.HISTORY_CLEAR_UNDO, null);
+          bus.emit(AppEvents.NETWORK_DELETE_LAYER, layer.id);
+          bus.emit(AppEvents.LAYER_DELETE, layer.id);
         });
 
         layerItem.addEventListener('click', () => {
-          if (this.onSelectLayerCallback) {
-            this.onSelectLayerCallback(layer.id);
-          }
+          Logger.debug(`[Layer UI] Select layer ID: ${layer.id}`);
+          EventBus.getInstance().emit(AppEvents.LAYER_SELECT, layer.id);
+          this.setActiveLayer(layer.id);
         });
       }
 
@@ -116,9 +101,5 @@ export class LayerUI {
     if (activeLayerItem) {
       activeLayerItem.classList.add('active');
     }
-  }
-
-  public set userId(value: Identity) {
-    this._userId = value;
   }
 }
