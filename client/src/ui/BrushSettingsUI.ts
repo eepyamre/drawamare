@@ -5,6 +5,7 @@ import {
   DEFAULT_BRUSH,
   getLocalBrushes,
 } from '../utils';
+import { Logger } from '../utils/logger';
 
 export type PressureSettings = {
   size: boolean;
@@ -61,7 +62,7 @@ export class BrushSettingsUI {
     bus.on(AppEvents.BRUSH_EDITOR_SAVE, this.onBrushEditorSave.bind(this));
 
     bus.on(AppEvents.BRUSH_EDITOR_CANCEL, () => {
-      console.log('Brush editor cancelled');
+      Logger.debug('[Brush Settings UI] Brush editor cancelled');
     });
   }
 

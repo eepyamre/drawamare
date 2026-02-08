@@ -10,6 +10,7 @@ import { DomEventsController } from './controllers/DomEventsController';
 import { AppEvents, EventBus } from './events';
 import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
 import { wait } from './utils';
+import { Logger } from './utils/logger';
 
 const startApp = async () => {
   if (!('chrome' in window)) {
@@ -30,8 +31,11 @@ const startApp = async () => {
       await networkCtr.connect();
       connected = true;
     } catch (_e) {
-      console.log('Trying to reconnect in 5 seconds...');
-      await wait((waitTime = waitTime + 5000));
+      waitTime = waitTime + 5000;
+      Logger.info(
+        `[Network] Trying to reconnect in ${Math.round(waitTime / 1000)} seconds...`
+      );
+      await wait(waitTime);
     }
   }
   if (!networkCtr.getIdentity()) {
@@ -81,18 +85,18 @@ const startApp = async () => {
     layerUI.userId = networkCtr.getIdentity()!;
     layerUI.renderLayers(layerCtr.getAllLayers());
     layerUI.onSelectLayer((layerId) => {
-      console.log(`Select layer ID: ${layerId}`);
+      Logger.debug(`[Layer UI] Select layer ID: ${layerId}`);
       bus.emit(AppEvents.LAYER_SELECT, layerId);
       layerUI.setActiveLayer(layerId);
     });
 
     layerUI.onAddLayer(() => {
-      console.log('Add new layer');
+      Logger.debug('[Layer UI] Add new layer');
       bus.emit(AppEvents.NETWORK_CREATE_LAYER, null);
     });
 
     layerUI.onDeleteLayer((layerId) => {
-      console.log(`Delete layer ${layerId}`);
+      Logger.debug(`[Layer UI] Delete layer ${layerId}`);
       bus.emit(AppEvents.LAYER_DELETE, layerId);
       bus.emit(AppEvents.HISTORY_CLEAR_REDO, null);
       bus.emit(AppEvents.HISTORY_CLEAR_UNDO, null);

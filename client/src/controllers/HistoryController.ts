@@ -1,6 +1,7 @@
 import { AppEvents, EventBus } from '../events';
 import { Layer } from '../interfaces';
 import { History, IHistoryController } from '../interfaces/IHistoryController';
+import { Logger } from '../utils/logger';
 import { LayerController } from './LayerController';
 import { PixiController } from './PixiController';
 
@@ -48,19 +49,19 @@ export class HistoryController implements IHistoryController {
 
   undo() {
     if (HistoryController.historyStack.length <= 0) {
-      console.log('No commands to undo');
+      Logger.info('[History] No commands to undo');
       return;
     }
     const layer = LayerController.getInstance().getActiveLayer();
     if (!layer) {
-      console.log('No layer selected');
+      Logger.info('[History] No layer selected');
       return;
     }
 
     const lastItem = HistoryController.historyStack.pop();
 
     if (!lastItem) {
-      console.log('Stack is empty');
+      Logger.info('[History] Stack is empty');
       return;
     }
     HistoryController.redoStack.push(lastItem);
@@ -80,7 +81,7 @@ export class HistoryController implements IHistoryController {
 
   redo() {
     if (HistoryController.redoStack.length <= 0) {
-      console.log('No commands to redo');
+      Logger.info('[History] No commands to redo');
       return;
     }
 
