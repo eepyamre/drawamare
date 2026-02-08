@@ -26,6 +26,7 @@ export class BrushEditorUI {
 
     this.initializeElements();
     this.attachEventListeners();
+    this.initBusListeners();
   }
 
   initBusListeners(): void {
