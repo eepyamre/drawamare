@@ -1,3 +1,4 @@
+import { LayerController } from '../controllers';
 import { AppEvents, EventBus } from '../events';
 import { Tools } from '../utils';
 
@@ -78,7 +79,10 @@ export class ToolbarUI {
         break;
       }
       case Tools.DELETE: {
-        bus.emit(AppEvents.LAYER_CLEAR_ACTIVE, null);
+        bus.emit(
+          AppEvents.LAYER_CLEAR_ACTIVE,
+          LayerController.getInstance().activeLayer
+        );
         break;
       }
       case Tools.ZOOMIN: {

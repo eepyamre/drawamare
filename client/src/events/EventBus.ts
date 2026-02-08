@@ -1,3 +1,4 @@
+import { Logger } from '../utils/logger';
 import { AppEvents, EventData } from './AppEvents';
 
 export type EventHandler<T> = (data: T) => void;
@@ -18,7 +19,7 @@ export class EventBus {
   }
 
   on<K extends AppEvents>(event: K, handler: EventHandler<EventData[K]>) {
-    console.log(`[EventBus] Subscribed to ${event}`);
+    Logger.debug(`[EventBus] Subscribed to ${event}`);
 
     const set = this.listeners[event] ?? new Set<EventHandler<EventData[K]>>();
     set.add(handler);
@@ -27,7 +28,7 @@ export class EventBus {
   }
 
   off<K extends AppEvents>(event: K, handler: EventHandler<EventData[K]>) {
-    console.log(`[EventBus] Unsubscribed from ${event}`);
+    Logger.debug(`[EventBus] Unsubscribed from ${event}`);
 
     const set = this.listeners[event] ?? new Set<EventHandler<EventData[K]>>();
     set.delete(handler);
@@ -36,7 +37,7 @@ export class EventBus {
   }
 
   emit<K extends AppEvents>(event: K, data: EventData[K]) {
-    console.log(`[EventBus] Emitted ${event}`);
+    Logger.debug(`[EventBus] Emitted ${event}`);
 
     const listeners = this.listeners[event];
 

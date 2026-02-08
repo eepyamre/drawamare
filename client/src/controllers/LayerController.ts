@@ -56,6 +56,7 @@ export class LayerController implements ILayerController {
     if (existingLayer) {
       this.activeLayer = existingLayer[1];
     }
+    EventBus.getInstance().emit(AppEvents.LAYERS_RERENDER, this.getAllLayers());
   }
 
   createLayer(layerData: Omit<Layer, 'rt' | 'container'>): Layer {

@@ -6,7 +6,7 @@ export type History = RenderTexture[];
 
 export interface IHistoryController {
   initBusListeners(): void;
-  saveState(activeLayer: Layer): void;
+  saveState(activeLayer: Layer | null): void;
   undo(): void;
   redo(): void;
   clearHistory(): void;

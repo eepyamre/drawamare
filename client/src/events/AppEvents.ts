@@ -36,7 +36,7 @@ export enum AppEvents {
 export type EventData = {
   [AppEvents.LAYERS_RERENDER]: Layer[];
   [AppEvents.LAYER_ACTIVATED]: number;
-  [AppEvents.LAYER_CLEAR_ACTIVE]: null;
+  [AppEvents.LAYER_CLEAR_ACTIVE]: Layer | null;
   [AppEvents.BRUSH_EDITOR_SAVE]: {
     brush: BrushWithPreview;
     editingIndex: number | null;

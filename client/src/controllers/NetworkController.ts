@@ -10,6 +10,7 @@ import {
   EventContext,
   Layer as ServerLayer,
 } from '../module_bindings';
+import { Logger } from '../utils/logger';
 import { DrawingController } from './DrawingController';
 import { LayerController } from './LayerController';
 import { PixiController } from './PixiController';
@@ -41,7 +42,7 @@ export class NetworkController implements INetworkController {
             .onApplied(() => {
               count++;
               if (count === queries.length) {
-                console.log('SDK client cache initialized.');
+                Logger.debug('[Network] SDK client cache initialized.');
               }
             })
             .subscribe(query);
@@ -55,8 +56,8 @@ export class NetworkController implements INetworkController {
       ) => {
         NetworkController.identity = userIdentity;
         localStorage.setItem('auth_token', token);
-        console.log(
-          'Connected to SpacetimeDB with identity:',
+        Logger.info(
+          '[Network] Connected to SpacetimeDB with identity:',
           NetworkController.identity.toHexString()
         );
 
@@ -66,16 +67,17 @@ export class NetworkController implements INetworkController {
           'SELECT * FROM command',
         ]);
         NetworkController.conn = conn;
+
         res();
       };
 
       const onDisconnect = () => {
         // todo
-        console.log('Disconnected');
+        Logger.info('[Network] Disconnected');
       };
 
       const onConnectError = (_ctx: ErrorContext, err: Error) => {
-        console.log('Error connecting to SpacetimeDB:', err);
+        Logger.error('[Network] Error connecting to SpacetimeDB:', err);
         localStorage.removeItem('auth_token');
         rej(err);
       };
@@ -130,8 +132,8 @@ export class NetworkController implements INetworkController {
           command.owner.isEqual(NetworkController.identity)
         )
           return;
-        console.log(
-          `Received draw command from ${command.owner
+        Logger.debug(
+          `[Network] Received draw command from ${command.owner
             .toHexString()
             .slice(0, 8)}`
         );
@@ -152,7 +154,7 @@ export class NetworkController implements INetworkController {
           this.confirmLayerIdentity(newLayer) // user's layers is already up to date
         )
           return;
-        console.log(`Received update layer command`);
+        Logger.debug(`[Network] Received update layer command`);
         const l = layerCtr.getOrCreateLayer(newLayer.id, newLayer.owner);
 
         pixiCtr.clearRenderTarget(l.rt);
@@ -162,7 +164,7 @@ export class NetworkController implements INetworkController {
 
     this.getClientDb()?.layer.onInsert(
       (_ctx: EventContext, layer: ServerLayer) => {
-        console.log(`Received create layer command`);
+        Logger.debug(`[Network] Received create layer command`);
         const l = layerCtr.createLayer({
           id: layer.id,
           ownerId: layer.owner,
@@ -182,7 +184,7 @@ export class NetworkController implements INetworkController {
 
     this.getClientDb()?.layer.onDelete(
       (_ctx: EventContext, layer: ServerLayer) => {
-        console.log(`Received delete layer command`);
+        Logger.debug(`[Network] Received delete layer command`);
 
         layerCtr.deleteLayer(layer.id);
       }

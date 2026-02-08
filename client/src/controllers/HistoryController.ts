@@ -1,6 +1,7 @@
 import { AppEvents, EventBus } from '../events';
 import { Layer } from '../interfaces';
 import { History, IHistoryController } from '../interfaces/IHistoryController';
+import { Logger } from '../utils/logger';
 import { LayerController } from './LayerController';
 import { PixiController } from './PixiController';
 
@@ -26,6 +27,7 @@ export class HistoryController implements IHistoryController {
   initBusListeners(): void {
     const bus = EventBus.getInstance();
 
+    bus.on(AppEvents.LAYER_CLEAR_ACTIVE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_SAVE_STATE, this.saveState.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_REDO, this.clearRedo.bind(this));
     bus.on(AppEvents.HISTORY_CLEAR_UNDO, this.clearHistory.bind(this));
@@ -33,7 +35,7 @@ export class HistoryController implements IHistoryController {
     bus.on(AppEvents.HISTORY_REDO, this.redo.bind(this));
   }
 
-  saveState(activeLayer: Layer) {
+  saveState(activeLayer: Layer | null) {
     if (!activeLayer) return;
 
     HistoryController.historyStack.push(
@@ -48,19 +50,19 @@ export class HistoryController implements IHistoryController {
 
   undo() {
     if (HistoryController.historyStack.length <= 0) {
-      console.log('No commands to undo');
+      Logger.info('[History] No commands to undo');
       return;
     }
     const layer = LayerController.getInstance().getActiveLayer();
     if (!layer) {
-      console.log('No layer selected');
+      Logger.info('[History] No layer selected');
       return;
     }
 
     const lastItem = HistoryController.historyStack.pop();
 
     if (!lastItem) {
-      console.log('Stack is empty');
+      Logger.info('[History] Stack is empty');
       return;
     }
     HistoryController.redoStack.push(lastItem);
@@ -80,7 +82,7 @@ export class HistoryController implements IHistoryController {
 
   redo() {
     if (HistoryController.redoStack.length <= 0) {
-      console.log('No commands to redo');
+      Logger.info('[History] No commands to redo');
       return;
     }
 
