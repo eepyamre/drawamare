@@ -1,6 +1,10 @@
-FROM clockworklabs/spacetime
+FROM node:20
+
+# Install SpacetimeDB CLI
+RUN curl -sSf https://install.spacetimedb.com | sh -s -- -y
+
+ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
 COPY . .
-
