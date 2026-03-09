@@ -10,9 +10,13 @@ $ spacetime start
 ```
 
 ```sh
+# Build the server
+$ cd server
+$ npm run build
+$ npm run publish
 # Generate TypeScript bindings and publish the project
-$ spacetime generate --lang typescript --out-dir ./client/src/module_bindings --project-path ./server
-$ spacetime publish --project-path ./server drawamare
+$ cd ..
+$ spacetime generate --lang typescript --out-dir client/src/module_bindings --module-path server
 
 # Start the client
 $ cd client

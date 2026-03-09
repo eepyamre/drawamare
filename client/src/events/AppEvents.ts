@@ -1,5 +1,5 @@
 import { Layer } from '../interfaces';
-import { DrawCommand } from '../module_bindings';
+import { DrawCommand } from '../module_bindings/types';
 import { PressureSettings } from '../ui';
 import { Brush, BrushWithPreview, Tools } from '../utils';
 

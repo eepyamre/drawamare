@@ -1,6 +1,6 @@
 import { Point } from 'pixi.js';
 
-import { Brush as BrushSpacetime } from '../module_bindings';
+import { Brush as BrushSpacetime } from '../module_bindings/types';
 import { Brush, BrushWithPreview } from './types';
 
 export const distance = (a: Point, b: Point) => {

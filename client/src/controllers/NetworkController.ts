@@ -2,14 +2,12 @@ import { Identity } from 'spacetimedb';
 
 import { AppEvents, EventBus } from '../events';
 import { INetworkController } from '../interfaces';
+import { DbConnection, ErrorContext, EventContext } from '../module_bindings';
 import {
   Command,
-  DbConnection,
   DrawCommand,
-  ErrorContext,
-  EventContext,
   Layer as ServerLayer,
-} from '../module_bindings';
+} from '../module_bindings/types';
 import { Logger } from '../utils/logger';
 import { DrawingController } from './DrawingController';
 import { LayerController } from './LayerController';
@@ -84,7 +82,7 @@ export class NetworkController implements INetworkController {
 
       DbConnection.builder()
         .withUri(import.meta.env.VITE_SPACETIME_URL)
-        .withModuleName('drawamare')
+        .withDatabaseName('drawamare')
         .withToken(localStorage.getItem('auth_token') || '')
         .onConnect(onConnect)
         .onConnectError(onConnectError)
@@ -125,7 +123,7 @@ export class NetworkController implements INetworkController {
     const pixiCtr = PixiController.getInstance();
     const drawingCtr = DrawingController.getInstance();
 
-    this.getClientDb()?.command.onInsert(
+    this.getClientDb()?.Command.onInsert(
       (_ctx: EventContext, command: Command) => {
         if (
           !NetworkController.identity ||
@@ -146,7 +144,7 @@ export class NetworkController implements INetworkController {
     );
 
     // redraw
-    this.getClientDb()?.layer.onUpdate(
+    this.getClientDb()?.Layer.onUpdate(
       (_ctx: EventContext, _oldLayer: ServerLayer, newLayer: ServerLayer) => {
         if (
           !newLayer.forceUpdate ||
@@ -162,7 +160,7 @@ export class NetworkController implements INetworkController {
       }
     );
 
-    this.getClientDb()?.layer.onInsert(
+    this.getClientDb()?.Layer.onInsert(
       (_ctx: EventContext, layer: ServerLayer) => {
         Logger.debug(`[Network] Received create layer command`);
         const l = layerCtr.createLayer({
@@ -182,7 +180,7 @@ export class NetworkController implements INetworkController {
       }
     );
 
-    this.getClientDb()?.layer.onDelete(
+    this.getClientDb()?.Layer.onDelete(
       (_ctx: EventContext, layer: ServerLayer) => {
         Logger.debug(`[Network] Received delete layer command`);
 
@@ -199,15 +197,18 @@ export class NetworkController implements INetworkController {
   }
 
   _emitDrawCommands(data: { layerId: number; commands: DrawCommand[] }) {
-    this.getReducers()?.sendCommand(data.layerId, data.commands);
+    this.getReducers()?.sendCommand({
+      layer: data.layerId,
+      commands: data.commands,
+    });
   }
 
   _emitCreateLayerRequest() {
-    this.getReducers()?.createLayer();
+    this.getReducers()?.createLayer({});
   }
 
   _emitDeleteLayerRequest(layerId: number) {
-    this.getReducers()?.deleteLayer(layerId);
+    this.getReducers()?.deleteLayer({ layer: layerId });
   }
 
   _emitSaveLayerRequest(data: {
@@ -215,6 +216,10 @@ export class NetworkController implements INetworkController {
     base64: string;
     forceUpdate: boolean;
   }) {
-    this.getReducers()?.saveLayer(data.layerId, data.base64, data.forceUpdate);
+    this.getReducers()?.saveLayer({
+      layer: data.layerId,
+      base64: data.base64,
+      forceUpdate: data.forceUpdate,
+    });
   }
 }

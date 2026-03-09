@@ -1,6 +1,7 @@
 import { Identity } from 'spacetimedb';
 
-import { DbConnection, DrawCommand, Layer } from '../module_bindings';
+import { DbConnection } from '../module_bindings';
+import { DrawCommand, Layer } from '../module_bindings/types';
 
 export interface INetworkController {
   connect(): Promise<void>;

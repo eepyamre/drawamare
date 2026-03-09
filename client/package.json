@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "npm run dev ",
-    "build": "npm run lint && npm run prettier:fix &&  vite build",
+    "build": "npm run lint && npm run prettier:fix && tsc && vite build",
     "dev": "vite --host",
     "lint": "eslint .",
     "prettier:fix": "prettier src --write",
@@ -16,7 +16,7 @@
     "@types/socket.io-client": "^3.0.0",
     "pixi.js": "^8.14.0",
     "socket.io-client": "^4.8.1",
-    "spacetimedb": "^1.7.0",
+    "spacetimedb": "^2.0.3",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

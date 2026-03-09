@@ -2,7 +2,7 @@ import { FederatedPointerEvent, Point } from 'pixi.js';
 
 import { AppEvents, EventBus } from '../events';
 import { IDrawingController, Layer } from '../interfaces';
-import { DrawCommand, StrokeStyle } from '../module_bindings';
+import { DrawCommand, StrokeStyle } from '../module_bindings/types';
 import { BrushSettingsUI, PressureSettings } from '../ui';
 import {
   BLEND_MODES,

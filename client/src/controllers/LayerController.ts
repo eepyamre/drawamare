@@ -33,7 +33,7 @@ export class LayerController implements ILayerController {
   init() {
     const networkCtr = NetworkController.getInstance();
     const identity = networkCtr.getIdentity();
-    for (const layer of networkCtr.getClientDb()!.layer.iter()) {
+    for (const layer of networkCtr.getClientDb()!.Layer.iter()) {
       const { base64, id, owner, name } = layer;
 
       let l = this.getLayer(id);
