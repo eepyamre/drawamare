@@ -70,8 +70,6 @@ export class LayerUI {
           e.stopPropagation();
           Logger.debug(`[Layer UI] Delete layer ${layer.id}`);
           const bus = EventBus.getInstance();
-          bus.emit(AppEvents.HISTORY_CLEAR_REDO, null);
-          bus.emit(AppEvents.HISTORY_CLEAR_UNDO, null);
           bus.emit(AppEvents.NETWORK_DELETE_LAYER, layer.id);
           bus.emit(AppEvents.LAYER_DELETE, layer.id);
         });

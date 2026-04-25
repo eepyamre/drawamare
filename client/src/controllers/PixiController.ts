@@ -14,12 +14,16 @@ import 'pixi.js/math-extras';
 import { AppEvents, EventBus } from '../events';
 import { IPixiController, Layer } from '../interfaces';
 import { boardSize, maxScale, minScale } from '../utils';
+import { Tools } from '../utils/types';
 
 export class PixiController implements IPixiController {
   private static instance: IPixiController;
   static app: Application;
   static board: Container;
   static mouse: Graphics;
+
+  static shapePreview: Graphics;
+  static boardMask: Graphics;
 
   static getInstance(): IPixiController {
     if (!this.instance) {
@@ -56,6 +60,7 @@ export class PixiController implements IPixiController {
     const canvasMask = new Graphics()
       .rect(0, 0, boardSize.width, boardSize.height)
       .fill(0xffffff);
+    PixiController.boardMask = canvasMask;
     PixiController.board.mask = canvasMask;
 
     const canvasBg = new Graphics()
@@ -65,9 +70,14 @@ export class PixiController implements IPixiController {
     PixiController.mouse = new Graphics().circle(0, 0, 10);
     PixiController.mouse.zIndex = 10;
     PixiController.mouse.stroke(0x2b2b2b);
+
+    PixiController.shapePreview = new Graphics();
+    PixiController.shapePreview.zIndex = 100;
+
     PixiController.board.addChild(canvasMask);
     PixiController.board.addChild(canvasBg);
     PixiController.board.addChild(PixiController.mouse);
+    PixiController.board.addChild(PixiController.shapePreview);
 
     window.addEventListener('resize', () => {
       PixiController.app.resize();
@@ -101,6 +111,19 @@ export class PixiController implements IPixiController {
     bus.on(AppEvents.CANVAS_DOWNLOAD, this.download.bind(this));
     bus.on(AppEvents.BRUSH_SIZE_CHANGE, this.setMouseSize.bind(this));
     bus.on(AppEvents.LAYER_CLEAR_ACTIVE, this._clearLayer.bind(this));
+    bus.on(AppEvents.DRAWING_SET_TOOL, this._onToolChange.bind(this));
+  }
+
+  private _onToolChange(tool: Tools) {
+    if (tool === Tools.EYEDROPPER) {
+      PixiController.mouse.visible = false;
+      PixiController.app.canvas.style.cursor = 'crosshair';
+      PixiController.shapePreview.cursor = 'crosshair';
+    } else {
+      PixiController.mouse.visible = true;
+      PixiController.app.canvas.style.cursor = 'none';
+      PixiController.shapePreview.cursor = 'none';
+    }
   }
 
   _clearLayer(activeLayer: Layer | null) {
@@ -264,6 +287,38 @@ export class PixiController implements IPixiController {
 
   setMousePosition(point: Point) {
     PixiController.mouse.position = point;
+  }
+
+  async getPixelColor(point: Point): Promise<string | null> {
+    const board = PixiController.board;
+    const mask = board.mask;
+    // Unmask temporarily so extract captures everything including background
+    board.mask = null;
+    const base64 = await this.extractBase64(board);
+    board.mask = mask;
+
+    const img = new Image();
+    img.src = base64;
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = rej;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+
+    const x = Math.floor(point.x);
+    const y = Math.floor(point.y);
+    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+      return null;
+    }
+
+    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+    const toHex = (n: number) => n.toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
 
   setMouseSize(radius: number) {

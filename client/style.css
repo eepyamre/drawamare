@@ -60,12 +60,14 @@ body {
 }
 
 .tool img,
-.tool input {
+.tool input,
+.tool svg {
   width: 24px;
   height: 24px;
   border: none;
   background: none;
   user-select: none;
+  color: rgba(255, 255, 255, 0.87);
 }
 
 .tool input {

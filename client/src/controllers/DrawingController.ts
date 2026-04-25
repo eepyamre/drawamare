@@ -1,4 +1,4 @@
-import { FederatedPointerEvent, Point } from 'pixi.js';
+import { FederatedPointerEvent, Graphics, Point } from 'pixi.js';
 
 import { AppEvents, EventBus } from '../events';
 import { IDrawingController, Layer } from '../interfaces';
@@ -23,11 +23,13 @@ export class DrawingController implements IDrawingController {
     color: 0x000000,
     alpha: 1,
   };
+  currentTool: Tools = Tools.BRUSH;
   isErasing = false;
   drawing = false;
   pan = false;
 
   lastDrawingPosition: Point | null = null;
+  lastMousePosition: Point | null = null;
   lastWidth = 0;
   lastAlpha = 1;
   accumulatedDrawCommands: DrawCommand[] = [];
@@ -36,11 +38,16 @@ export class DrawingController implements IDrawingController {
     size: false,
   };
 
+  shapeStartPos: Point | null = null;
+  stabilizerBuffer: Point[] = [];
+  stabilizerMaxSize = 6;
+
   constructor() {
     const stage = PixiController.app.stage;
     this.strokeStyle.width = BrushSettingsUI.getInstance().getBrushSize();
     this.strokeStyle.alpha = BrushSettingsUI.getInstance().getBrushOpacity();
     this.pressureSettings = BrushSettingsUI.getInstance().getPressureSettings();
+    this.stabilizerMaxSize = BrushSettingsUI.getInstance().getStabilization();
 
     stage
       .on('pointerdown', this.onPointerDown.bind(this))
@@ -70,6 +77,10 @@ export class DrawingController implements IDrawingController {
     bus.on(
       AppEvents.BRUSH_PRESSUTE_TOGGLE,
       this.setPressureSettings.bind(this)
+    );
+    bus.on(
+      AppEvents.BRUSH_STABILIZATION_CHANGE,
+      this.setStabilization.bind(this)
     );
   }
 
@@ -157,10 +168,29 @@ export class DrawingController implements IDrawingController {
     }
     if (e.button !== 0) return;
 
+    const pos = pixiCtr.offsetPosition(e.clientX, e.clientY);
+    this.lastMousePosition = pos;
+
+    if (this.currentTool === Tools.EYEDROPPER) {
+      this.pickColor(pos);
+      return;
+    }
+
     this.drawing = true;
     EventBus.getInstance().emit(AppEvents.HISTORY_CLEAR_REDO, null);
-    const pos = pixiCtr.offsetPosition(e.clientX, e.clientY);
+
+    if (
+      this.currentTool === Tools.LINE ||
+      this.currentTool === Tools.RECTANGLE ||
+      this.currentTool === Tools.CIRCLE
+    ) {
+      this.shapeStartPos = pos;
+      this.stabilizerBuffer = [];
+      return;
+    }
+
     this.lastDrawingPosition = pos;
+    this.stabilizerBuffer = this.stabilizerMaxSize > 0 ? [pos] : [];
 
     const pressure = e.pointerType !== 'mouse' ? e.pressure : 1;
     let width = this.pressureSettings.size
@@ -177,7 +207,7 @@ export class DrawingController implements IDrawingController {
     this.lastAlpha = alpha;
 
     const style: StrokeStyle = { ...this.strokeStyle, width, alpha };
-    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
+    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.NORMAL;
 
     brushCtr.drawStamp(
       layer,
@@ -208,6 +238,7 @@ export class DrawingController implements IDrawingController {
 
     const offsetPosition = pixiCtr.offsetPosition(e.clientX, e.clientY);
     pixiCtr.setMousePosition(offsetPosition);
+    this.lastMousePosition = offsetPosition;
 
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
@@ -219,10 +250,32 @@ export class DrawingController implements IDrawingController {
       );
       return;
     }
-    if (!this.drawing || !this.lastDrawingPosition) return;
+    if (!this.drawing) return;
+
+    // Shape preview
+    if (
+      this.shapeStartPos &&
+      (this.currentTool === Tools.LINE ||
+        this.currentTool === Tools.RECTANGLE ||
+        this.currentTool === Tools.CIRCLE)
+    ) {
+      this.drawShapePreview(this.shapeStartPos, offsetPosition);
+      return;
+    }
+
+    if (!this.lastDrawingPosition) return;
+
+    // Brush stabilization
+    this.stabilizerBuffer.push(offsetPosition);
+    if (this.stabilizerBuffer.length > this.stabilizerMaxSize) {
+      this.stabilizerBuffer.shift();
+    }
+
+    const smoothedPos = this.getStabilizedPoint();
+    if (!smoothedPos) return;
 
     const start = this.lastDrawingPosition;
-    const end = offsetPosition;
+    const end = smoothedPos;
     const dist = Math.hypot(end.x - start.x, end.y - start.y);
     if (dist === 0) return;
 
@@ -240,7 +293,7 @@ export class DrawingController implements IDrawingController {
       ? this.strokeStyle.alpha * pressure
       : this.strokeStyle.alpha;
 
-    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
+    const blend = this.isErasing ? BLEND_MODES.ERASE : BLEND_MODES.NORMAL;
     const step = (Math.min(sw, ew) / 4 || 1) * brushCtr.brush.spacing;
 
     pixiCtr.setMouseSize(ew);
@@ -305,9 +358,23 @@ export class DrawingController implements IDrawingController {
     this.drawing = false;
     this.pan = false;
     this.lastDrawingPosition = null;
+    this.stabilizerBuffer = [];
 
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;
+
+    // Shape tool finalize
+    if (
+      this.shapeStartPos &&
+      (this.currentTool === Tools.LINE ||
+        this.currentTool === Tools.RECTANGLE ||
+        this.currentTool === Tools.CIRCLE)
+    ) {
+      this.finalizeShape(layer, this.lastMousePosition || this.shapeStartPos);
+      this.shapeStartPos = null;
+      PixiController.shapePreview.clear();
+      return;
+    }
 
     EventBus.getInstance().emit(AppEvents.HISTORY_SAVE_STATE, layer);
 
@@ -335,8 +402,92 @@ export class DrawingController implements IDrawingController {
     this.accumulatedDrawCommands = [];
   }
 
+  private getStabilizedPoint(): Point | null {
+    if (this.stabilizerBuffer.length === 0) return null;
+    let x = 0;
+    let y = 0;
+    for (const p of this.stabilizerBuffer) {
+      x += p.x;
+      y += p.y;
+    }
+    return new Point(
+      x / this.stabilizerBuffer.length,
+      y / this.stabilizerBuffer.length
+    );
+  }
+
+  private drawShapePreview(start: Point, current: Point) {
+    const g = PixiController.shapePreview;
+    g.clear();
+    if (this.currentTool === Tools.LINE) {
+      g.moveTo(start.x, start.y);
+      g.lineTo(current.x, current.y);
+    } else if (this.currentTool === Tools.RECTANGLE) {
+      const x = Math.min(start.x, current.x);
+      const y = Math.min(start.y, current.y);
+      const w = Math.abs(current.x - start.x);
+      const h = Math.abs(current.y - start.y);
+      g.rect(x, y, w, h);
+    } else if (this.currentTool === Tools.CIRCLE) {
+      const r = Math.hypot(current.x - start.x, current.y - start.y);
+      g.circle(start.x, start.y, r);
+    }
+    g.stroke({
+      width: this.strokeStyle.width,
+      color: this.strokeStyle.color,
+      alpha: this.strokeStyle.alpha,
+    });
+    PixiController.board.addChild(g);
+  }
+
+  private finalizeShape(layer: Layer, endPos: Point) {
+    const pixiCtr = PixiController.getInstance();
+    const g = new Graphics();
+
+    const color = this.strokeStyle.color;
+    const alpha = this.strokeStyle.alpha;
+    const width = this.strokeStyle.width;
+
+    const start = this.shapeStartPos!;
+
+    if (this.currentTool === Tools.LINE) {
+      g.moveTo(start.x, start.y);
+      g.lineTo(endPos.x, endPos.y);
+    } else if (this.currentTool === Tools.RECTANGLE) {
+      const x = Math.min(start.x, endPos.x);
+      const y = Math.min(start.y, endPos.y);
+      const w = Math.abs(endPos.x - start.x);
+      const h = Math.abs(endPos.y - start.y);
+      g.rect(x, y, w, h);
+    } else if (this.currentTool === Tools.CIRCLE) {
+      const r = Math.hypot(endPos.x - start.x, endPos.y - start.y);
+      g.circle(start.x, start.y, r);
+    }
+    g.stroke({ width, color, alpha });
+
+    pixiCtr.renderToTarget(g, layer.rt, false);
+    g.destroy();
+
+    EventBus.getInstance().emit(AppEvents.HISTORY_SAVE_STATE, layer);
+    void pixiCtr.extractBase64(layer.rt).then((data) => {
+      EventBus.getInstance().emit(AppEvents.NETWORK_SAVE_LAYER, {
+        layerId: layer.id,
+        base64: data,
+        forceUpdate: true,
+      });
+    });
+  }
+
+  private async pickColor(pos: Point) {
+    const hex = await PixiController.getInstance().getPixelColor(pos);
+    if (hex !== null) {
+      EventBus.getInstance().emit(AppEvents.BRUSH_COLOR_CHANGE, hex);
+    }
+  }
+
   setDrawingTool(tool: Tools) {
     this.isErasing = tool === Tools.ERASER;
+    this.currentTool = tool;
   }
   setCurrentColor(hex: string) {
     this.strokeStyle.color = Number(hex.replace('#', '0x'));
@@ -349,6 +500,9 @@ export class DrawingController implements IDrawingController {
   }
   setPressureSettings(settings: PressureSettings) {
     this.pressureSettings = settings;
+  }
+  setStabilization(value: number) {
+    this.stabilizerMaxSize = value;
   }
   setPanMode(boolean: boolean) {
     this.pan = boolean;

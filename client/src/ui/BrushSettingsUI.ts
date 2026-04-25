@@ -17,6 +17,7 @@ export class BrushSettingsUI {
 
   private sizeSlider: HTMLInputElement;
   private opacitySlider: HTMLInputElement;
+  private stabilizationSlider: HTMLInputElement;
   private pressureSizeCheckbox: HTMLInputElement;
   private pressureOpacityCheckbox: HTMLInputElement;
   private brushList: HTMLDivElement;
@@ -30,6 +31,9 @@ export class BrushSettingsUI {
     this.sizeSlider = document.querySelector<HTMLInputElement>('#brush-size')!;
     this.opacitySlider =
       document.querySelector<HTMLInputElement>('#brush-opacity')!;
+    this.stabilizationSlider = document.querySelector<HTMLInputElement>(
+      '#brush-stabilization'
+    )!;
     this.pressureSizeCheckbox =
       document.querySelector<HTMLInputElement>('#pressure-size')!;
     this.pressureOpacityCheckbox =
@@ -169,6 +173,11 @@ export class BrushSettingsUI {
       this.onOpacityChange?.(value);
     });
 
+    this.stabilizationSlider.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value);
+      this.onStabilizationChange?.(value);
+    });
+
     const handlePressureChange = () => {
       this.onPressureToggle?.({
         size: this.pressureSizeCheckbox.checked,
@@ -208,6 +217,10 @@ export class BrushSettingsUI {
     EventBus.getInstance().emit(AppEvents.BRUSH_OPACITY_CHANGE, opacity);
   }
 
+  public onStabilizationChange(value: number) {
+    EventBus.getInstance().emit(AppEvents.BRUSH_STABILIZATION_CHANGE, value);
+  }
+
   public onPressureToggle(settings: PressureSettings) {
     EventBus.getInstance().emit(AppEvents.BRUSH_PRESSUTE_TOGGLE, settings);
   }
@@ -233,6 +246,10 @@ export class BrushSettingsUI {
 
   public getBrushSize = (): number => parseFloat(this.sizeSlider.value);
   public getBrushOpacity = (): number => parseFloat(this.opacitySlider.value);
+  public getStabilization = (): number => {
+    const val = parseFloat(this.stabilizationSlider.value);
+    return isNaN(val) ? 6 : val;
+  };
   public getPressureSettings = (): PressureSettings => ({
     size: this.pressureSizeCheckbox.checked,
     opacity: this.pressureOpacityCheckbox.checked,

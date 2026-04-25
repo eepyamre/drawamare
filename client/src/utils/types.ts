@@ -58,6 +58,10 @@ export type BrushExtended = Brush & { size?: number; color?: number };
 export enum Tools {
   BRUSH = 'brush',
   ERASER = 'eraser',
+  LINE = 'line',
+  RECTANGLE = 'rectangle',
+  CIRCLE = 'circle',
+  EYEDROPPER = 'eyedropper',
   DELETE = 'delete',
   ZOOMIN = 'zoomin',
   ZOOMOUT = 'zoomout',

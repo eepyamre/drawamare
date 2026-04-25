@@ -32,5 +32,6 @@ export interface IDrawingController {
   setSize(size: number): void;
   setOpacity(opacity: number): void;
   setPressureSettings(settings: PressureSettings): void;
+  setStabilization(value: number): void;
   setPanMode(boolean: boolean): void;
 }

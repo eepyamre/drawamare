@@ -62,7 +62,9 @@ export class BrushController implements IBrushController {
 
     if (stamp) {
       const actualBlend =
-        blendMode === BLEND_MODES.ERASE ? BLEND_MODES.ERASE : BLEND_MODES.MAX;
+        blendMode === BLEND_MODES.ERASE
+          ? BLEND_MODES.ERASE
+          : BLEND_MODES.NORMAL;
       stamp.blendMode = actualBlend;
       stamp.groupBlendMode = actualBlend;
       stamp.position.set(position.x - size, position.y - size);

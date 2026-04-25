@@ -1,9 +1,10 @@
-- Controller Tests
-- Undo layer deleting
-- Better Brush Stabilization
-- More Drawing Tools
+- fix layer deleting when tried to undo with empty history
+- auto add layer to history on start so undo (after deletion) work
+- sync user cursors (only moving, fade after )
 - Layer deletion confirmation
 - Authentication
 - Moderation
 - UserList UI
 - Chat
+- update brush engine
+- Controller Tests(later)

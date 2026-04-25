@@ -25,5 +25,6 @@ export interface IPixiController {
   getScale(): number;
   moveBoardBy(x: number, y: number): void;
   setMousePosition(point: Point): void;
+  getPixelColor(point: Point): Promise<string | null>;
   setMouseSize(radius: number): void;
 }

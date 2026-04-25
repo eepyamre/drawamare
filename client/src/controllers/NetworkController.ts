@@ -33,21 +33,24 @@ export class NetworkController implements INetworkController {
   connect(): Promise<void> {
     return new Promise<void>((res, rej) => {
       const subscribeToQueries = (conn: DbConnection, queries: string[]) => {
-        let count = 0;
-        for (const query of queries) {
-          conn
-            ?.subscriptionBuilder()
-            .onApplied(() => {
-              count++;
-              if (count === queries.length) {
-                Logger.debug('[Network] SDK client cache initialized.');
-              }
-            })
-            .subscribe(query);
-        }
+        return new Promise<void>((resolve) => {
+          let count = 0;
+          for (const query of queries) {
+            conn
+              ?.subscriptionBuilder()
+              .onApplied(() => {
+                count++;
+                if (count === queries.length) {
+                  Logger.debug('[Network] SDK client cache initialized.');
+                  resolve();
+                }
+              })
+              .subscribe(query);
+          }
+        });
       };
 
-      const onConnect = (
+      const onConnect = async (
         conn: DbConnection,
         userIdentity: Identity,
         token: string
@@ -59,7 +62,7 @@ export class NetworkController implements INetworkController {
           NetworkController.identity.toHexString()
         );
 
-        subscribeToQueries(conn, [
+        await subscribeToQueries(conn, [
           'SELECT * FROM layer',
           'SELECT * FROM user',
           'SELECT * FROM command',
@@ -70,7 +73,6 @@ export class NetworkController implements INetworkController {
       };
 
       const onDisconnect = () => {
-        // todo
         Logger.info('[Network] Disconnected');
       };
 
@@ -143,13 +145,12 @@ export class NetworkController implements INetworkController {
       }
     );
 
-    // redraw
     this.getClientDb()?.Layer.onUpdate(
       (_ctx: EventContext, _oldLayer: ServerLayer, newLayer: ServerLayer) => {
         if (
           !newLayer.forceUpdate ||
           !newLayer.base64 ||
-          this.confirmLayerIdentity(newLayer) // user's layers is already up to date
+          this.confirmLayerIdentity(newLayer)
         )
           return;
         Logger.debug(`[Network] Received update layer command`);

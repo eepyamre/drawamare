@@ -12,11 +12,50 @@
     <div id="app">
       <div id="pixi-container"></div>
       <div id="tools">
-        <button class="tool active" data-tool="brush" title="Brush">
+        <button class="tool active" data-tool="brush" title="Brush (B)">
           <img src="/assets/icons/brush.svg" />
         </button>
-        <button class="tool" data-tool="eraser" title="Eraser">
+        <button class="tool" data-tool="eraser" title="Eraser (E)">
           <img src="/assets/icons/eraser.svg" />
+        </button>
+        <button class="tool" data-tool="line" title="Line">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="4" y1="20" x2="20" y2="4" />
+          </svg>
+        </button>
+        <button class="tool" data-tool="rectangle" title="Rectangle">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="4" y="4" width="16" height="16" />
+          </svg>
+        </button>
+        <button class="tool" data-tool="circle" title="Circle">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        </button>
+        <button class="tool" data-tool="eyedropper" title="Eyedropper (I)">
+          <img src="/assets/icons/eyedropper.svg" />
         </button>
         <button class="tool" data-tool="delete" title="Delete">
           <img src="/assets/icons/delete.svg" />
@@ -66,6 +105,17 @@
             max="1"
             step="0.05"
             value="1"
+          />
+        </div>
+        <div class="setting">
+          <label for="brush-stabilization">Stabilization</label>
+          <input
+            type="range"
+            id="brush-stabilization"
+            min="1"
+            max="10"
+            step="1"
+            value="6"
           />
         </div>
         <div class="setting-checkbox">

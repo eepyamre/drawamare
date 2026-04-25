@@ -22,6 +22,11 @@ export class ToolbarUI {
     const bus = EventBus.getInstance();
 
     bus.on(AppEvents.DRAWING_SET_TOOL, this.setActiveTool.bind(this));
+    bus.on(AppEvents.BRUSH_COLOR_CHANGE, this.syncColorInput.bind(this));
+  }
+
+  private syncColorInput(color: string) {
+    this.colorInput.value = color;
   }
 
   private initializeTools() {
@@ -50,7 +55,15 @@ export class ToolbarUI {
   }
 
   public setActiveTool(toolType: Tools) {
-    if (toolType !== Tools.BRUSH && toolType !== Tools.ERASER) return;
+    if (
+      toolType !== Tools.BRUSH &&
+      toolType !== Tools.ERASER &&
+      toolType !== Tools.LINE &&
+      toolType !== Tools.RECTANGLE &&
+      toolType !== Tools.CIRCLE &&
+      toolType !== Tools.EYEDROPPER
+    )
+      return;
     this.tools.forEach((tool) => tool.classList.remove('active'));
 
     const activeTool = Array.from(this.tools).find(
@@ -74,7 +87,11 @@ export class ToolbarUI {
     const bus = EventBus.getInstance();
     switch (tool) {
       case Tools.BRUSH:
-      case Tools.ERASER: {
+      case Tools.ERASER:
+      case Tools.LINE:
+      case Tools.RECTANGLE:
+      case Tools.CIRCLE:
+      case Tools.EYEDROPPER: {
         bus.emit(AppEvents.DRAWING_SET_TOOL, tool);
         break;
       }

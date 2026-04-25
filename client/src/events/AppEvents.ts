@@ -15,6 +15,7 @@ export enum AppEvents {
   BRUSH_SIZE_CHANGE = 'brush:sizeChange',
   BRUSH_OPACITY_CHANGE = 'brush:opacityChange',
   BRUSH_PRESSUTE_TOGGLE = 'brush:pressureToggle',
+  BRUSH_STABILIZATION_CHANGE = 'brush:stabilizationChange',
   BRUSH_CHANGE = 'brush:change',
   BRUSH_EDIT = 'brush:edit',
   DRAWING_SET_TOOL = 'drawing:setTool',
@@ -45,9 +46,10 @@ export type EventData = {
   [AppEvents.BRUSH_SIZE_CHANGE]: number;
   [AppEvents.BRUSH_OPACITY_CHANGE]: number;
   [AppEvents.BRUSH_PRESSUTE_TOGGLE]: PressureSettings;
+  [AppEvents.BRUSH_STABILIZATION_CHANGE]: number;
   [AppEvents.BRUSH_CHANGE]: Brush;
   [AppEvents.BRUSH_EDIT]: { brush: BrushWithPreview; index: number };
-  [AppEvents.DRAWING_SET_TOOL]: Tools.BRUSH | Tools.ERASER;
+  [AppEvents.DRAWING_SET_TOOL]: Tools;
   [AppEvents.CANVAS_ZOOM_IN]: null;
   [AppEvents.CANVAS_ZOOM_OUT]: null;
   [AppEvents.CANVAS_DOWNLOAD]: null;

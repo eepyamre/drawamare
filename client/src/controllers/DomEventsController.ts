@@ -32,7 +32,7 @@ export class DomEventsController implements IDomEventsController {
     const bus = EventBus.getInstance();
 
     const key = e.key.toLowerCase();
-    const keys = ['e', 'z', 'delete', '+', '-', ' '];
+    const keys = ['e', 'z', 'delete', '+', '-', ' ', 'i', 'b'];
     if (keys.includes(key)) {
       e.preventDefault();
     }
@@ -69,6 +69,12 @@ export class DomEventsController implements IDomEventsController {
       case ' ':
         bus.emit(AppEvents.CANVAS_SET_PAN_MODE, true);
         break;
+      case 'i':
+        bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.EYEDROPPER);
+        break;
+      case 'b':
+        bus.emit(AppEvents.DRAWING_SET_TOOL, Tools.BRUSH);
+        break;
     }
   }
 
@@ -79,7 +85,7 @@ export class DomEventsController implements IDomEventsController {
     const bus = EventBus.getInstance();
 
     const key = e.key.toLowerCase();
-    const keys = ['e', 'z', 'delete', '+', '-', ' '];
+    const keys = ['e', 'z', 'delete', '+', '-', ' ', 'i'];
     if (keys.includes(key)) {
       e.preventDefault();
     }
