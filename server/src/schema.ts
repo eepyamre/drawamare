@@ -42,6 +42,7 @@ export const User = table(
     identity: t.identity().primaryKey(),
     name: t.string().optional(),
     online: t.bool(),
+    linkedAccount: t.string().optional(),
   }
 );
 
@@ -53,6 +54,7 @@ export const Layer = table(
     owner: t.identity(),
     base64: t.string().optional(),
     forceUpdate: t.bool(),
+    callerConnectionId: t.connectionId().optional(),
   }
 );
 
@@ -62,8 +64,18 @@ export const Command = table(
     id: t.i32().primaryKey().autoInc(),
     layer: t.i32(),
     owner: t.identity(),
+    callerConnectionId: t.connectionId(),
     commands: t.array(DrawCommand),
   }
 );
 
-export default schema({ User, Layer, Command });
+export const Account = table(
+  { name: 'account' },
+  {
+    username: t.string().primaryKey(),
+    passwordHash: t.string(),
+    linkedIdentity: t.identity(),
+  }
+);
+
+export default schema({ User, Layer, Command, Account });

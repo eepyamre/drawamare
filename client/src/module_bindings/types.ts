@@ -28,6 +28,7 @@ export const Command = __t.object("Command", {
   id: __t.i32(),
   layer: __t.i32(),
   owner: __t.identity(),
+  callerConnectionId: __t.connectionId(),
   get commands() {
     return __t.array(DrawCommand);
   },
@@ -57,6 +58,7 @@ export const Layer = __t.object("Layer", {
   owner: __t.identity(),
   base64: __t.option(__t.string()),
   forceUpdate: __t.bool(),
+  callerConnectionId: __t.option(__t.connectionId()),
 });
 export type Layer = __Infer<typeof Layer>;
 
@@ -78,6 +80,14 @@ export const User = __t.object("User", {
   identity: __t.identity(),
   name: __t.option(__t.string()),
   online: __t.bool(),
+  linkedAccount: __t.option(__t.string()),
 });
 export type User = __Infer<typeof User>;
+
+export const Account = __t.object("Account", {
+  username: __t.string(),
+  passwordHash: __t.string(),
+  linkedIdentity: __t.identity(),
+});
+export type Account = __Infer<typeof Account>;
 

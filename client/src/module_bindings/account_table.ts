@@ -11,10 +11,7 @@ import {
 } from "spacetimedb";
 
 export default __t.row({
-  id: __t.i32().primaryKey(),
-  name: __t.option(__t.string()),
-  owner: __t.identity(),
-  base64: __t.option(__t.string()).name("base_64"),
-  forceUpdate: __t.bool().name("force_update"),
-  callerConnectionId: __t.option(__t.connectionId()),
+  username: __t.string().primaryKey(),
+  passwordHash: __t.string(),
+  linkedIdentity: __t.identity(),
 });

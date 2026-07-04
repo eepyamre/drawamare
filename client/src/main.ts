@@ -8,7 +8,13 @@ import {
 } from './controllers/';
 import { DomEventsController } from './controllers/DomEventsController';
 import { BrushLoader } from './loaders/BrushLoader';
-import { BrushEditorUI, BrushSettingsUI, LayerUI, ToolbarUI } from './ui/';
+import {
+  AuthUI,
+  BrushEditorUI,
+  BrushSettingsUI,
+  LayerUI,
+  ToolbarUI,
+} from './ui/';
 import { wait } from './utils';
 import { Logger } from './utils/logger';
 
@@ -40,6 +46,23 @@ const startApp = async () => {
   }
   if (!NetworkController.identity) {
     throw new Error('User identity is not defined');
+  }
+
+  const storedUsername = localStorage.getItem('logged_in_username');
+  if (storedUsername) {
+    const user = NetworkController.getInstance()
+      .getClientDb()
+      ?.User.identity.find(NetworkController.identity);
+    if (user?.linkedAccount && user.linkedAccount === storedUsername) {
+      Logger.info(`[Auth] Resuming session for ${storedUsername}`);
+    } else {
+      localStorage.removeItem('logged_in_username');
+    }
+  }
+
+  if (!localStorage.getItem('logged_in_username')) {
+    const authUI = new AuthUI();
+    await authUI.show();
   }
 
   const pixiCtr = PixiController.getInstance();

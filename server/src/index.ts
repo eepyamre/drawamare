@@ -7,7 +7,7 @@ export const onConnect = spacetimedb.clientConnected((ctx) => {
   if (existingUser) {
     ctx.db.User.identity.update({ ...existingUser, online: true });
   } else {
-    ctx.db.User.insert({ identity: ctx.sender, name: undefined, online: true });
+    ctx.db.User.insert({ identity: ctx.sender, name: undefined, online: true, linkedAccount: undefined });
   }
 });
 
@@ -43,6 +43,9 @@ export const saveLayer = spacetimedb.reducer(
     forceUpdate: t.bool(),
   },
   (ctx, { layer, base64, forceUpdate }) => {
+    if (!ctx.connectionId) {
+      throw new SenderError('No connection');
+    }
     const existingLayer = ctx.db.Layer.id.find(layer);
 
     if (existingLayer) {
@@ -50,6 +53,7 @@ export const saveLayer = spacetimedb.reducer(
         ...existingLayer,
         base64,
         forceUpdate,
+        callerConnectionId: ctx.connectionId,
       });
     } else {
       ctx.db.Layer.insert({
@@ -58,6 +62,7 @@ export const saveLayer = spacetimedb.reducer(
         base64,
         name: undefined,
         forceUpdate: true,
+        callerConnectionId: ctx.connectionId,
       });
     }
   }
@@ -70,6 +75,7 @@ export const createLayer = spacetimedb.reducer((ctx) => {
     base64: undefined,
     name: undefined,
     forceUpdate: true,
+    callerConnectionId: ctx.connectionId ?? undefined,
   });
 });
 
@@ -105,12 +111,91 @@ export const sendCommand = spacetimedb.reducer(
       throw new SenderError(`Layer with id ${layer} does not exist`);
     }
 
+    if (!ctx.connectionId) {
+      throw new SenderError('No connection');
+    }
+
     ctx.db.Command.insert({
       id: 0,
       layer,
       commands,
       owner: ctx.sender,
+      callerConnectionId: ctx.connectionId,
     });
+  }
+);
+
+export const register = spacetimedb.reducer(
+  {
+    username: t.string(),
+    passwordHash: t.string(),
+  },
+  (ctx, { username, passwordHash }) => {
+    if (!username || username.length === 0) {
+      throw new SenderError('Username must not be empty');
+    }
+    if (!passwordHash) {
+      throw new SenderError('Password hash is required');
+    }
+
+    const existing = ctx.db.Account.username.find(username);
+    if (existing) {
+      throw new SenderError(`Username "${username}" is already taken`);
+    }
+
+    ctx.db.Account.insert({
+      username,
+      passwordHash,
+      linkedIdentity: ctx.sender,
+    });
+
+    const user = ctx.db.User.identity.find(ctx.sender);
+    if (user) {
+      ctx.db.User.identity.update({ ...user, linkedAccount: username });
+    }
+  }
+);
+
+export const login = spacetimedb.reducer(
+  {
+    username: t.string(),
+    passwordHash: t.string(),
+  },
+  (ctx, { username, passwordHash }) => {
+    if (!username) {
+      throw new SenderError('Username is required');
+    }
+
+    const account = ctx.db.Account.username.find(username);
+    if (!account) {
+      throw new SenderError(`No account named "${username}"`);
+    }
+    if (account.passwordHash !== passwordHash) {
+      throw new SenderError('Invalid password');
+    }
+
+    if (!account.linkedIdentity.isEqual(ctx.sender)) {
+      for (const layer of ctx.db.Layer.iter()) {
+        if (layer.owner.isEqual(account.linkedIdentity)) {
+          ctx.db.Layer.id.update({ ...layer, owner: ctx.sender });
+        }
+      }
+
+      const oldUser = ctx.db.User.identity.find(account.linkedIdentity);
+      if (oldUser) {
+        ctx.db.User.identity.update({ ...oldUser, linkedAccount: undefined });
+      }
+
+      ctx.db.Account.username.update({
+        ...account,
+        linkedIdentity: ctx.sender,
+      });
+    }
+
+    const user = ctx.db.User.identity.find(ctx.sender);
+    if (user) {
+      ctx.db.User.identity.update({ ...user, linkedAccount: username });
+    }
   }
 );
 

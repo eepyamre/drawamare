@@ -1,4 +1,4 @@
-import { Identity } from 'spacetimedb';
+import { ConnectionId, Identity } from 'spacetimedb';
 
 import { AppEvents, EventBus } from '../events';
 import { INetworkController } from '../interfaces';
@@ -7,6 +7,7 @@ import {
   Command,
   DrawCommand,
   Layer as ServerLayer,
+  User as ServerUser,
 } from '../module_bindings/types';
 import { Logger } from '../utils/logger';
 import { DrawingController } from './DrawingController';
@@ -17,6 +18,7 @@ export class NetworkController implements INetworkController {
   private static instance: INetworkController;
   static conn: DbConnection | null = null;
   static identity: Identity | null = null;
+  static connectionId: ConnectionId | null = null;
 
   constructor() {
     this.initBusListeners();
@@ -56,6 +58,7 @@ export class NetworkController implements INetworkController {
         token: string
       ) => {
         NetworkController.identity = userIdentity;
+        NetworkController.connectionId = conn.connectionId;
         localStorage.setItem('auth_token', token);
         Logger.info(
           '[Network] Connected to SpacetimeDB with identity:',
@@ -128,8 +131,8 @@ export class NetworkController implements INetworkController {
     this.getClientDb()?.Command.onInsert(
       (_ctx: EventContext, command: Command) => {
         if (
-          !NetworkController.identity ||
-          command.owner.isEqual(NetworkController.identity)
+          !NetworkController.connectionId ||
+          command.callerConnectionId.isEqual(NetworkController.connectionId)
         )
           return;
         Logger.debug(
@@ -150,7 +153,9 @@ export class NetworkController implements INetworkController {
         if (
           !newLayer.forceUpdate ||
           !newLayer.base64 ||
-          this.confirmLayerIdentity(newLayer)
+          (newLayer.callerConnectionId &&
+            NetworkController.connectionId &&
+            newLayer.callerConnectionId.isEqual(NetworkController.connectionId))
         )
           return;
         Logger.debug(`[Network] Received update layer command`);
@@ -186,6 +191,22 @@ export class NetworkController implements INetworkController {
         Logger.debug(`[Network] Received delete layer command`);
 
         layerCtr.deleteLayer(layer.id);
+      }
+    );
+
+    this.getClientDb()?.User.onUpdate(
+      (_ctx: EventContext, _oldUser: ServerUser, newUser: ServerUser) => {
+        if (
+          !NetworkController.identity ||
+          !newUser.identity.isEqual(NetworkController.identity)
+        )
+          return;
+        if (!newUser.linkedAccount) {
+          Logger.info('[Auth] Session terminated (logged in elsewhere)');
+          localStorage.removeItem('logged_in_username');
+          alert('Your session was ended because you logged in elsewhere.');
+          window.location.reload();
+        }
       }
     );
   }

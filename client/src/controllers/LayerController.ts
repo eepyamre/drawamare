@@ -34,7 +34,10 @@ export class LayerController implements ILayerController {
   init() {
     const networkCtr = NetworkController.getInstance();
     const identity = networkCtr.getIdentity();
-    for (const layer of networkCtr.getClientDb()!.Layer.iter()) {
+    const sortedLayers = Array.from(
+      networkCtr.getClientDb()!.Layer.iter()
+    ).sort((a, b) => a.id - b.id);
+    for (const layer of sortedLayers) {
       const { base64, id, owner, name } = layer;
 
       let l = this.getLayer(id);
@@ -106,7 +109,7 @@ export class LayerController implements ILayerController {
   }
 
   getAllLayers(): Layer[] {
-    return Array.from(this.layers.values());
+    return Array.from(this.layers.values()).sort((a, b) => a.id - b.id);
   }
 
   setActiveLayer(layerId: number): Layer | null {

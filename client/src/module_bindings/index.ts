@@ -36,6 +36,8 @@ import {
 // Import all reducer arg schemas
 import CreateLayerReducer from "./create_layer_reducer";
 import DeleteLayerReducer from "./delete_layer_reducer";
+import LoginReducer from "./login_reducer";
+import RegisterReducer from "./register_reducer";
 import RenameLayerReducer from "./rename_layer_reducer";
 import SaveLayerReducer from "./save_layer_reducer";
 import SendCommandReducer from "./send_command_reducer";
@@ -44,6 +46,7 @@ import SetNameReducer from "./set_name_reducer";
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import AccountRow from "./account_table";
 import CommandRow from "./command_table";
 import LayerRow from "./layer_table";
 import UserRow from "./user_table";
@@ -52,6 +55,17 @@ import UserRow from "./user_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  Account: __table({
+    name: 'account',
+    indexes: [
+      { name: 'username', algorithm: 'btree', columns: [
+        'username',
+      ] },
+    ],
+    constraints: [
+      { name: 'account_username_key', constraint: 'unique', columns: ['username'] },
+    ],
+  }, AccountRow),
   Command: __table({
     name: 'command',
     indexes: [
@@ -91,6 +105,8 @@ const tablesSchema = __schema({
 const reducersSchema = __reducers(
   __reducerSchema("create_layer", CreateLayerReducer),
   __reducerSchema("delete_layer", DeleteLayerReducer),
+  __reducerSchema("login", LoginReducer),
+  __reducerSchema("register", RegisterReducer),
   __reducerSchema("rename_layer", RenameLayerReducer),
   __reducerSchema("save_layer", SaveLayerReducer),
   __reducerSchema("send_command", SendCommandReducer),
