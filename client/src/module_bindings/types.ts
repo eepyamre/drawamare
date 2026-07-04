@@ -10,6 +10,13 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const Account = __t.object("Account", {
+  username: __t.string(),
+  passwordHash: __t.string(),
+  linkedIdentity: __t.identity(),
+});
+export type Account = __Infer<typeof Account>;
+
 export const Brush = __t.object("Brush", {
   ratio: __t.f32(),
   spikes: __t.i32(),
@@ -34,6 +41,15 @@ export const Command = __t.object("Command", {
   },
 });
 export type Command = __Infer<typeof Command>;
+
+export const Cursor = __t.object("Cursor", {
+  owner: __t.identity(),
+  x: __t.f32(),
+  y: __t.f32(),
+  color: __t.i32(),
+  name: __t.option(__t.string()),
+});
+export type Cursor = __Infer<typeof Cursor>;
 
 export const DrawCommand = __t.object("DrawCommand", {
   commandType: __t.string(),
@@ -83,20 +99,4 @@ export const User = __t.object("User", {
   linkedAccount: __t.option(__t.string()),
 });
 export type User = __Infer<typeof User>;
-
-export const Account = __t.object("Account", {
-  username: __t.string(),
-  passwordHash: __t.string(),
-  linkedIdentity: __t.identity(),
-});
-export type Account = __Infer<typeof Account>;
-
-export const Cursor = __t.object("Cursor", {
-  owner: __t.identity(),
-  x: __t.f32(),
-  y: __t.f32(),
-  color: __t.i32(),
-  name: __t.option(__t.string()),
-});
-export type Cursor = __Infer<typeof Cursor>;
 

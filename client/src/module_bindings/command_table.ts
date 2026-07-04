@@ -18,7 +18,7 @@ export default __t.row({
   id: __t.i32().primaryKey(),
   layer: __t.i32(),
   owner: __t.identity(),
-  callerConnectionId: __t.connectionId(),
+  callerConnectionId: __t.connectionId().name("caller_connection_id"),
   get commands() {
     return __t.array(DrawCommand);
   },

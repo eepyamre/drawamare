@@ -16,5 +16,5 @@ export default __t.row({
   owner: __t.identity(),
   base64: __t.option(__t.string()).name("base_64"),
   forceUpdate: __t.bool().name("force_update"),
-  callerConnectionId: __t.option(__t.connectionId()),
+  callerConnectionId: __t.option(__t.connectionId()).name("caller_connection_id"),
 });

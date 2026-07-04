@@ -8,6 +8,9 @@ import { type Infer as __Infer } from "spacetimedb";
 // Import all reducer arg schemas
 import CreateLayerReducer from "../create_layer_reducer";
 import DeleteLayerReducer from "../delete_layer_reducer";
+import LoginReducer from "../login_reducer";
+import MoveCursorReducer from "../move_cursor_reducer";
+import RegisterReducer from "../register_reducer";
 import RenameLayerReducer from "../rename_layer_reducer";
 import SaveLayerReducer from "../save_layer_reducer";
 import SendCommandReducer from "../send_command_reducer";
@@ -15,6 +18,9 @@ import SetNameReducer from "../set_name_reducer";
 
 export type CreateLayerParams = __Infer<typeof CreateLayerReducer>;
 export type DeleteLayerParams = __Infer<typeof DeleteLayerReducer>;
+export type LoginParams = __Infer<typeof LoginReducer>;
+export type MoveCursorParams = __Infer<typeof MoveCursorReducer>;
+export type RegisterParams = __Infer<typeof RegisterReducer>;
 export type RenameLayerParams = __Infer<typeof RenameLayerReducer>;
 export type SaveLayerParams = __Infer<typeof SaveLayerReducer>;
 export type SendCommandParams = __Infer<typeof SendCommandReducer>;

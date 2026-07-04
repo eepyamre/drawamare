@@ -47,7 +47,6 @@ import SetNameReducer from "./set_name_reducer";
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-import AccountRow from "./account_table";
 import CommandRow from "./command_table";
 import CursorRow from "./cursor_table";
 import LayerRow from "./layer_table";
@@ -57,17 +56,6 @@ import UserRow from "./user_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-  Account: __table({
-    name: 'account',
-    indexes: [
-      { name: 'username', algorithm: 'btree', columns: [
-        'username',
-      ] },
-    ],
-    constraints: [
-      { name: 'account_username_key', constraint: 'unique', columns: ['username'] },
-    ],
-  }, AccountRow),
   Command: __table({
     name: 'command',
     indexes: [
