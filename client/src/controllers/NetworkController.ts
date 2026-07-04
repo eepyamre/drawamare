@@ -123,6 +123,15 @@ export class NetworkController implements INetworkController {
     return NetworkController.conn?.reducers || null;
   }
 
+  resolveOwnerName = (identity: Identity): string => {
+    const user = this.getClientDb()?.User.identity.find(identity);
+    return (
+      user?.name ||
+      user?.linkedAccount ||
+      identity.toHexString().slice(0, 8)
+    );
+  };
+
   initEventListeners() {
     const layerCtr = LayerController.getInstance();
     const pixiCtr = PixiController.getInstance();
@@ -172,8 +181,8 @@ export class NetworkController implements INetworkController {
         const l = layerCtr.createLayer({
           id: layer.id,
           ownerId: layer.owner,
-          ownerName: layer.owner.toHexString().slice(0, 8),
-          title: layer.name || layer.owner.toHexString().slice(0, 8),
+          ownerName: this.resolveOwnerName(layer.owner),
+          title: layer.name || `Layer ${layer.id}`,
         });
 
         if (layer.base64) {
@@ -196,6 +205,17 @@ export class NetworkController implements INetworkController {
 
     this.getClientDb()?.User.onUpdate(
       (_ctx: EventContext, _oldUser: ServerUser, newUser: ServerUser) => {
+        if (newUser.linkedAccount) {
+          for (const layer of layerCtr.getAllLayers()) {
+            if (layer.ownerId.isEqual(newUser.identity)) {
+              layer.ownerName = newUser.linkedAccount;
+            }
+          }
+          EventBus.getInstance().emit(
+            AppEvents.LAYERS_RERENDER,
+            layerCtr.getAllLayers()
+          );
+        }
         if (
           !NetworkController.identity ||
           !newUser.identity.isEqual(NetworkController.identity)

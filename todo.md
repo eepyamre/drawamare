@@ -8,4 +8,5 @@
 - Chat
 - update brush engine
 - rename layers
+- when layer created on another tab in the same session the active layer sets up everywhere, should not do this.
 - Controller Tests(later)

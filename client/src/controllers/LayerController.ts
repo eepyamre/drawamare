@@ -46,8 +46,8 @@ export class LayerController implements ILayerController {
         l = this.createLayer({
           id,
           ownerId: owner,
-          ownerName: owner.toHexString().slice(0, 8),
-          title: name || owner.toHexString().slice(0, 8),
+          ownerName: networkCtr.resolveOwnerName(owner),
+          title: name || `Layer ${id}`,
         });
       }
       if (base64)
@@ -91,22 +91,23 @@ export class LayerController implements ILayerController {
     return l;
   }
 
-  getLayer(layerId: number): Layer | undefined {
+  getLayer = (layerId: number): Layer | undefined => {
     return this.layers.get(layerId);
-  }
+  };
 
-  getOrCreateLayer(layerId: number, ownerId: Identity): Layer {
+  getOrCreateLayer = (layerId: number, ownerId: Identity): Layer => {
     let layer = this.getLayer(layerId);
     if (!layer) {
+      const networkCtr = NetworkController.getInstance();
       layer = this.createLayer({
         id: layerId,
         ownerId: ownerId,
-        ownerName: ownerId.toHexString().slice(0, 8),
-        title: `Layer ${ownerId}`,
+        ownerName: networkCtr.resolveOwnerName(ownerId),
+        title: `Layer ${layerId}`,
       });
     }
     return layer;
-  }
+  };
 
   getAllLayers(): Layer[] {
     return Array.from(this.layers.values()).sort((a, b) => a.id - b.id);

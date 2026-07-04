@@ -10,6 +10,7 @@ export interface INetworkController {
   getReducers(): DbConnection['reducers'] | null;
   initEventListeners(): void;
   confirmLayerIdentity(layer: Layer): void;
+  resolveOwnerName(identity: Identity): string;
   _emitDrawCommands(data: { layerId: number; commands: DrawCommand[] }): void;
   _emitCreateLayerRequest(): void;
   _emitDeleteLayerRequest(layerId: number): void;
