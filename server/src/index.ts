@@ -7,7 +7,12 @@ export const onConnect = spacetimedb.clientConnected((ctx) => {
   if (existingUser) {
     ctx.db.User.identity.update({ ...existingUser, online: true });
   } else {
-    ctx.db.User.insert({ identity: ctx.sender, name: undefined, online: true, linkedAccount: undefined });
+    ctx.db.User.insert({
+      identity: ctx.sender,
+      name: undefined,
+      online: true,
+      linkedAccount: undefined,
+    });
   }
 });
 
@@ -17,6 +22,7 @@ export const onDisconnect = spacetimedb.clientDisconnected((ctx) => {
       ctx.db.Command.id.delete(cmd.id);
     }
   }
+  ctx.db.Cursor.owner.delete(ctx.sender);
 });
 
 // Reducers
@@ -33,6 +39,11 @@ export const setName = spacetimedb.reducer(
     }
 
     ctx.db.User.identity.update({ ...user, name });
+
+    const cursor = ctx.db.Cursor.owner.find(ctx.sender);
+    if (cursor) {
+      ctx.db.Cursor.owner.update({ ...cursor, name });
+    }
   }
 );
 
@@ -153,6 +164,13 @@ export const register = spacetimedb.reducer(
     if (user) {
       ctx.db.User.identity.update({ ...user, linkedAccount: username });
     }
+
+    const cursor = ctx.db.Cursor.owner.find(ctx.sender);
+    if (cursor) {
+      const updatedUser = ctx.db.User.identity.find(ctx.sender);
+      const displayName = updatedUser?.name || username;
+      ctx.db.Cursor.owner.update({ ...cursor, name: displayName });
+    }
   }
 );
 
@@ -195,6 +213,64 @@ export const login = spacetimedb.reducer(
     const user = ctx.db.User.identity.find(ctx.sender);
     if (user) {
       ctx.db.User.identity.update({ ...user, linkedAccount: username });
+    }
+
+    const cursor = ctx.db.Cursor.owner.find(ctx.sender);
+    if (cursor) {
+      const updatedUser = ctx.db.User.identity.find(ctx.sender);
+      const displayName = updatedUser?.name || username;
+      ctx.db.Cursor.owner.update({ ...cursor, name: displayName });
+    }
+  }
+);
+
+// Cursor Reducer
+
+const identityColor = (hex: string): number => {
+  let hash = 2166136261;
+  for (let i = 0; i < hex.length; i++) {
+    hash ^= hex.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const h = (hash >>> 0) % 360;
+  const s = 65 + ((hash >>> 8) % 20);
+  const l = 50 + ((hash >>> 16) % 15);
+  const c = (1 - Math.abs((2 * l) / 100 - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l / 100 - c / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  return (
+    ((Math.round((r + m) * 255) << 16) |
+      (Math.round((g + m) * 255) << 8) |
+      Math.round((b + m) * 255)) &
+    0xffffff
+  );
+};
+
+export const moveCursor = spacetimedb.reducer(
+  { x: t.f32(), y: t.f32() },
+  (ctx, { x, y }) => {
+    const existing = ctx.db.Cursor.owner.find(ctx.sender);
+    if (existing) {
+      ctx.db.Cursor.owner.update({ ...existing, x, y });
+    } else {
+      const user = ctx.db.User.identity.find(ctx.sender);
+      const displayName = user?.name || user?.linkedAccount || 'Anon';
+      ctx.db.Cursor.insert({
+        owner: ctx.sender,
+        x,
+        y,
+        color: identityColor(ctx.sender.toHexString()),
+        name: displayName,
+      });
     }
   }
 );

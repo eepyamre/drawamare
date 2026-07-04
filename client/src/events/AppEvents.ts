@@ -32,6 +32,7 @@ export enum AppEvents {
   NETWORK_CREATE_LAYER = 'network:createLayerRequest',
   NETWORK_DELETE_LAYER = 'network:deleteLayerRequest',
   NETWORK_SAVE_LAYER = 'network:saveLayerRequest',
+  NETWORK_CURSOR_MOVE = 'network:cursorMove',
 }
 
 export type EventData = {
@@ -71,6 +72,7 @@ export type EventData = {
     base64: string;
     forceUpdate: boolean;
   };
+  [AppEvents.NETWORK_CURSOR_MOVE]: { x: number; y: number };
   [AppEvents.LAYER_DELETE]: number;
   [AppEvents.LAYER_SELECT]: number;
 };

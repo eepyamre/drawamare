@@ -37,6 +37,7 @@ import {
 import CreateLayerReducer from "./create_layer_reducer";
 import DeleteLayerReducer from "./delete_layer_reducer";
 import LoginReducer from "./login_reducer";
+import MoveCursorReducer from "./move_cursor_reducer";
 import RegisterReducer from "./register_reducer";
 import RenameLayerReducer from "./rename_layer_reducer";
 import SaveLayerReducer from "./save_layer_reducer";
@@ -48,6 +49,7 @@ import SetNameReducer from "./set_name_reducer";
 // Import all table schema definitions
 import AccountRow from "./account_table";
 import CommandRow from "./command_table";
+import CursorRow from "./cursor_table";
 import LayerRow from "./layer_table";
 import UserRow from "./user_table";
 
@@ -77,6 +79,17 @@ const tablesSchema = __schema({
       { name: 'command_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, CommandRow),
+  Cursor: __table({
+    name: 'cursor',
+    indexes: [
+      { name: 'owner', algorithm: 'btree', columns: [
+        'owner',
+      ] },
+    ],
+    constraints: [
+      { name: 'cursor_owner_key', constraint: 'unique', columns: ['owner'] },
+    ],
+  }, CursorRow),
   Layer: __table({
     name: 'layer',
     indexes: [
@@ -106,6 +119,7 @@ const reducersSchema = __reducers(
   __reducerSchema("create_layer", CreateLayerReducer),
   __reducerSchema("delete_layer", DeleteLayerReducer),
   __reducerSchema("login", LoginReducer),
+  __reducerSchema("move_cursor", MoveCursorReducer),
   __reducerSchema("register", RegisterReducer),
   __reducerSchema("rename_layer", RenameLayerReducer),
   __reducerSchema("save_layer", SaveLayerReducer),

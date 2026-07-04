@@ -1,5 +1,6 @@
 import {
   BrushController,
+  CursorController,
   DrawingController,
   HistoryController,
   LayerController,
@@ -81,6 +82,7 @@ const startApp = async () => {
   HistoryController.getInstance();
   DrawingController.getInstance();
   DomEventsController.getInstance();
+  CursorController.getInstance();
   networkCtr.initEventListeners();
 };
 

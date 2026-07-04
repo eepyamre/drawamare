@@ -69,6 +69,7 @@ export class NetworkController implements INetworkController {
           'SELECT * FROM layer',
           'SELECT * FROM user',
           'SELECT * FROM command',
+          'SELECT * FROM cursor',
         ]);
         NetworkController.conn = conn;
 
@@ -109,6 +110,7 @@ export class NetworkController implements INetworkController {
       this._emitDeleteLayerRequest.bind(this)
     );
     bus.on(AppEvents.NETWORK_SAVE_LAYER, this._emitSaveLayerRequest.bind(this));
+    bus.on(AppEvents.NETWORK_CURSOR_MOVE, this._emitCursorMove.bind(this));
   }
 
   getIdentity(): Identity | null {
@@ -126,9 +128,7 @@ export class NetworkController implements INetworkController {
   resolveOwnerName = (identity: Identity): string => {
     const user = this.getClientDb()?.User.identity.find(identity);
     return (
-      user?.name ||
-      user?.linkedAccount ||
-      identity.toHexString().slice(0, 8)
+      user?.name || user?.linkedAccount || identity.toHexString().slice(0, 8)
     );
   };
 
@@ -264,4 +264,8 @@ export class NetworkController implements INetworkController {
       forceUpdate: data.forceUpdate,
     });
   }
+
+  _emitCursorMove = (data: { x: number; y: number }) => {
+    this.getReducers()?.moveCursor({ x: data.x, y: data.y });
+  };
 }

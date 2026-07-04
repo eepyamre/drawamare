@@ -33,12 +33,12 @@ export class AuthUI {
         <p class="auth-subtitle">Collaborative drawing</p>
 
         <div class="auth-tabs">
-          <button class="auth-tab active" data-tab="anon">Anon</button>
+          <button class="auth-tab active" data-tab="Anon">Anon</button>
           <button class="auth-tab" data-tab="login">Login</button>
           <button class="auth-tab" data-tab="register">Register</button>
         </div>
 
-        <form class="auth-panel" data-panel="anon">
+        <form class="auth-panel" data-panel="Anon">
           <p class="auth-hint">Continue as a guest. Your layers are owned by this browser only.</p>
           <button class="auth-submit" type="submit">Continue as Anon</button>
         </form>
@@ -79,7 +79,7 @@ export class AuthUI {
     });
 
     modal
-      .querySelector('[data-panel="anon"]')!
+      .querySelector('[data-panel="Anon"]')!
       .addEventListener('submit', (e) => {
         e.preventDefault();
         this.close();

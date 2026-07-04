@@ -32,6 +32,7 @@ export class DrawingController implements IDrawingController {
   lastMousePosition: Point | null = null;
   lastWidth = 0;
   lastAlpha = 1;
+  lastCursorEmit = 0;
   accumulatedDrawCommands: DrawCommand[] = [];
   pressureSettings: PressureSettings = {
     opacity: false,
@@ -171,6 +172,12 @@ export class DrawingController implements IDrawingController {
     const pos = pixiCtr.offsetPosition(e.clientX, e.clientY);
     this.lastMousePosition = pos;
 
+    EventBus.getInstance().emit(AppEvents.NETWORK_CURSOR_MOVE, {
+      x: pos.x,
+      y: pos.y,
+    });
+    this.lastCursorEmit = performance.now();
+
     if (this.currentTool === Tools.EYEDROPPER) {
       this.pickColor(pos);
       return;
@@ -239,6 +246,15 @@ export class DrawingController implements IDrawingController {
     const offsetPosition = pixiCtr.offsetPosition(e.clientX, e.clientY);
     pixiCtr.setMousePosition(offsetPosition);
     this.lastMousePosition = offsetPosition;
+
+    const now = performance.now();
+    if (now - this.lastCursorEmit > 50) {
+      EventBus.getInstance().emit(AppEvents.NETWORK_CURSOR_MOVE, {
+        x: offsetPosition.x,
+        y: offsetPosition.y,
+      });
+      this.lastCursorEmit = now;
+    }
 
     const layer = layerCtr.getActiveLayer();
     if (!layer) return;

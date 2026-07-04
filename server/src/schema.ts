@@ -78,4 +78,15 @@ export const Account = table(
   }
 );
 
-export default schema({ User, Layer, Command, Account });
+export const Cursor = table(
+  { name: 'cursor', public: true },
+  {
+    owner: t.identity().primaryKey(),
+    x: t.f32(),
+    y: t.f32(),
+    color: t.i32(),
+    name: t.string().optional(),
+  }
+);
+
+export default schema({ User, Layer, Command, Account, Cursor });

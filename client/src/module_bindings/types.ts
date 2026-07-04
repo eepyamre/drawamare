@@ -91,3 +91,12 @@ export const Account = __t.object("Account", {
 });
 export type Account = __Infer<typeof Account>;
 
+export const Cursor = __t.object("Cursor", {
+  owner: __t.identity(),
+  x: __t.f32(),
+  y: __t.f32(),
+  color: __t.i32(),
+  name: __t.option(__t.string()),
+});
+export type Cursor = __Infer<typeof Cursor>;
+
