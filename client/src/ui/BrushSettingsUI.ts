@@ -222,7 +222,7 @@ export class BrushSettingsUI {
   }
 
   public onPressureToggle(settings: PressureSettings) {
-    EventBus.getInstance().emit(AppEvents.BRUSH_PRESSUTE_TOGGLE, settings);
+    EventBus.getInstance().emit(AppEvents.BRUSH_PRESSURE_TOGGLE, settings);
   }
 
   public onBrushChange(brush: Brush) {

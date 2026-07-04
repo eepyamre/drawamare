@@ -1,10 +1,11 @@
 - fix layer deleting when tried to undo with empty history
 - auto add layer to history on start so undo (after deletion) work
-- sync user cursors (only moving, fade after )
+- sync user cursors (only moving, fade after)
 - Layer deletion confirmation
 - Authentication
 - Moderation
 - UserList UI
 - Chat
 - update brush engine
+- rename layers
 - Controller Tests(later)

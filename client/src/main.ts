@@ -15,7 +15,7 @@ import { Logger } from './utils/logger';
 const startApp = async () => {
   if (!('chrome' in window)) {
     alert(
-      'This app is currently supported only in Chrome. See the console for more details.'
+      'This app is currently supported only in Chromium based browsers. See the console for more details.'
     );
     console.error(
       'Due to a known issue in pixi.js(https://github.com/pixijs/pixijs/issues/11378), only Chrome is supported at this time.'

@@ -48,7 +48,6 @@ export const saveLayer = spacetimedb.reducer(
     if (existingLayer) {
       ctx.db.Layer.id.update({
         ...existingLayer,
-        owner: ctx.sender,
         base64,
         forceUpdate,
       });
@@ -91,7 +90,7 @@ export const renameLayer = spacetimedb.reducer(
       );
     }
 
-    ctx.db.Layer.id.update({ ...existingLayer, owner: ctx.sender, name });
+    ctx.db.Layer.id.update({ ...existingLayer, name });
   }
 );
 

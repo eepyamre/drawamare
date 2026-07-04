@@ -48,6 +48,12 @@ export class HistoryController implements IHistoryController {
     }
   }
 
+  seedInitialState(layer: Layer) {
+    HistoryController.historyStack.push(
+      PixiController.getInstance().extractTexture(layer)
+    );
+  }
+
   undo() {
     if (HistoryController.historyStack.length <= 0) {
       Logger.info('[History] No commands to undo');
@@ -68,7 +74,12 @@ export class HistoryController implements IHistoryController {
     HistoryController.redoStack.push(lastItem);
     const previousState =
       HistoryController.historyStack[HistoryController.historyStack.length - 1];
-    PixiController.getInstance().redrawLayer(layer, previousState);
+
+    if (previousState) {
+      PixiController.getInstance().redrawLayer(layer, previousState);
+    } else {
+      PixiController.getInstance().clearRenderTarget(layer.rt);
+    }
     PixiController.getInstance()
       .extractBase64(layer.rt)
       .then((data) => {

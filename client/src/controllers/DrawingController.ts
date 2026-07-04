@@ -75,7 +75,7 @@ export class DrawingController implements IDrawingController {
     bus.on(AppEvents.BRUSH_SIZE_CHANGE, this.setSize.bind(this));
     bus.on(AppEvents.BRUSH_OPACITY_CHANGE, this.setOpacity.bind(this));
     bus.on(
-      AppEvents.BRUSH_PRESSUTE_TOGGLE,
+      AppEvents.BRUSH_PRESSURE_TOGGLE,
       this.setPressureSettings.bind(this)
     );
     bus.on(

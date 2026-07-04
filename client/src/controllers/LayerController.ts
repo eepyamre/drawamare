@@ -2,6 +2,7 @@ import { Identity } from 'spacetimedb';
 
 import { AppEvents, EventBus } from '../events';
 import { ILayerController, Layer } from '../interfaces/ILayerController';
+import { HistoryController } from './HistoryController';
 import { NetworkController } from './NetworkController';
 import { PixiController } from './PixiController';
 
@@ -66,13 +67,14 @@ export class LayerController implements ILayerController {
     const l = {
       id: layerData.id,
       ownerId: layerData.ownerId,
-      ownerName: layerData.ownerId.toHexString().slice(0, 8), //TODO:
-      title: layerData.ownerId.toHexString().slice(0, 8), //TODO: get title from server
+      ownerName: layerData.ownerName,
+      title: layerData.title,
       container,
       rt,
     };
 
     this.layers.set(l.id, l);
+    HistoryController.getInstance().seedInitialState(l);
     EventBus.getInstance().emit(
       AppEvents.LAYERS_RERENDER,
       Array.from(this.layers.values())
@@ -125,6 +127,8 @@ export class LayerController implements ILayerController {
     const l = this.layers.get(layerId);
     l?.container.destroy();
     this.layers.delete(layerId);
+    this.activeLayer = null;
+
     EventBus.getInstance().emit(AppEvents.LAYERS_RERENDER, this.getAllLayers());
   }
 }

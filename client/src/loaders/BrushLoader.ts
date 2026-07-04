@@ -1,5 +1,7 @@
 import { Assets, Texture } from 'pixi.js';
 
+import { Logger } from '../utils/logger';
+
 export type TextureId = string;
 
 export type SpriteAsset = {
@@ -49,7 +51,7 @@ export class BrushLoader {
     if (tip) {
       return Assets.get(tip?.path);
     }
-    console.log('Undefined brush tip');
+    Logger.warn('[BrushLoader] Undefined brush tip:', brushTip);
     return null;
   }
 }
