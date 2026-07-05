@@ -153,6 +153,12 @@ export class DrawingController implements IDrawingController {
   }
 
   onPointerDown(e: FederatedPointerEvent) {
+    if (e.button === 1 || this.pan) {
+      this.pan = true;
+      return;
+    }
+    if (e.button !== 0) return;
+
     const layerCtr = LayerController.getInstance();
     const pixiCtr = PixiController.getInstance();
     const brushCtr = BrushController.getInstance();
@@ -163,11 +169,6 @@ export class DrawingController implements IDrawingController {
       EventBus.getInstance().emit(AppEvents.NETWORK_CREATE_LAYER, null);
       return;
     }
-    if (e.button === 1 || this.pan) {
-      this.pan = true;
-      return;
-    }
-    if (e.button !== 0) return;
 
     const pos = pixiCtr.offsetPosition(e.clientX, e.clientY);
     this.lastMousePosition = pos;
@@ -256,9 +257,6 @@ export class DrawingController implements IDrawingController {
       this.lastCursorEmit = now;
     }
 
-    const layer = layerCtr.getActiveLayer();
-    if (!layer) return;
-
     if (e.buttons !== 0 && this.pan) {
       pixiCtr.moveBoardBy(
         e.movementX / pixiCtr.getScale(),
@@ -266,6 +264,9 @@ export class DrawingController implements IDrawingController {
       );
       return;
     }
+
+    const layer = layerCtr.getActiveLayer();
+    if (!layer) return;
     if (!this.drawing) return;
 
     // Shape preview
